@@ -79,21 +79,41 @@ function RowLabel({ children }) {
 }
 
 function Slot({ id, title, assignments, byId }) {
-  const playerId = assignments[id];
-  const player = playerId ? byId.get(playerId) : null;
-
-  return (
-    <DroppableSlot id={id} title={title} player={player}>
-      {player ? (
-        <DraggablePlayer
-          id={player.id}
-          label={`#${player.number} ${player.name}${player.leadership ? ` (${player.leadership})` : ""}`}
-          sublabel={`Assigned: ${title}`}
-        />
-      ) : null}
-    </DroppableSlot>
-  );
-}
+    const playerId = assignments[id];
+    const player = playerId ? byId.get(playerId) : null;
+  
+    const posCode = slotToPosCode(id);
+    const warn = player ? canPlayMismatch(player, posCode) : false;
+  
+    const stick = player ? stickLabel(player) : "";
+    const warningText = warn ? "(!) Not familiar with this position." : "";
+  
+    let sublabel = "";
+    if (warningText && stick) {
+      sublabel = (
+        <>
+          <div>{warningText}</div>
+          <div style={{ fontSize: 12, opacity: 0.8 }}>{stick}</div>
+        </>
+      );
+    } else if (warningText) {
+      sublabel = warningText;
+    } else if (stick) {
+      sublabel = stick;
+    }
+  
+    return (
+      <DroppableSlot id={id} title={title} player={player}>
+        {player ? (
+          <DraggablePlayer
+            id={player.id}
+            label={`#${player.number} ${player.name}${player.leadership ? ` (${player.leadership})` : ""}`}
+            sublabel={sublabel}
+          />
+        ) : null}
+      </DroppableSlot>
+    );
+  }
 
 // ---------- Lineup model helpers ----------
 function createLineup(name = "New lineup") {
@@ -113,6 +133,33 @@ function ensureAssignmentsShape(lineup) {
   if (!lineup.assignments || typeof lineup.assignments !== "object") lineup.assignments = {};
   return lineup;
 }
+
+function slotToPosCode(slotId) {
+    // Examples: F2_LW -> LW, D1_RD -> RD, G_START -> G
+    if (slotId.startsWith("G_")) return "G";
+    const parts = slotId.split("_");
+    return parts[1] || "";
+  }
+  
+  function posTitle(posCode) {
+    // For nice display if you want later
+    return posCode || "";
+  }
+  
+  function canPlayMismatch(player, posCode) {
+    // If canPlay is empty, we don't warn (optional fields)
+    if (!player) return false;
+    const list = player.canPlay || [];
+    if (list.length === 0) return false;
+    return !list.includes(posCode);
+  }  
+
+  function stickLabel(player) {
+    if (!player) return "";
+    if (player.stick === "Left") return "Stick: Left";
+    if (player.stick === "Right") return "Stick: Right";
+    return ""; // ← hide label completely if not chosen
+  }
 
 function slotIdsFor(lineup) {
   const slots = [];
