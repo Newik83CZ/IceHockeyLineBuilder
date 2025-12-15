@@ -15,13 +15,13 @@ export default function Rosters({ data, setData }) {
   const [teamName, setTeamName] = useState("");
   const [search, setSearch] = useState("");
 
-  const activeTeam = data.teams.find(t => t.id === data.activeTeamId) || null;
+  const activeTeam = data.teams.find((t) => t.id === data.activeTeamId) || null;
 
   const sortedPlayers = useMemo(() => {
     if (!activeTeam) return [];
     const q = search.trim().toLowerCase();
     return [...activeTeam.players]
-      .filter(p => {
+      .filter((p) => {
         if (!q) return true;
         return (
           String(p.number).includes(q) ||
@@ -37,7 +37,6 @@ export default function Rosters({ data, setData }) {
       });
   }, [activeTeam, search]);
 
-  // Player modal-ish state (simple inline form for MVP)
   const [draft, setDraft] = useState({
     number: "",
     name: "",
@@ -51,7 +50,7 @@ export default function Rosters({ data, setData }) {
   const [error, setError] = useState("");
 
   function updateData(updater) {
-    setData(prev => {
+    setData((prev) => {
       const next = updater(structuredClone(prev));
       next.updatedAt = Date.now();
       return next;
@@ -61,7 +60,7 @@ export default function Rosters({ data, setData }) {
   function createNewTeam() {
     const name = teamName.trim();
     if (!name) return;
-    updateData(d => {
+    updateData((d) => {
       const t = createTeam(name);
       d.teams.push(t);
       d.activeTeamId = t.id;
@@ -71,8 +70,8 @@ export default function Rosters({ data, setData }) {
   }
 
   function deleteTeam(id) {
-    updateData(d => {
-      d.teams = d.teams.filter(t => t.id !== id);
+    updateData((d) => {
+      d.teams = d.teams.filter((t) => t.id !== id);
       if (d.activeTeamId === id) d.activeTeamId = d.teams[0]?.id ?? null;
       return d;
     });
@@ -114,15 +113,14 @@ export default function Rosters({ data, setData }) {
       return;
     }
 
-    updateData(d => {
-      const team = d.teams.find(t => t.id === d.activeTeamId);
+    updateData((d) => {
+      const team = d.teams.find((t) => t.id === d.activeTeamId);
       if (!team) return d;
 
       if (editingId) {
-        const idx = team.players.findIndex(p => p.id === editingId);
+        const idx = team.players.findIndex((p) => p.id === editingId);
         if (idx >= 0) {
           const updated = { ...team.players[idx], ...createPlayer(draft), id: editingId };
-          // createPlayer makes new id; override back:
           team.players[idx] = updated;
         }
       } else {
@@ -135,20 +133,20 @@ export default function Rosters({ data, setData }) {
   }
 
   function deletePlayer(id) {
-    updateData(d => {
-      const team = d.teams.find(t => t.id === d.activeTeamId);
+    updateData((d) => {
+      const team = d.teams.find((t) => t.id === d.activeTeamId);
       if (!team) return d;
-      team.players = team.players.filter(p => p.id !== id);
+      team.players = team.players.filter((p) => p.id !== id);
       return d;
     });
   }
 
   function toggleCanPlay(code) {
-    setDraft(prev => {
+    setDraft((prev) => {
       const has = prev.canPlay.includes(code);
       return {
         ...prev,
-        canPlay: has ? prev.canPlay.filter(c => c !== code) : [...prev.canPlay, code],
+        canPlay: has ? prev.canPlay.filter((c) => c !== code) : [...prev.canPlay, code],
       };
     });
   }
@@ -162,7 +160,7 @@ export default function Rosters({ data, setData }) {
         <div style={{ display: "flex", gap: 8 }}>
           <input
             value={teamName}
-            onChange={e => setTeamName(e.target.value)}
+            onChange={(e) => setTeamName(e.target.value)}
             placeholder="New team name"
             style={{ flex: 1, padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
           />
@@ -172,10 +170,8 @@ export default function Rosters({ data, setData }) {
         </div>
 
         <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
-          {data.teams.length === 0 && (
-            <div style={{ opacity: 0.7 }}>No teams yet. Add one above.</div>
-          )}
-          {data.teams.map(t => (
+          {data.teams.length === 0 && <div style={{ opacity: 0.7 }}>No teams yet. Add one above.</div>}
+          {data.teams.map((t) => (
             <div
               key={t.id}
               style={{
@@ -189,7 +185,7 @@ export default function Rosters({ data, setData }) {
               }}
             >
               <button
-                onClick={() => updateData(d => (d.activeTeamId = t.id, d))}
+                onClick={() => updateData((d) => ((d.activeTeamId = t.id), d))}
                 style={{ flex: 1, textAlign: "left", background: "transparent", border: "none" }}
               >
                 <div style={{ fontWeight: 600 }}>{t.name}</div>
@@ -209,16 +205,14 @@ export default function Rosters({ data, setData }) {
           <h2 style={{ margin: 0 }}>Rosters</h2>
           <input
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Search players…"
             style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)", width: 260 }}
           />
         </div>
 
         {!activeTeam ? (
-          <div style={{ marginTop: 14, opacity: 0.8 }}>
-            Create a team on the left to start adding players.
-          </div>
+          <div style={{ marginTop: 14, opacity: 0.8 }}>Create a team on the left to start adding players.</div>
         ) : (
           <>
             <div style={{ marginTop: 14, padding: 12, borderRadius: 14, border: "1px solid rgba(0,0,0,0.12)" }}>
@@ -230,73 +224,90 @@ export default function Rosters({ data, setData }) {
                 </div>
               )}
 
-              <div style={{ display: "grid", gridTemplateColumns: "110px 1fr 180px", gap: 10 }}>
-                <input
-                  value={draft.number}
-                  onChange={e => setDraft(p => ({ ...p, number: e.target.value }))}
-                  placeholder="Number"
-                  style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
-                />
-                <input
-                  value={draft.name}
-                  onChange={e => setDraft(p => ({ ...p, name: e.target.value }))}
-                  placeholder="Name"
-                  style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
-                />
-                <select
-                  value={draft.preferredPosition}
-                  onChange={e => setDraft(p => ({ ...p, preferredPosition: e.target.value }))}
-                  style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
-                >
-                  {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-
-                <select
-                  value={draft.leadership}
-                  onChange={e => setDraft(p => ({ ...p, leadership: e.target.value }))}
-                  style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
-                >
-                  {LEADERSHIP.map(l => (
-                    <option key={l} value={l}>
-                      {l === "" ? "Leadership: none" : l}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={draft.stick}
-                  onChange={e => setDraft(p => ({ ...p, stick: e.target.value }))}
-                  style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
-                >
-                  {STICKS.map(s => (
-                    <option key={s} value={s}>
-                      {s === "" ? "Stick: (not set)" : s}
-                    </option>
-                  ))}
-                </select>
-
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-                  <span style={{ opacity: 0.8 }}>Can play:</span>
-                  {CANPLAY.map(code => (
-                    <label key={code} style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                      <input
-                        type="checkbox"
-                        checked={draft.canPlay.includes(code)}
-                        onChange={() => toggleCanPlay(code)}
-                      />
-                      {code}
-                    </label>
-                  ))}
+              {/* NEW LAYOUT */}
+              <div style={{ display: "grid", gap: 12 }}>
+                {/* Row 1: Number + Name */}
+                <div style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: 10 }}>
+                  <input
+                    value={draft.number}
+                    onChange={(e) => setDraft((p) => ({ ...p, number: e.target.value }))}
+                    placeholder="Number"
+                    style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+                  />
+                  <input
+                    value={draft.name}
+                    onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
+                    placeholder="Name"
+                    style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+                  />
                 </div>
 
+                {/* Row 2: Position + Leadership + Stick */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 170px 170px", gap: 10 }}>
+                  <select
+                    value={draft.preferredPosition}
+                    onChange={(e) => setDraft((p) => ({ ...p, preferredPosition: e.target.value }))}
+                    style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+                  >
+                    {POSITIONS.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={draft.leadership}
+                    onChange={(e) => setDraft((p) => ({ ...p, leadership: e.target.value }))}
+                    style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+                  >
+                    {LEADERSHIP.map((l) => (
+                      <option key={l} value={l}>
+                        {l === "" ? "Leadership: none" : l}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={draft.stick}
+                    onChange={(e) => setDraft((p) => ({ ...p, stick: e.target.value }))}
+                    style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+                  >
+                    {STICKS.map((s) => (
+                      <option key={s} value={s}>
+                        {s === "" ? "Stick: (not set)" : s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Row 3: Can play (full width) */}
+                <div style={{ display: "grid", gap: 8 }}>
+                  <div style={{ fontWeight: 700, opacity: 0.85 }}>Can play:</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
+                    {CANPLAY.map((code) => (
+                      <label key={code} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        <input
+                          type="checkbox"
+                          checked={draft.canPlay.includes(code)}
+                          onChange={() => toggleCanPlay(code)}
+                        />
+                        {code}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Row 4: Notes (full width) */}
                 <textarea
                   value={draft.notes}
-                  onChange={e => setDraft(p => ({ ...p, notes: e.target.value }))}
+                  onChange={(e) => setDraft((p) => ({ ...p, notes: e.target.value }))}
                   placeholder="Notes (optional)"
-                  rows={2}
-                  style={{ gridColumn: "1 / -1", padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+                  rows={3}
+                  style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
                 />
 
+                {/* Actions */}
                 <div style={{ display: "flex", gap: 8 }}>
                   <button onClick={savePlayer} style={{ padding: "8px 12px", borderRadius: 10 }}>
                     {editingId ? "Save changes" : "Add player"}
@@ -307,17 +318,13 @@ export default function Rosters({ data, setData }) {
                     </button>
                   )}
                 </div>
-
-                <div style={{ opacity: 0.7, fontSize: 12, alignSelf: "center" }}>
-                  Leadership rule: max 1×C, max 2×A per team.
-                </div>
               </div>
             </div>
 
             <div style={{ marginTop: 14 }}>
               <h3 style={{ marginBottom: 8 }}>Players</h3>
               <div style={{ display: "grid", gap: 8 }}>
-                {sortedPlayers.map(p => (
+                {sortedPlayers.map((p) => (
                   <div
                     key={p.id}
                     style={{
@@ -332,21 +339,35 @@ export default function Rosters({ data, setData }) {
                   >
                     <div style={{ fontWeight: 700 }}>#{p.number}</div>
                     <div style={{ fontWeight: 600 }}>{p.name}</div>
-                    <div style={{ opacity: 0.9 }}>{p.preferredPosition}</div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          padding: "4px 10px",
+                          borderRadius: 999,
+                          fontWeight: 800,
+                          fontSize: 12,
+                          color: "white",
+                          background: `var(--pos-${p.preferredPosition.toLowerCase()})`,
+                        }}
+                      >
+                        {p.preferredPosition}
+                      </span>
+                    </div>
+
                     <div>{p.leadership || "—"}</div>
                     <div style={{ opacity: 0.9 }}>{p.stick || "—"}</div>
-                    <div style={{ opacity: 0.85 }}>
-                      {(p.canPlay || []).length ? p.canPlay.join(", ") : "—"}
-                    </div>
+                    <div style={{ opacity: 0.85 }}>{(p.canPlay || []).length ? p.canPlay.join(", ") : "—"}</div>
+
                     <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                       <button onClick={() => startEditPlayer(p)}>Edit</button>
                       <button onClick={() => deletePlayer(p.id)}>Del</button>
                     </div>
                   </div>
                 ))}
-                {sortedPlayers.length === 0 && (
-                  <div style={{ opacity: 0.7 }}>No players match your search.</div>
-                )}
+
+                {sortedPlayers.length === 0 && <div style={{ opacity: 0.7 }}>No players match your search.</div>}
               </div>
             </div>
           </>

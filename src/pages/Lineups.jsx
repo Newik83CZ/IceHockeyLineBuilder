@@ -5,49 +5,89 @@ import { newId } from "../lib/model";
 const MAX_FORWARD_LINES = 4;
 const MAX_DEF_PAIRS = 4;
 
-function DraggablePlayer({ id, label, sublabel }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
+function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
+  
+    const posVar =
+      preferredPosition && typeof preferredPosition === "string"
+        ? `var(--pos-${preferredPosition.toLowerCase()})`
+        : "var(--border)";
+  
+    const style = {
+        width: 130,
+        minHeight: 72,
+        padding: "10px 12px",
+        borderRadius: 20,
+        border: `1px solid ${posVar}`,
+        background: "var(--background)",
+        cursor: "grab",
+        opacity: isDragging ? 0.6 : 1,
+        transform: transform
+            ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+            : undefined,
+        boxShadow: isDragging ? "0 6px 18px rgba(0,0,0,0.12)" : "none",
+        position: "relative",
+        overflow: "hidden",
+        display: "flex",
+        alignItems: "center",
+    };
+  
+    return (
+      <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 6,
+            background: posVar,
+          }}
+        />
+        <div style={{ paddingLeft: 10, display: "grid", gap: 4 }}>
+          <div style={{ fontWeight: 700 }}>{label}</div>
+          {sublabel ? <div style={{ fontSize: 12, opacity: 0.75 }}>{sublabel}</div> : null}
+        </div>
+      </div>
+    );
+  }
+  
 
-  const style = {
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid rgba(0,0,0,0.15)",
-    background: "white",
-    cursor: "grab",
-    opacity: isDragging ? 0.6 : 1,
-    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      <div style={{ fontWeight: 700 }}>{label}</div>
-      {sublabel ? <div style={{ fontSize: 12, opacity: 0.75 }}>{sublabel}</div> : null}
-    </div>
-  );
-}
-
-function DroppableSlot({ id, title, player, children }) {
-  const { isOver, setNodeRef } = useDroppable({ id });
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={{
-        padding: 10,
-        borderRadius: 14,
-        border: "1px dashed rgba(0,0,0,0.25)",
-        background: isOver ? "rgba(0,0,0,0.06)" : "transparent",
-        minHeight: 62,
-        display: "grid",
-        gap: 8,
-      }}
-    >
-      <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.75 }}>{title}</div>
-      {children}
-      {!player ? <div style={{ fontSize: 12, opacity: 0.55 }}>Drop here</div> : null}
-    </div>
-  );
-}
+  function DroppableSlot({ id, title, player, children }) {
+    const { isOver, setNodeRef } = useDroppable({ id });
+  
+    // Optional: tint the slot title by role group
+    const titleColor =
+      title.includes("G") ? "var(--pos-goalie)" :
+      (title === "LD" || title === "RD") ? "var(--pos-defender)" :
+      (title === "C") ? "var(--pos-centre)" :
+      (title === "LW" || title === "RW") ? "var(--pos-wing)" :
+      "var(--text)";
+  
+    return (
+      <div
+        ref={setNodeRef}
+        style={{
+          padding: 10,
+          borderRadius: 14,
+          border: "1px dashed var(--border)",
+          background: isOver ? "rgba(0,0,0,0.06)" : "transparent",
+          minHeight: 62,
+          display: "grid",
+          gap: 8,
+        }}
+      >
+        <div style={{ fontSize: 12, fontWeight: 900, opacity: 0.9, color: titleColor }}>
+          {title}
+        </div>
+  
+        {children}
+  
+        {!player ? <div style={{ fontSize: 12, opacity: 0.55 }}>Drop here</div> : null}
+      </div>
+    );
+  }
+  
 
 function AvailableDropZone({ children }) {
   const { isOver, setNodeRef } = useDroppable({ id: "AVAILABLE" });
@@ -86,7 +126,7 @@ function Slot({ id, title, assignments, byId }) {
     const warn = player ? canPlayMismatch(player, posCode) : false;
   
     const stick = player ? stickLabel(player) : "";
-    const warningText = warn ? "⚠️ Not familiar with this position ⚠️" : "";
+    const warningText = warn ? "⚠️ Not familiar with this position" : "";
   
     let sublabel = "";
     if (warningText && stick) {
@@ -107,6 +147,7 @@ function Slot({ id, title, assignments, byId }) {
         {player ? (
           <DraggablePlayer
             id={player.id}
+            preferredPosition={player.preferredPosition}
             label={`#${player.number} ${player.name}${player.leadership ? ` (${player.leadership})` : ""}`}
             sublabel={sublabel}
           />
@@ -544,39 +585,40 @@ export default function Lineups({ data, setData }) {
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 16 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "310px 1fr", gap: 16 }}>
       <DndContext onDragEnd={handleDragEnd}>
         {/* Left: Available + lineup controls */}
         <div style={{ display: "grid", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+          <div style={{ display: "inline", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
             <h2 style={{ margin: 0 }}>Line-ups</h2>
-            <div style={{ fontSize: 12, opacity: 0.7 }}>{activeTeam.name}</div>
+            <br />
+            <h3 style={{ fontSize: 14, opacity: 0.7 }}>{activeTeam.name}</h3>
           </div>
 
           {/* Lineup selector + actions */}
           <div style={{ padding: 12, borderRadius: 14, border: "1px solid rgba(0,0,0,0.12)", display: "grid", gap: 10 }}>
             <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ fontWeight: 800 }}>Lineup</div>
+              <div style={{ fontWeight: 800 }}>Line-up</div>
 
               <select
                 value={bucket.activeLineupId || ""}
                 onChange={(e) => setActiveLineupId(e.target.value)}
-                style={{ padding: 10, borderRadius: 12, border: "1px solid rgba(0,0,0,0.2)" }}
+                style={{ padding: 0, borderRadius: 12, border: "1px solid rgba(0,0,0,0.2)" }}
               >
                 {lineups.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
 
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", maxHeight: "40px" }}>
                 <button onClick={createNewLineup}>New</button>
                 <button onClick={renameLineup}>Rename</button>
                 <button onClick={duplicateLineup}>Duplicate</button>
                 <button onClick={deleteLineup}>Delete</button>
               </div>
+              <div> </div>
             </div>
 
-            <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ display: "grid", gap: 4 }}>
               <div style={{ fontWeight: 800 }}>Structure</div>
-              <div style={{ display: "grid", gap: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                   <div>Forward lines: <b>{activeLineup.forwardLines}</b></div>
                   <div style={{ display: "flex", gap: 8 }}>
@@ -604,7 +646,6 @@ export default function Lineups({ data, setData }) {
 
                 <button onClick={clearAllAssignments}>Clear all assignments</button>
               </div>
-            </div>
           </div>
 
           {/* Available players */}
@@ -616,6 +657,7 @@ export default function Lineups({ data, setData }) {
                   <DraggablePlayer
                     key={p.id}
                     id={p.id}
+                    preferredPosition={p.preferredPosition}
                     label={`#${p.number} ${p.name}${p.leadership ? ` (${p.leadership})` : ""}`}
                     sublabel={(p.canPlay || []).length ? `Can play: ${p.canPlay.join(", ")}` : ""}
                   />

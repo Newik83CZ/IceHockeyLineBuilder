@@ -10,11 +10,14 @@ export function newId() {
   };
   
   export function createEmptyAppData() {
+    const defaultTheme = createTheme("Default");
     return {
-      teams: [],               // [{id,name,players:[...]}]
+      teams: [],
       activeTeamId: null,
-      themes: [],              // later
-      activeThemeId: null,     // later
+  
+      themes: [defaultTheme],
+      activeThemeId: defaultTheme.id,
+  
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -24,6 +27,30 @@ export function newId() {
     return { id: newId(), name, players: [] };
   }
   
+  export function createTheme(name = "Default") {
+    return {
+      id: newId(),
+      name,
+      app: {
+        primary: "#2563eb",
+        background: "#f8fafc",
+        surface: "#ffffff",
+        text: "#0f172a",
+        accent: "#22c55e",
+        border: "rgba(0,0,0,0.12)",
+      },
+      positions: {
+        Centre: "#4f46e5",
+        Wing: "#16a34a",
+        Defender: "#f59e0b",
+        Goalie: "#dc2626",
+      },
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+  }
+  
+
   export function createPlayer(input) {
     return {
       id: newId(),
