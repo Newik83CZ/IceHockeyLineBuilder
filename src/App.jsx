@@ -1,35 +1,51 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { NavLink, Route, Routes } from "react-router-dom";
 
-function App() {
-  const [count, setCount] = useState(0)
-
+function TabLink({ to, children }) {
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <NavLink
+      to={to}
+      style={({ isActive }) => ({
+        padding: "10px 14px",
+        borderRadius: 10,
+        textDecoration: "none",
+        color: "inherit",
+        background: isActive ? "rgba(0,0,0,0.08)" : "transparent",
+        fontWeight: isActive ? 600 : 400,
+      })}
+    >
+      {children}
+    </NavLink>
+  );
 }
 
-export default App
+function Rosters() {
+  return <div><h2>Rosters</h2><p>Coming next.</p></div>;
+}
+function Lineups() {
+  return <div><h2>Line-ups</h2><p>Coming next.</p></div>;
+}
+function Theme() {
+  return <div><h2>Theme</h2><p>Coming next.</p></div>;
+}
+
+export default function App() {
+  return (
+    <div style={{ padding: 18, maxWidth: 1100, margin: "0 auto" }}>
+      <h1 style={{ marginTop: 0 }}>Ice Hockey Line Builder</h1>
+
+      <nav style={{ display: "flex", gap: 10, marginBottom: 18 }}>
+        <TabLink to="/">Rosters</TabLink>
+        <TabLink to="/lineups">Line-ups</TabLink>
+        <TabLink to="/theme">Theme</TabLink>
+      </nav>
+
+      <div style={{ padding: 16, borderRadius: 14, border: "1px solid rgba(0,0,0,0.12)" }}>
+        <Routes>
+          <Route path="/" element={<Rosters />} />
+          <Route path="/lineups" element={<Lineups />} />
+          <Route path="/theme" element={<Theme />} />
+        </Routes>
+      </div>
+    </div>
+  );
+}
