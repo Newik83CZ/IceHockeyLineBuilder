@@ -1,4 +1,10 @@
 import { NavLink, Route, Routes } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { loadAppData, saveAppData } from "./lib/storage";
+import { createEmptyAppData } from "./lib/model";
+import RostersPage from "./pages/Rosters";
+import LineupsPage from "./pages/Lineups";
+
 
 function TabLink({ to, children }) {
   return (
@@ -29,6 +35,13 @@ function Theme() {
 }
 
 export default function App() {
+  const [data, setData] = useState(
+    () => loadAppData() ?? createEmptyAppData()
+  );
+
+  useEffect(() => {
+    saveAppData(data);
+  }, [data]);
   return (
     <div style={{ padding: 18, maxWidth: 1100, margin: "0 auto" }}>
       <h1 style={{ marginTop: 0 }}>Ice Hockey Line Builder</h1>
@@ -41,8 +54,12 @@ export default function App() {
 
       <div style={{ padding: 16, borderRadius: 14, border: "1px solid rgba(0,0,0,0.12)" }}>
         <Routes>
-          <Route path="/" element={<Rosters />} />
-          <Route path="/lineups" element={<Lineups />} />
+          <Route
+              path="/"
+              element={<RostersPage data={data} setData={setData} />}
+          />
+          <Route path="/lineups" element={<LineupsPage data={data} setData={setData} />} />
+
           <Route path="/theme" element={<Theme />} />
         </Routes>
       </div>
