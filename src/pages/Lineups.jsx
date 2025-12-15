@@ -1,5 +1,9 @@
 import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { newId } from "../lib/model";
+
+const MAX_FORWARD_LINES = 4;
+const MAX_DEF_PAIRS = 4;
 
 function DraggablePlayer({ id, label, sublabel }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
@@ -45,208 +49,6 @@ function DroppableSlot({ id, title, player, children }) {
   );
 }
 
-const DEFAULT_ASSIGNMENTS = () => ({
-  F1_LW: null, F1_C: null, F1_RW: null,
-  F2_LW: null, F2_C: null, F2_RW: null,
-  D1_LD: null, D1_RD: null,
-  D2_LD: null, D2_RD: null,
-  G_START: null, G_BACKUP: null,
-});
-
-export default function Lineups({ data, setData }) {
-  const teams = data.teams;
-  const activeTeam = teams.find(t => t.id === data.activeTeamId) || null;
-
-  // For MVP: one lineup per team stored in-memory in appData.
-  // We'll upgrade to multiple named lineups after this works.
-  const lineupKey = `lineup_${data.activeTeamId || "none"}`;
-
-  const lineup = data[lineupKey] || { assignments: DEFAULT_ASSIGNMENTS() };
-  const assignments = lineup.assignments;
-
-  const players = activeTeam?.players ?? [];
-
-  const byId = useMemo(() => {
-    const m = new Map();
-    for (const p of players) m.set(p.id, p);
-    return m;
-  }, [players]);
-
-  const assignedIds = useMemo(() => {
-    return new Set(Object.values(assignments).filter(Boolean));
-  }, [assignments]);
-
-  const available = useMemo(() => {
-    return players
-      .filter(p => !assignedIds.has(p.id))
-      .sort((a, b) => a.number - b.number);
-  }, [players, assignedIds]);
-
-  function updateData(updater) {
-    setData(prev => {
-      const next = updater(structuredClone(prev));
-      next.updatedAt = Date.now();
-      return next;
-    });
-  }
-
-  function setAssignments(nextAssignments) {
-    updateData(d => {
-      d[lineupKey] = { assignments: nextAssignments };
-      return d;
-    });
-  }
-
-  function findSlotHoldingPlayer(playerId) {
-    for (const [slotId, pid] of Object.entries(assignments)) {
-      if (pid === playerId) return slotId;
-    }
-    return null;
-  }
-
-  function handleDragEnd(event) {
-    const { active, over } = event;
-    if (!over) return;
-
-    const draggedPlayerId = active.id;
-    const target = over.id; // slotId or "AVAILABLE"
-
-    const fromSlot = findSlotHoldingPlayer(draggedPlayerId);
-    const toSlot = target === "AVAILABLE" ? null : target;
-
-    // Dropping onto Available means unassign
-    if (target === "AVAILABLE") {
-      if (!fromSlot) return;
-      const next = { ...assignments, [fromSlot]: null };
-      setAssignments(next);
-      return;
-    }
-
-    // If target slot is invalid
-    if (!assignments.hasOwnProperty(toSlot)) return;
-
-    const targetPlayerId = assignments[toSlot];
-
-    // Dragged from available into slot
-    if (!fromSlot) {
-      // empty target
-      if (!targetPlayerId) {
-        setAssignments({ ...assignments, [toSlot]: draggedPlayerId });
-      } else {
-        // occupied: swap means displaced goes back to available (unassigned)
-        setAssignments({ ...assignments, [toSlot]: draggedPlayerId });
-      }
-      return;
-    }
-
-    // Dragged from a slot to another slot
-    if (fromSlot === toSlot) return;
-
-    // Swap
-    const next = { ...assignments };
-    next[toSlot] = draggedPlayerId;
-    next[fromSlot] = targetPlayerId || null;
-    setAssignments(next);
-  }
-
-  if (!activeTeam) {
-    return <div>Please create/select a team in Rosters first.</div>;
-  }
-
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 16 }}>
-      <DndContext onDragEnd={handleDragEnd}>
-        {/* Available */}
-        <div style={{ display: "grid", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <h2 style={{ margin: 0 }}>Line-ups</h2>
-            <div style={{ fontSize: 12, opacity: 0.7 }}>{activeTeam.name}</div>
-          </div>
-
-          <div
-            style={{
-              padding: 12,
-              borderRadius: 14,
-              border: "1px solid rgba(0,0,0,0.12)",
-            }}
-          >
-            <AvailableDropZone>
-              <div style={{ fontWeight: 800, marginBottom: 10 }}>Available Players</div>
-              <div style={{ display: "grid", gap: 8 }}>
-                {available.map(p => (
-                  <DraggablePlayer
-                    key={p.id}
-                    id={p.id}
-                    label={`#${p.number} ${p.name}${p.leadership ? ` (${p.leadership})` : ""}`}
-                    sublabel={(p.canPlay || []).length ? `Can play: ${p.canPlay.join(", ")}` : ""}
-                  />
-                ))}
-                {available.length === 0 && (
-                  <div style={{ fontSize: 12, opacity: 0.65 }}>No available players (everyone assigned).</div>
-                )}
-              </div>
-            </AvailableDropZone>
-          </div>
-        </div>
-
-        {/* Board */}
-        <div style={{ display: "grid", gap: 12 }}>
-          <BoardSection title="Forward Lines">
-            <ThreeSlotRow
-              label="Line 1"
-              slots={[
-                { id: "F1_LW", title: "LW" },
-                { id: "F1_C", title: "C" },
-                { id: "F1_RW", title: "RW" },
-              ]}
-              assignments={assignments}
-              byId={byId}
-            />
-            <ThreeSlotRow
-              label="Line 2"
-              slots={[
-                { id: "F2_LW", title: "LW" },
-                { id: "F2_C", title: "C" },
-                { id: "F2_RW", title: "RW" },
-              ]}
-              assignments={assignments}
-              byId={byId}
-            />
-          </BoardSection>
-
-          <BoardSection title="Defence Pairs">
-            <TwoSlotRow
-              label="Pair 1"
-              slots={[
-                { id: "D1_LD", title: "LD" },
-                { id: "D1_RD", title: "RD" },
-              ]}
-              assignments={assignments}
-              byId={byId}
-            />
-            <TwoSlotRow
-              label="Pair 2"
-              slots={[
-                { id: "D2_LD", title: "LD" },
-                { id: "D2_RD", title: "RD" },
-              ]}
-              assignments={assignments}
-              byId={byId}
-            />
-          </BoardSection>
-
-          <BoardSection title="Goalies">
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <Slot id="G_START" title="Starter (G)" assignments={assignments} byId={byId} />
-              <Slot id="G_BACKUP" title="Backup (G)" assignments={assignments} byId={byId} />
-            </div>
-          </BoardSection>
-        </div>
-      </DndContext>
-    </div>
-  );
-}
-
 function AvailableDropZone({ children }) {
   const { isOver, setNodeRef } = useDroppable({ id: "AVAILABLE" });
   return (
@@ -272,30 +74,8 @@ function BoardSection({ title, children }) {
   );
 }
 
-function ThreeSlotRow({ label, slots, assignments, byId }) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 12, alignItems: "start" }}>
-      <div style={{ fontWeight: 800, paddingTop: 8 }}>{label}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-        {slots.map(s => (
-          <Slot key={s.id} id={s.id} title={s.title} assignments={assignments} byId={byId} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function TwoSlotRow({ label, slots, assignments, byId }) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 12, alignItems: "start" }}>
-      <div style={{ fontWeight: 800, paddingTop: 8 }}>{label}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        {slots.map(s => (
-          <Slot key={s.id} id={s.id} title={s.title} assignments={assignments} byId={byId} />
-        ))}
-      </div>
-    </div>
-  );
+function RowLabel({ children }) {
+  return <div style={{ fontWeight: 800, paddingTop: 8 }}>{children}</div>;
 }
 
 function Slot({ id, title, assignments, byId }) {
@@ -312,5 +92,515 @@ function Slot({ id, title, assignments, byId }) {
         />
       ) : null}
     </DroppableSlot>
+  );
+}
+
+// ---------- Lineup model helpers ----------
+function createLineup(name = "New lineup") {
+  return {
+    id: newId(),
+    name,
+    forwardLines: 2,         // default 2 lines
+    defencePairs: 2,         // default 2 pairs
+    backupGoalieEnabled: true,
+    assignments: {},         // slotId -> playerId | null
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+}
+
+function ensureAssignmentsShape(lineup) {
+  if (!lineup.assignments || typeof lineup.assignments !== "object") lineup.assignments = {};
+  return lineup;
+}
+
+function slotIdsFor(lineup) {
+  const slots = [];
+
+  // Forwards
+  for (let i = 1; i <= lineup.forwardLines; i++) {
+    slots.push(`F${i}_LW`, `F${i}_C`, `F${i}_RW`);
+  }
+
+  // Defence
+  for (let i = 1; i <= lineup.defencePairs; i++) {
+    slots.push(`D${i}_LD`, `D${i}_RD`);
+  }
+
+  // Goalies
+  slots.push("G_START");
+  if (lineup.backupGoalieEnabled) slots.push("G_BACKUP");
+
+  return slots;
+}
+
+function normalizeAssignments(lineup) {
+  // Keep only keys that exist for the current lineup structure.
+  const allowed = new Set(slotIdsFor(lineup));
+  const next = {};
+  for (const key of allowed) next[key] = lineup.assignments?.[key] ?? null;
+  lineup.assignments = next;
+  return lineup;
+}
+
+function removeSlots(lineup, slotsToRemove) {
+  // Unassign players from removed slots; keep everything else.
+  const removeSet = new Set(slotsToRemove);
+  const next = { ...lineup.assignments };
+  for (const s of removeSet) {
+    if (next[s] != null) next[s] = null;
+    delete next[s];
+  }
+  lineup.assignments = next;
+  return lineup;
+}
+
+function countAssignedInSlots(lineup, slots) {
+  let c = 0;
+  for (const s of slots) {
+    if (lineup.assignments?.[s]) c++;
+  }
+  return c;
+}
+
+// ---------- Main component ----------
+export default function Lineups({ data, setData }) {
+  const activeTeam = data.teams.find(t => t.id === data.activeTeamId) || null;
+
+  function updateData(updater) {
+    setData(prev => {
+      const next = updater(structuredClone(prev));
+      next.updatedAt = Date.now();
+      return next;
+    });
+  }
+
+  // ----- Migration from old MVP storage (lineup_<teamId>) to new structure -----
+  useEffect(() => {
+    if (!activeTeam) return;
+
+    updateData(d => {
+      d.lineupsByTeam ??= {};
+
+      const teamId = d.activeTeamId;
+      const bucket = d.lineupsByTeam[teamId];
+
+      // If already set up, do nothing
+      if (bucket?.lineups?.length) return d;
+
+      const legacyKey = `lineup_${teamId}`;
+      const legacy = d[legacyKey];
+
+      const first = createLineup("Lineup 1");
+      ensureAssignmentsShape(first);
+
+      if (legacy?.assignments) {
+        first.assignments = legacy.assignments;
+      }
+
+      normalizeAssignments(first);
+
+      d.lineupsByTeam[teamId] = {
+        activeLineupId: first.id,
+        lineups: [first],
+      };
+
+      // keep legacy in place (harmless), or delete it if you prefer:
+      // delete d[legacyKey];
+
+      return d;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.activeTeamId]);
+
+  const teamId = data.activeTeamId;
+  const bucket = data.lineupsByTeam?.[teamId] || { activeLineupId: null, lineups: [] };
+  const lineups = bucket.lineups || [];
+  const activeLineup = lineups.find(l => l.id === bucket.activeLineupId) || lineups[0] || null;
+
+  const players = activeTeam?.players ?? [];
+  const byId = useMemo(() => {
+    const m = new Map();
+    for (const p of players) m.set(p.id, p);
+    return m;
+  }, [players]);
+
+  const assignments = activeLineup?.assignments || {};
+  const assignedIds = useMemo(() => new Set(Object.values(assignments).filter(Boolean)), [assignments]);
+
+  const available = useMemo(() => {
+    return players
+      .filter(p => !assignedIds.has(p.id))
+      .sort((a, b) => a.number - b.number);
+  }, [players, assignedIds]);
+
+  function saveActiveLineup(mutator) {
+    updateData(d => {
+      const b = d.lineupsByTeam?.[d.activeTeamId];
+      if (!b) return d;
+      const idx = b.lineups.findIndex(x => x.id === b.activeLineupId);
+      if (idx < 0) return d;
+
+      const lu = b.lineups[idx];
+      mutator(lu);
+      lu.updatedAt = Date.now();
+
+      // Always keep assignments normalized after any structure change
+      normalizeAssignments(lu);
+
+      b.lineups[idx] = lu;
+      return d;
+    });
+  }
+
+  function setActiveLineupId(id) {
+    updateData(d => {
+      d.lineupsByTeam ??= {};
+      d.lineupsByTeam[d.activeTeamId] ??= { activeLineupId: null, lineups: [] };
+      d.lineupsByTeam[d.activeTeamId].activeLineupId = id;
+      return d;
+    });
+  }
+
+  function createNewLineup() {
+    const name = prompt("Lineup name?", `Lineup ${lineups.length + 1}`);
+    if (!name) return;
+    updateData(d => {
+      d.lineupsByTeam ??= {};
+      d.lineupsByTeam[d.activeTeamId] ??= { activeLineupId: null, lineups: [] };
+      const lu = createLineup(name.trim());
+      normalizeAssignments(lu);
+      d.lineupsByTeam[d.activeTeamId].lineups.push(lu);
+      d.lineupsByTeam[d.activeTeamId].activeLineupId = lu.id;
+      return d;
+    });
+  }
+
+  function renameLineup() {
+    if (!activeLineup) return;
+    const name = prompt("New lineup name?", activeLineup.name);
+    if (!name) return;
+    saveActiveLineup(lu => {
+      lu.name = name.trim();
+    });
+  }
+
+  function duplicateLineup() {
+    if (!activeLineup) return;
+    const name = prompt("Name for duplicated lineup?", `${activeLineup.name} (copy)`);
+    if (!name) return;
+
+    updateData(d => {
+      const b = d.lineupsByTeam[d.activeTeamId];
+      const src = b.lineups.find(x => x.id === b.activeLineupId);
+      if (!src) return d;
+
+      const copy = {
+        ...structuredClone(src),
+        id: newId(),
+        name: name.trim(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      b.lineups.push(copy);
+      b.activeLineupId = copy.id;
+      return d;
+    });
+  }
+
+  function deleteLineup() {
+    if (!activeLineup) return;
+    if (!confirm(`Delete lineup "${activeLineup.name}"?`)) return;
+
+    updateData(d => {
+      const b = d.lineupsByTeam[d.activeTeamId];
+      b.lineups = b.lineups.filter(x => x.id !== b.activeLineupId);
+      b.activeLineupId = b.lineups[0]?.id ?? null;
+
+      // Ensure at least one lineup exists
+      if (!b.activeLineupId) {
+        const lu = createLineup("Lineup 1");
+        normalizeAssignments(lu);
+        b.lineups = [lu];
+        b.activeLineupId = lu.id;
+      }
+      return d;
+    });
+  }
+
+  function clearAllAssignments() {
+    if (!activeLineup) return;
+    if (!confirm("Clear all assigned players for this lineup?")) return;
+    saveActiveLineup(lu => {
+      for (const k of Object.keys(lu.assignments)) lu.assignments[k] = null;
+    });
+  }
+
+  function findSlotHoldingPlayer(playerId) {
+    if (!activeLineup) return null;
+    for (const [slotId, pid] of Object.entries(activeLineup.assignments)) {
+      if (pid === playerId) return slotId;
+    }
+    return null;
+  }
+
+  function handleDragEnd(event) {
+    if (!activeLineup) return;
+
+    const { active, over } = event;
+    if (!over) return;
+
+    const draggedPlayerId = active.id;
+    const target = over.id;
+
+    const fromSlot = findSlotHoldingPlayer(draggedPlayerId);
+    const toSlot = target === "AVAILABLE" ? null : target;
+
+    // Drop onto Available means unassign
+    if (target === "AVAILABLE") {
+      if (!fromSlot) return;
+      saveActiveLineup(lu => {
+        lu.assignments[fromSlot] = null;
+      });
+      return;
+    }
+
+    // Validate target is a current slot
+    if (!activeLineup.assignments.hasOwnProperty(toSlot)) return;
+
+    const targetPlayerId = activeLineup.assignments[toSlot];
+
+    // Dragged from available into slot
+    if (!fromSlot) {
+      saveActiveLineup(lu => {
+        // If occupied, displaced goes back to available (unassigned)
+        lu.assignments[toSlot] = draggedPlayerId;
+      });
+      return;
+    }
+
+    // Dragged from slot to same slot
+    if (fromSlot === toSlot) return;
+
+    // Swap slots
+    saveActiveLineup(lu => {
+      const next = { ...lu.assignments };
+      next[toSlot] = draggedPlayerId;
+      next[fromSlot] = targetPlayerId || null;
+      lu.assignments = next;
+    });
+  }
+
+  // ----- Structure controls -----
+  function addForwardLine() {
+    if (!activeLineup) return;
+    if (activeLineup.forwardLines >= MAX_FORWARD_LINES) return;
+
+    saveActiveLineup(lu => {
+      lu.forwardLines += 1;
+    });
+  }
+
+  function removeForwardLine() {
+    if (!activeLineup) return;
+    if (activeLineup.forwardLines <= 1) return;
+
+    const n = activeLineup.forwardLines;
+    const slots = [`F${n}_LW`, `F${n}_C`, `F${n}_RW`];
+    const assignedCount = countAssignedInSlots(activeLineup, slots);
+
+    if (assignedCount > 0) {
+      if (!confirm(`Remove Forward Line ${n} and unassign ${assignedCount} player(s) from it?`)) return;
+    }
+
+    saveActiveLineup(lu => {
+      removeSlots(lu, slots);
+      lu.forwardLines -= 1;
+    });
+  }
+
+  function addDefPair() {
+    if (!activeLineup) return;
+    if (activeLineup.defencePairs >= MAX_DEF_PAIRS) return;
+
+    saveActiveLineup(lu => {
+      lu.defencePairs += 1;
+    });
+  }
+
+  function removeDefPair() {
+    if (!activeLineup) return;
+    if (activeLineup.defencePairs <= 1) return;
+
+    const n = activeLineup.defencePairs;
+    const slots = [`D${n}_LD`, `D${n}_RD`];
+    const assignedCount = countAssignedInSlots(activeLineup, slots);
+
+    if (assignedCount > 0) {
+      if (!confirm(`Remove Defence Pair ${n} and unassign ${assignedCount} player(s) from it?`)) return;
+    }
+
+    saveActiveLineup(lu => {
+      removeSlots(lu, slots);
+      lu.defencePairs -= 1;
+    });
+  }
+
+  function toggleBackupGoalie() {
+    if (!activeLineup) return;
+
+    const currentlyOn = !!activeLineup.backupGoalieEnabled;
+    const assigned = activeLineup.assignments?.["G_BACKUP"] ? 1 : 0;
+
+    if (currentlyOn && assigned) {
+      if (!confirm("Disable Backup Goalie and unassign the current backup goalie?")) return;
+    }
+
+    saveActiveLineup(lu => {
+      if (lu.backupGoalieEnabled) {
+        removeSlots(lu, ["G_BACKUP"]);
+        lu.backupGoalieEnabled = false;
+      } else {
+        lu.backupGoalieEnabled = true;
+      }
+    });
+  }
+
+  if (!activeTeam) return <div>Please create/select a team in Rosters first.</div>;
+  if (!activeLineup) return <div>Creating lineup…</div>;
+
+  const forwardRows = [];
+  for (let i = 1; i <= activeLineup.forwardLines; i++) {
+    forwardRows.push(
+      <div key={`F${i}`} style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 12, alignItems: "start" }}>
+        <RowLabel>{`Line ${i}`}</RowLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+          <Slot id={`F${i}_LW`} title="LW" assignments={activeLineup.assignments} byId={byId} />
+          <Slot id={`F${i}_C`} title="C" assignments={activeLineup.assignments} byId={byId} />
+          <Slot id={`F${i}_RW`} title="RW" assignments={activeLineup.assignments} byId={byId} />
+        </div>
+      </div>
+    );
+  }
+
+  const defRows = [];
+  for (let i = 1; i <= activeLineup.defencePairs; i++) {
+    defRows.push(
+      <div key={`D${i}`} style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 12, alignItems: "start" }}>
+        <RowLabel>{`Pair ${i}`}</RowLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Slot id={`D${i}_LD`} title="LD" assignments={activeLineup.assignments} byId={byId} />
+          <Slot id={`D${i}_RD`} title="RD" assignments={activeLineup.assignments} byId={byId} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 16 }}>
+      <DndContext onDragEnd={handleDragEnd}>
+        {/* Left: Available + lineup controls */}
+        <div style={{ display: "grid", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <h2 style={{ margin: 0 }}>Line-ups</h2>
+            <div style={{ fontSize: 12, opacity: 0.7 }}>{activeTeam.name}</div>
+          </div>
+
+          {/* Lineup selector + actions */}
+          <div style={{ padding: 12, borderRadius: 14, border: "1px solid rgba(0,0,0,0.12)", display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ fontWeight: 800 }}>Lineup</div>
+
+              <select
+                value={bucket.activeLineupId || ""}
+                onChange={(e) => setActiveLineupId(e.target.value)}
+                style={{ padding: 10, borderRadius: 12, border: "1px solid rgba(0,0,0,0.2)" }}
+              >
+                {lineups.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button onClick={createNewLineup}>New</button>
+                <button onClick={renameLineup}>Rename</button>
+                <button onClick={duplicateLineup}>Duplicate</button>
+                <button onClick={deleteLineup}>Delete</button>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ fontWeight: 800 }}>Structure</div>
+              <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                  <div>Forward lines: <b>{activeLineup.forwardLines}</b></div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={removeForwardLine} disabled={activeLineup.forwardLines <= 1}>-</button>
+                    <button onClick={addForwardLine} disabled={activeLineup.forwardLines >= MAX_FORWARD_LINES}>+</button>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                  <div>Defence pairs: <b>{activeLineup.defencePairs}</b></div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={removeDefPair} disabled={activeLineup.defencePairs <= 1}>-</button>
+                    <button onClick={addDefPair} disabled={activeLineup.defencePairs >= MAX_DEF_PAIRS}>+</button>
+                  </div>
+                </div>
+
+                <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={!!activeLineup.backupGoalieEnabled}
+                    onChange={toggleBackupGoalie}
+                  />
+                  Backup goalie enabled
+                </label>
+
+                <button onClick={clearAllAssignments}>Clear all assignments</button>
+              </div>
+            </div>
+          </div>
+
+          {/* Available players */}
+          <div style={{ padding: 12, borderRadius: 14, border: "1px solid rgba(0,0,0,0.12)" }}>
+            <AvailableDropZone>
+              <div style={{ fontWeight: 800, marginBottom: 10 }}>Available Players</div>
+              <div style={{ display: "grid", gap: 8 }}>
+                {available.map(p => (
+                  <DraggablePlayer
+                    key={p.id}
+                    id={p.id}
+                    label={`#${p.number} ${p.name}${p.leadership ? ` (${p.leadership})` : ""}`}
+                    sublabel={(p.canPlay || []).length ? `Can play: ${p.canPlay.join(", ")}` : ""}
+                  />
+                ))}
+                {available.length === 0 && (
+                  <div style={{ fontSize: 12, opacity: 0.65 }}>No available players (everyone assigned).</div>
+                )}
+              </div>
+            </AvailableDropZone>
+          </div>
+        </div>
+
+        {/* Right: Board */}
+        <div style={{ display: "grid", gap: 12 }}>
+          <BoardSection title="Forward Lines">
+            {forwardRows}
+          </BoardSection>
+
+          <BoardSection title="Defence Pairs">
+            {defRows}
+          </BoardSection>
+
+          <BoardSection title="Goalies">
+            <div style={{ display: "grid", gridTemplateColumns: activeLineup.backupGoalieEnabled ? "1fr 1fr" : "1fr", gap: 12 }}>
+              <Slot id="G_START" title="Starter (G)" assignments={activeLineup.assignments} byId={byId} />
+              {activeLineup.backupGoalieEnabled ? (
+                <Slot id="G_BACKUP" title="Backup (G)" assignments={activeLineup.assignments} byId={byId} />
+              ) : null}
+            </div>
+          </BoardSection>
+        </div>
+      </DndContext>
+    </div>
   );
 }
