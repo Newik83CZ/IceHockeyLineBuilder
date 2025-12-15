@@ -86,7 +86,7 @@ function Slot({ id, title, assignments, byId }) {
     const warn = player ? canPlayMismatch(player, posCode) : false;
   
     const stick = player ? stickLabel(player) : "";
-    const warningText = warn ? "(!) Not familiar with this position." : "";
+    const warningText = warn ? "⚠️ Not familiar with this position ⚠️" : "";
   
     let sublabel = "";
     if (warningText && stick) {
