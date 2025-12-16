@@ -3,6 +3,15 @@
   background: var(--background);
 }
 
+html, body {
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+
 /* Buttons */
 button {
   background: var(--primary);
@@ -95,7 +104,9 @@ input:focus, select:focus, textarea:focus {
 
 @media (max-width: 800px) {
   .rostersLayout {
+    display: grid !important;
     grid-template-columns: 1fr !important;
+    gap: 12px !important;
   }
 
   .rostersSidebar {
@@ -104,9 +115,11 @@ input:focus, select:focus, textarea:focus {
   }
 }
 
-@media (max-width: 1000px) {
+@media (max-width: 800px) {
   .lineupsLayout {
+    display: grid !important;
     grid-template-columns: 1fr !important;
+    gap: 12px !important;
   }
 }
 
@@ -116,6 +129,22 @@ input:focus, select:focus, textarea:focus {
     top: 10px;
     z-index: 2;
   }
+}
+
+@media (max-width: 900px) {
+  .forwardGrid {
+    grid-template-columns: 1fr !important; /* LW then C then RW */
+  }
+}
+
+@media (max-width: 900px) {
+  .defenceGrid {
+    grid-template-columns: 1fr !important; /* LD then RD */
+  }
+}
+
+.pageWrap {
+  padding-bottom: 120px !important;
 }
 
 
