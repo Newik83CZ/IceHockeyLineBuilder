@@ -55,7 +55,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
         className="playerLabel"
         style={{
           fontWeight: 700,
-          fontSize: 13,
+          fontSize: 18,
           lineHeight: 1.15,
           display: "-webkit-box",
           WebkitLineClamp: 2,
