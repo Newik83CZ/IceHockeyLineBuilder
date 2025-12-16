@@ -23,7 +23,8 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
         : "var(--border)";
   
     const style = {
-        width: 130,
+        width: "100%",
+        maxWidth: 220,
         minHeight: 72,
         padding: "10px 12px",
         borderRadius: 20,
@@ -59,7 +60,10 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
           }}
         />
         <div style={{ paddingLeft: 10, display: "grid", gap: 4 }}>
-          <div style={{ fontWeight: 700 }}>{label}</div>
+          <div style={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {label}
+          </div>
+
           {sublabel ? <div style={{ fontSize: 12, opacity: 0.75 }}>{sublabel}</div> : null}
         </div>
       </div>
@@ -87,6 +91,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
           border: "1px dashed var(--border)",
           background: isOver ? "rgba(0,0,0,0.06)" : "transparent",
           minHeight: 62,
+          minWidth: 0,
           display: "grid",
           gap: 8,
           touchAction: "none",
