@@ -668,7 +668,8 @@ export default function Lineups({ data, setData }) {
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "310px 1fr", gap: 16 }}>
+    <div className="lineupsLayout" style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 16 }}>
+
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         {/* Left: Available + lineup controls */}
         <div style={{ display: "grid", gap: 10 }}>
@@ -738,7 +739,8 @@ export default function Lineups({ data, setData }) {
           <div style={{ padding: 12, borderRadius: 14, border: "1px solid rgba(0,0,0,0.12)" }}>
             <AvailableDropZone>
               <div style={{ fontWeight: 800, marginBottom: 10 }}>Available Players</div>
-              <div style={{ display: "grid", gap: 8 }}>
+              <div className="lineupsLeft" style={{ display: "grid", gap: 10 }}>
+
                 {available.map(p => (
                   <DraggablePlayer
                     key={p.id}

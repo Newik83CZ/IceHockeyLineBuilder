@@ -92,20 +92,15 @@ export default function App() {
       <div style={{ padding: 18, maxWidth: 1100, margin: "0 auto" }}>
         <h1 style={{ marginTop: 0 }}>Ice Hockey Line Builder</h1>
 
-        <nav style={{ display: "flex", gap: 10, marginBottom: 18 }}>
+        <nav className="tabNav">
           <TabLink to="/">Rosters</TabLink>
           <TabLink to="/lineups">Line-ups</TabLink>
           <TabLink to="/theme">Theme</TabLink>
         </nav>
 
-        <div
-          style={{
-            padding: 16,
-            borderRadius: 14,
-            border: "1px solid var(--border)",
-            background: "var(--surface)",
-          }}
-        >
+
+        <div className="pageWrap" style={{ padding: 18, maxWidth: 1100, margin: "0 auto" }}>
+
           <Routes>
             <Route path="/" element={<RostersPage data={data} setData={setData} />} />
             <Route path="/lineups" element={<LineupsPage data={data} setData={setData} />} />

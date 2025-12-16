@@ -243,9 +243,10 @@ export default function Rosters({ data, setData }) {
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16 }}>
+    <div className="rostersLayout" style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16 }}>
       {/* Teams */}
-      <aside style={{ borderRight: "1px solid rgba(0,0,0,0.12)", paddingRight: 16 }}>
+      <aside className="rostersSidebar" style={{ borderRight: "1px solid rgba(0,0,0,0.12)", paddingRight: 16 }}>
+
         <h3 style={{ marginTop: 0 }}>Teams</h3>
 
         <div style={{ display: "flex", gap: 8 }}>
