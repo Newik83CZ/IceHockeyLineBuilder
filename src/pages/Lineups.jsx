@@ -721,7 +721,10 @@ export default function Lineups({ data, setData }) {
             </div>
 
             <div style={{ display: "grid", gap: 4 }}>
-              <div style={{ fontWeight: 800 }}>Structure</div>
+              <div style={{ fontWeight: 900, marginTop: 6, marginBottom: 10 }}>
+                  Structure
+                </div>
+
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                   <div>Forward lines: <b>{activeLineup.forwardLines}</b></div>
                   <div style={{ display: "flex", gap: 8 }}>

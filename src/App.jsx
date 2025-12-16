@@ -102,7 +102,7 @@ export default function App() {
         </nav>
 
 
-        <div className="pageWrap" style={{ padding: 18, maxWidth: 1100, margin: "0 auto" }}>
+        <div className="pageWrap" style={{ padding: 18, maxWidth: 1100, margin: "0 auto", width: "100%" }}>
 
           <Routes>
             <Route path="/" element={<RostersPage data={data} setData={setData} />} />
