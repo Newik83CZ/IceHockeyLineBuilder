@@ -39,6 +39,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
         overflow: "hidden",
         display: "flex",
         alignItems: "center",
+        touchAction: "none",
     };
   
     return (
