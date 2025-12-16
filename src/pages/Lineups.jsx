@@ -30,6 +30,10 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
         border: `1px solid ${posVar}`,
         background: "var(--background)",
         cursor: "grab",
+        touchAction: "none",
+        userSelect: "none",
+        WebkitUserSelect: "none",
+        WebkitTouchCallout: "none",
         opacity: isDragging ? 0.6 : 1,
         transform: transform
             ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
@@ -85,6 +89,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
           minHeight: 62,
           display: "grid",
           gap: 8,
+          touchAction: "none",
         }}
       >
         <div style={{ fontSize: 12, fontWeight: 900, opacity: 0.9, color: titleColor }}>
@@ -108,6 +113,7 @@ function AvailableDropZone({ children }) {
         borderRadius: 14,
         padding: 10,
         background: isOver ? "rgba(0,0,0,0.06)" : "transparent",
+        touchAction: "none",
       }}
     >
       {children}
@@ -266,9 +272,8 @@ export default function Lineups({ data, setData }) {
   const activeTeam = data.teams.find(t => t.id === data.activeTeamId) || null;
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } })
+    useSensor(TouchSensor, { activationConstraint: { distance: 10 } })
   );
-
 
   function updateData(updater) {
     setData(prev => {
