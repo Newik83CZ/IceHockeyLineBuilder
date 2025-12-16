@@ -81,11 +81,14 @@ export default function App() {
         "--pos-defender": activeTheme.positions.Defender,
         "--pos-goalie": activeTheme.positions.Goalie,
 
-        background: "var(--background)",
+          background: "var(--background)",
         color: "var(--text)",
         minHeight: "100vh",
-      }
-    : { minHeight: "100vh" };
+        paddingBottom: "96px", // ✅ space for bottom nav
+      } : {
+        minHeight: "100vh",
+        paddingBottom: "96px",
+      };
 
   return (
     <div style={themeStyle}>

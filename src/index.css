@@ -59,7 +59,7 @@ input:focus, select:focus, textarea:focus {
 /* Make tab bar sticky at bottom on phones */
 @media (max-width: 800px) {
   .pageWrap {
-    padding-bottom: 86px; /* space for bottom nav */
+    padding-bottom: 110px; /* space for bottom nav */
   }
 
   .tabNav {
@@ -79,6 +79,9 @@ input:focus, select:focus, textarea:focus {
     margin: 0;
 
     box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    backdrop-filter: blur(6px);
+    background: color-mix(in srgb, var(--surface) 85%, transparent);
+    
   }
 
   .tabNav a {

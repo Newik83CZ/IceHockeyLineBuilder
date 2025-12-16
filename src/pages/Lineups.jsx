@@ -123,7 +123,14 @@ function AvailableDropZone({ children }) {
 
 function BoardSection({ title, children }) {
   return (
-    <div style={{ padding: 12, borderRadius: 14, border: "1px solid rgba(0,0,0,0.12)" }}>
+    <div
+      style={{
+        padding: 12,
+        borderRadius: 14,
+        border: "1px solid var(--border)",
+        background: "var(--surface)", // ✅ key
+      }}
+    >
       <div style={{ fontWeight: 900, marginBottom: 10 }}>{title}</div>
       <div style={{ display: "grid", gap: 10 }}>{children}</div>
     </div>
@@ -680,7 +687,14 @@ export default function Lineups({ data, setData }) {
           </div>
 
           {/* Lineup selector + actions */}
-          <div style={{ padding: 12, borderRadius: 14, border: "1px solid rgba(0,0,0,0.12)", display: "grid", gap: 10 }}>
+          <div
+            style={{
+              padding: 12,
+              borderRadius: 14,
+              border: "1px solid var(--border)",
+              background: "var(--surface)", // ✅ key
+            }}
+          >
             <div style={{ display: "grid", gap: 8 }}>
               <div style={{ fontWeight: 800 }}>Line-up</div>
 
@@ -736,7 +750,14 @@ export default function Lineups({ data, setData }) {
           </div>
 
           {/* Available players */}
-          <div style={{ padding: 12, borderRadius: 14, border: "1px solid rgba(0,0,0,0.12)" }}>
+          <div
+            style={{
+              padding: 12,
+              borderRadius: 14,
+              border: "1px solid var(--border)",
+              background: "var(--surface)", // ✅ key
+            }}
+          >
             <AvailableDropZone>
               <div style={{ fontWeight: 800, marginBottom: 10 }}>Available Players</div>
               <div className="lineupsLeft" style={{ display: "grid", gap: 10 }}>
