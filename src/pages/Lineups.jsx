@@ -664,6 +664,7 @@ export default function Lineups({ data, setData }) {
     defRows.push(
       <div
         key={`D${i}`}
+        className="pairRow"
         style={{
           display: "grid",
           gridTemplateColumns: "120px 1fr",

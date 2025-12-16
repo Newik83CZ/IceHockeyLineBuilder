@@ -160,16 +160,25 @@ textarea:focus {
   }
 
   /* Mobile board stacking */
-  .forwardGrid {
-    grid-template-columns: 1fr !important; /* LW then C then RW */
+  /* Phone portrait: stack (easier to read) */
+  @media (max-width: 800px) and (orientation: portrait) {
+    .forwardGrid { grid-template-columns: 1fr !important; }
+    .defenceGrid { grid-template-columns: 1fr !important; }
   }
 
-  .defenceGrid {
-    grid-template-columns: 1fr !important; /* LD then RD */
+  /* Phone landscape: keep them next to each other */
+  @media (max-width: 800px) and (orientation: landscape) {
+    .forwardGrid { grid-template-columns: 1fr 1fr 1fr !important; }
+    .defenceGrid { grid-template-columns: 1fr 1fr !important; }
   }
+
 
   /* Row label stacking */
   .lineRow {
+    grid-template-columns: 1fr !important;
+  }
+
+  .pairRow {
     grid-template-columns: 1fr !important;
   }
 
