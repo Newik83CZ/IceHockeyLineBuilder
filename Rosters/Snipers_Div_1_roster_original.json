@@ -1,0 +1,173 @@
+{
+  "schema": "icehockey-linebuilder/team/v1",
+  "exportedAt": "2025-12-16T05:00:58.986Z",
+  "team": {
+    "name": "Snipers Div 1",
+    "players": [
+      {
+        "number": "87",
+        "name": "NICHOLAS BOYS",
+        "preferredPosition": "Wing",
+        "leadership": "C",
+        "stick": "",
+        "canPlay": [
+          "C",
+          "LW",
+          "RW",
+          "LD",
+          "RD"
+        ],
+        "notes": ""
+      },
+      {
+        "number": "93",
+        "name": "PAVEL PRACNY",
+        "preferredPosition": "Defender",
+        "leadership": "A",
+        "stick": "Left",
+        "canPlay": [
+          "LW",
+          "LD",
+          "RD",
+          "RW"
+        ],
+        "notes": ""
+      },
+      {
+        "number": "40",
+        "name": "JEFF WHITTER",
+        "preferredPosition": "Centre",
+        "leadership": "",
+        "stick": "Left",
+        "canPlay": [
+          "LD",
+          "RD",
+          "C"
+        ],
+        "notes": ""
+      },
+      {
+        "number": "73",
+        "name": "SCOTT BULEY",
+        "preferredPosition": "Wing",
+        "leadership": "",
+        "stick": "Right",
+        "canPlay": [
+          "LW"
+        ],
+        "notes": ""
+      },
+      {
+        "number": "2",
+        "name": "ELLIOT BULEY",
+        "preferredPosition": "Centre",
+        "leadership": "",
+        "stick": "Right",
+        "canPlay": [
+          "LW",
+          "RW",
+          "C"
+        ],
+        "notes": ""
+      },
+      {
+        "number": "71",
+        "name": "GEORGINA BURDEN",
+        "preferredPosition": "Wing",
+        "leadership": "",
+        "stick": "",
+        "canPlay": [
+          "RW",
+          "LW"
+        ],
+        "notes": ""
+      },
+      {
+        "number": "48",
+        "name": "MADDI COATS",
+        "preferredPosition": "Wing",
+        "leadership": "",
+        "stick": "Left",
+        "canPlay": [
+          "LW",
+          "RW",
+          "LD",
+          "RD"
+        ],
+        "notes": ""
+      },
+      {
+        "number": "77",
+        "name": "SONNAY UY",
+        "preferredPosition": "Centre",
+        "leadership": "",
+        "stick": "Right",
+        "canPlay": [
+          "C"
+        ],
+        "notes": ""
+      },
+      {
+        "number": "15",
+        "name": "KIMBERLY LOGSDON",
+        "preferredPosition": "Wing",
+        "leadership": "",
+        "stick": "",
+        "canPlay": [
+          "RW",
+          "LW"
+        ],
+        "notes": ""
+      },
+      {
+        "number": "38",
+        "name": "AILISH NORMAN",
+        "preferredPosition": "Wing",
+        "leadership": "A",
+        "stick": "",
+        "canPlay": [
+          "LD",
+          "RD",
+          "LW",
+          "RW"
+        ],
+        "notes": ""
+      },
+      {
+        "number": "43",
+        "name": "NATHAN HOSKINS",
+        "preferredPosition": "Defender",
+        "leadership": "",
+        "stick": "Right",
+        "canPlay": [
+          "RW",
+          "RD"
+        ],
+        "notes": ""
+      },
+      {
+        "number": "58",
+        "name": "TRAVIS HARRIMAN",
+        "preferredPosition": "Defender",
+        "leadership": "",
+        "stick": "Right",
+        "canPlay": [
+          "RD",
+          "LD"
+        ],
+        "notes": ""
+      },
+      {
+        "number": "39",
+        "name": "NICOLE PREECE",
+        "preferredPosition": "Goalie",
+        "leadership": "",
+        "stick": "Left",
+        "canPlay": [
+          "G"
+        ],
+        "notes": ""
+      }
+    ]
+  }
+}

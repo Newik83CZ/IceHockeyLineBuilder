@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   createPlayer,
   createTeam,
@@ -14,6 +14,97 @@ const LEADERSHIP = ["", "C", "A"];
 export default function Rosters({ data, setData }) {
   const [teamName, setTeamName] = useState("");
   const [search, setSearch] = useState("");
+
+  const importRef = useRef(null);
+
+  function exportActiveTeam() {
+    if (!activeTeam) return;
+
+    const payload = {
+      schema: "icehockey-linebuilder/team/v1",
+      exportedAt: new Date().toISOString(),
+      team: {
+        name: activeTeam.name,
+        players: activeTeam.players.map(p => ({
+          number: String(p.number),
+          name: p.name,
+          preferredPosition: p.preferredPosition,
+          leadership: p.leadership || "",
+          stick: p.stick || "",
+          canPlay: p.canPlay || [],
+          notes: p.notes || "",
+        })),
+      },
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const safeName = activeTeam.name.replace(/[^a-z0-9-_]+/gi, "_");
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${safeName || "team"}_roster.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+  }
+
+  function clickImport() {
+    importRef.current?.click();
+  }
+
+  function importFromFile(file) {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result || ""));
+        const teamData = parsed?.team ?? parsed; // support either {team:{...}} or direct
+
+        const name = (teamData?.name || "Imported Team").toString().trim();
+        const rawPlayers = Array.isArray(teamData?.players) ? teamData.players : [];
+
+        updateData(d => {
+          const team = createTeam(name);
+
+          // Convert players into your internal shape (new ids generated)
+          for (const rp of rawPlayers) {
+            const playerDraft = {
+              number: String(rp?.number ?? ""),
+              name: String(rp?.name ?? ""),
+              preferredPosition: POSITIONS.includes(rp?.preferredPosition) ? rp.preferredPosition : "Centre",
+              leadership: LEADERSHIP.includes(rp?.leadership) ? rp.leadership : "",
+              stick: STICKS.includes(rp?.stick) ? rp.stick : "",
+              canPlay: Array.isArray(rp?.canPlay)
+                ? rp.canPlay.filter(x => CANPLAY.includes(x))
+                : [],
+              notes: String(rp?.notes ?? ""),
+            };
+
+            // Skip totally empty rows
+            if (!playerDraft.number && !playerDraft.name) continue;
+
+            team.players.push(createPlayer(playerDraft));
+          }
+
+          d.teams.push(team);
+          d.activeTeamId = team.id;
+          return d;
+        });
+
+      } catch (e) {
+        alert("Import failed: invalid JSON file.");
+      } finally {
+        // allow importing same file twice
+        if (importRef.current) importRef.current.value = "";
+      }
+    };
+    reader.readAsText(file);
+  }
+
 
   const activeTeam = data.teams.find((t) => t.id === data.activeTeamId) || null;
 
@@ -204,13 +295,31 @@ export default function Rosters({ data, setData }) {
       <section>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <h2 style={{ margin: 0 }}>Rosters</h2>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search players…"
-            style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)", width: 260 }}
-          />
+
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            {activeTeam ? (
+              <>
+                <button onClick={exportActiveTeam}>Export team</button>
+                <button onClick={clickImport}>Import team</button>
+                <input
+                  ref={importRef}
+                  type="file"
+                  accept="application/json"
+                  style={{ display: "none" }}
+                  onChange={(e) => importFromFile(e.target.files?.[0])}
+                />
+              </>
+            ) : null}
+
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search players…"
+              style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)", width: 260 }}
+            />
+          </div>
         </div>
+
 
         {!activeTeam ? (
           <div style={{ marginTop: 14, opacity: 0.8 }}>Create a team on the left to start adding players.</div>
