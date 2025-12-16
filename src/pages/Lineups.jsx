@@ -1,4 +1,13 @@
-import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core";
+import {
+  DndContext,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  TouchSensor,
+} from "@dnd-kit/core";
+
 import { useEffect, useMemo, useState } from "react";
 import { newId } from "../lib/model";
 
@@ -254,6 +263,11 @@ function countAssignedInSlots(lineup, slots) {
 // ---------- Main component ----------
 export default function Lineups({ data, setData }) {
   const activeTeam = data.teams.find(t => t.id === data.activeTeamId) || null;
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } })
+  );
+
 
   function updateData(updater) {
     setData(prev => {
@@ -586,7 +600,7 @@ export default function Lineups({ data, setData }) {
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "310px 1fr", gap: 16 }}>
-      <DndContext onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         {/* Left: Available + lineup controls */}
         <div style={{ display: "grid", gap: 10 }}>
           <div style={{ display: "inline", alignItems: "center", justifyContent: "space-between", gap: 10 }}>

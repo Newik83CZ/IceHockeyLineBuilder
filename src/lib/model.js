@@ -10,18 +10,121 @@ export function newId() {
   };
   
   export function createEmptyAppData() {
-    const defaultTheme = createTheme("Default");
-    return {
-      teams: [],
-      activeTeamId: null,
-  
-      themes: [defaultTheme],
-      activeThemeId: defaultTheme.id,
-  
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-  }
+  const defaultTeam = createTeam("Default Team");
+
+  // Optional: add a few sample players
+  // defaultTeam.players.push(createPlayer({ number:"10", name:"Sample Centre", preferredPosition:"Centre", ... }))
+
+  defaultTeam.players.push(
+    createPlayer({
+      number: "2",
+      name: "Elliot",
+      preferredPosition: "Centre",
+      stick: "Right",
+      canPlay: ["C", "LW", "RW"],
+    }),
+    createPlayer({
+      number: "39",
+      name: "Bubbles",
+      preferredPosition: "Goalie",
+      canPlay: ["G"],
+    }),
+    createPlayer({
+      number: "15",
+      name: "Kim",
+      preferredPosition: "Wing",
+      stick: "Right",
+      canPlay: ["LW", "RW"],
+    }),
+    createPlayer({
+      number: "73",
+      name: "Scotty",
+      preferredPosition: "Wing",
+      stick: "Right",
+      canPlay: ["LW", "RW"],
+    }),
+    createPlayer({
+      number: "71",
+      name: "Georgie",
+      preferredPosition: "Wing",
+      stick: "Right",
+      canPlay: ["LW", "RW"],
+    }),
+    createPlayer({
+      number: "77",
+      name: "Sonnay",
+      preferredPosition: "Centre",
+      stick: "Right",
+      canPlay: ["C"],
+    }),
+    createPlayer({
+      number: "48",
+      name: "Maddi",
+      preferredPosition: "Wing",
+      stick: "Left",
+      canPlay: ["LW", "RW", "LD", "RD"],
+    }),
+    createPlayer({
+      number: "43",
+      name: "Nathan",
+      preferredPosition: "Defender",
+      stick: "Right",
+      canPlay: ["LD", "RD"],
+    }),
+    createPlayer({
+      number: "58",
+      name: "Trav",
+      preferredPosition: "Defender",
+      stick: "Right",
+      canPlay: ["LD", "RD"],
+    }),
+    createPlayer({
+      number: "87",
+      name: "Boysy",
+      preferredPosition: "Wing",
+      leadership: "C",
+      stick: "Right",
+      canPlay: ["C", "LW", "RW", "LD", "RD"],      
+    }),
+    createPlayer({
+      number: "38",
+      name: "Ailish",
+      preferredPosition: "Defender",
+      leadership: "A",
+      stick: "Right",
+      canPlay: ["LW", "RW","LD", "RD"],
+    }),
+    createPlayer({
+      number: "40",
+      name: "Jeff",
+      preferredPosition: "Centre",
+      stick: "Left",
+      canPlay: ["C", "LD", "RD"],
+    }),
+    createPlayer({
+      number: "93",
+      name: "Pavel",
+      preferredPosition: "Defender",
+      leadership: "A",
+      stick: "Left",
+      canPlay: ["LW", "RW","LD", "RD"],
+    })
+  );
+
+  const defaultTheme = createTheme("Default");
+
+  return {
+    teams: [defaultTeam],
+    activeTeamId: defaultTeam.id,
+
+    themes: [defaultTheme],
+    activeThemeId: defaultTheme.id,
+
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+}
+
   
   export function createTeam(name) {
     return { id: newId(), name, players: [] };

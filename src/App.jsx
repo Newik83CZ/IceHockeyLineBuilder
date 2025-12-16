@@ -49,6 +49,16 @@ export default function App() {
         next.updatedAt = Date.now();
       }
 
+      if (!next.teams || next.teams.length === 0) {
+        const t = createTeam("Default Team");
+        next.teams = [t];
+        next.activeTeamId = t.id;
+        next.updatedAt = Date.now();
+      } else if (!next.activeTeamId) {
+        next.activeTeamId = next.teams[0].id;
+        next.updatedAt = Date.now();
+      }
+
       return next;
     });
     // run once on mount
