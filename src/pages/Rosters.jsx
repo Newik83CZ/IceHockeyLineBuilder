@@ -304,10 +304,10 @@ export default function Rosters({ data, setData }) {
 
       {/* Players */}
       <section>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div className="rostersTopRow" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <h2 style={{ margin: 0 }}>Rosters</h2>
 
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <div className="rostersActionsRow" style={{ display: "flex", gap: 10, alignItems: "center" }}>
             {activeTeam ? (
               <>
                 <button onClick={exportActiveTeam}>Export team</button>
@@ -323,6 +323,7 @@ export default function Rosters({ data, setData }) {
             ) : null}
 
             <input
+              className="rostersSearch"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search players…"

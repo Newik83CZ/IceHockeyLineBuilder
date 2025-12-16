@@ -3,22 +3,24 @@
   background: var(--background);
 }
 
-html, body {
-  overflow-x: hidden;
-}
-
 * {
   box-sizing: border-box;
 }
 
+html,
+body {
+  overflow-x: hidden;
+}
+
+/* ---------- Base controls ---------- */
 
 /* Buttons */
 button {
   background: var(--primary);
   color: white;
   border: 1px solid transparent;
-  padding: 5px 5px;
-  border-radius: 5px;
+  padding: 8px 10px;
+  border-radius: 10px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -32,7 +34,7 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* Secondary button (optional): add className="btn-secondary" */
+/* Secondary button (optional): className="btn-secondary" */
 button.btn-secondary {
   background: transparent;
   color: var(--text);
@@ -40,23 +42,29 @@ button.btn-secondary {
 }
 
 /* Inputs / selects / textareas */
-input, select, textarea {
+input,
+select,
+textarea {
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 5px 5px;
+  border-radius: 10px;
+  padding: 8px 10px;
   outline: none;
 }
 
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent);
   border-color: color-mix(in srgb, var(--primary) 60%, var(--border));
 }
 
-/* Mobile navigation + layout helpers */
+/* ---------- Layout helpers ---------- */
+
 .pageWrap {
-  padding-bottom: 16px;
+  /* Keep content clear of bottom tab bar (desktop gets less, mobile gets more) */
+  padding-bottom: 24px;
 }
 
 .tabNav {
@@ -65,47 +73,47 @@ input:focus, select:focus, textarea:focus {
   margin-bottom: 18px;
 }
 
-/* Make tab bar sticky at bottom on phones */
+/* ---------- Mobile overrides ---------- */
 @media (max-width: 800px) {
+  /* Page spacing */
   .pageWrap {
-    padding-bottom: 110px; /* space for bottom nav */
+    padding: 12px !important;
+    padding-bottom: 140px !important; /* space for bottom nav */
+    max-width: 100% !important;
+    margin: 0 !important;
   }
 
+  /* Bottom sticky tab bar */
   .tabNav {
     position: fixed;
     left: 10px;
     right: 10px;
     bottom: 10px;
-
     z-index: 50;
-
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 8px;
 
     justify-content: space-around;
     gap: 8px;
     margin: 0;
 
-    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-    backdrop-filter: blur(6px);
+    padding: 8px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+
     background: color-mix(in srgb, var(--surface) 85%, transparent);
-    
+    backdrop-filter: blur(6px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
   }
 
   .tabNav a {
     flex: 1;
     text-align: center;
-    padding: 10px 8px !important; /* bigger tap target */
+    padding: 10px 8px !important;
     border-radius: 12px !important;
     font-weight: 800;
   }
-}
 
-@media (max-width: 800px) {
+  /* Rosters layout */
   .rostersLayout {
-    display: grid !important;
     grid-template-columns: 1fr !important;
     gap: 12px !important;
   }
@@ -114,46 +122,64 @@ input:focus, select:focus, textarea:focus {
     border-right: none !important;
     padding-right: 0 !important;
   }
-}
 
-@media (max-width: 800px) {
+  .rostersTopRow {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  .rostersActionsRow {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .rostersActionsRow button {
+    flex: 1;
+    min-width: 140px;
+  }
+
+  .rostersSearch {
+    width: 100% !important;
+  }
+
+  /* Lineups layout */
   .lineupsLayout {
-    display: grid !important;
     grid-template-columns: 1fr !important;
     gap: 12px !important;
   }
-}
 
-@media (max-width: 800px) {
+  /* If you kept this sticky, it can sometimes feel odd on mobile.
+     Keep it if you like it; otherwise remove this block. */
   .lineupsLeft {
     position: sticky;
     top: 10px;
     z-index: 2;
   }
-}
 
-@media (max-width: 800px) {
+  /* Mobile board stacking */
   .forwardGrid {
     grid-template-columns: 1fr !important; /* LW then C then RW */
   }
-}
 
-@media (max-width: 800px) {
   .defenceGrid {
     grid-template-columns: 1fr !important; /* LD then RD */
   }
-}
 
-.pageWrap {
-  padding-bottom: 120px !important;
-}
+  /* Row label stacking */
+  .lineRow {
+    grid-template-columns: 1fr !important;
+  }
 
-@media (max-width: 800px) {
-  .pageWrap {
-    padding: 12px !important;
-    max-width: 100% !important;
-    margin: 0 !important;
+  .rowLabel {
+    padding-top: 0 !important;
+    margin-bottom: -6px;
+  }
+
+  /* Clamp player label tighter on mobile */
+  .playerLabel {
+    -webkit-line-clamp: 1 !important;
   }
 }
-
-

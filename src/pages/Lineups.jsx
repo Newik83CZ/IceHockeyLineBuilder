@@ -15,60 +15,65 @@ const MAX_FORWARD_LINES = 4;
 const MAX_DEF_PAIRS = 4;
 
 function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
-    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
-  
-    const posVar =
-      preferredPosition && typeof preferredPosition === "string"
-        ? `var(--pos-${preferredPosition.toLowerCase()})`
-        : "var(--border)";
-  
-    const style = {
-        width: "100%",
-        maxWidth: "100%",
-        minHeight: 72,
-        padding: "10px 12px",
-        borderRadius: 20,
-        border: `1px solid ${posVar}`,
-        background: "var(--background)",
-        cursor: "grab",
-        touchAction: "none",
-        userSelect: "none",
-        WebkitUserSelect: "none",
-        WebkitTouchCallout: "none",
-        opacity: isDragging ? 0.6 : 1,
-        transform: transform
-            ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-            : undefined,
-        boxShadow: isDragging ? "0 6px 18px rgba(0,0,0,0.12)" : "none",
-        position: "relative",
-        overflow: "hidden",
-        display: "flex",
-        alignItems: "center",
-        touchAction: "none",
-    };
-  
-    return (
-      <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-        <div
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 6,
-            background: posVar,
-          }}
-        />
-        <div style={{ paddingLeft: 10, display: "grid", gap: 4 }}>
-          <div style={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {label}
-          </div>
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({ id });
 
-          {sublabel ? <div style={{ fontSize: 12, opacity: 0.75 }}>{sublabel}</div> : null}
-        </div>
+  const posVar =
+    preferredPosition && typeof preferredPosition === "string"
+      ? `var(--pos-${preferredPosition.toLowerCase()})`
+      : "var(--border)";
+
+  const style = {
+    width: "100%",
+    minHeight: 72,
+    padding: "8px 12px",
+    borderRadius: 20,
+    border: `1px solid ${posVar}`,
+    background: "var(--surface)",
+    cursor: "grab",
+    userSelect: "none",
+    touchAction: "none",
+    opacity: isDragging ? 0.6 : 1,
+    transform: transform
+      ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+      : undefined,
+    boxShadow: isDragging ? "0 6px 18px rgba(0,0,0,0.12)" : "none",
+    position: "relative",
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    gap: 4,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+      {/* Player name */}
+      <div
+        className="playerLabel"
+        style={{
+          fontWeight: 800,
+          fontSize: 14,
+          lineHeight: 1.15,
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+        }}
+      >
+        {label}
       </div>
-    );
-  }
+
+      {/* Stick / warning */}
+      {sublabel && (
+        <div style={{ fontSize: 12, opacity: 0.75 }}>
+          {sublabel}
+        </div>
+      )}
+    </div>
+  );
+}
+
   
 
   function DroppableSlot({ id, title, player, children }) {
@@ -143,7 +148,7 @@ function BoardSection({ title, children }) {
 }
 
 function RowLabel({ children }) {
-  return <div style={{ fontWeight: 800, paddingTop: 8 }}>{children}</div>;
+  return <div className="rowLabel" style={{ fontWeight: 800, paddingTop: 8 }}>{children}</div>;
 }
 
 function Slot({ id, title, assignments, byId }) {
@@ -655,7 +660,7 @@ export default function Lineups({ data, setData }) {
   const forwardRows = [];
   for (let i = 1; i <= activeLineup.forwardLines; i++) {
     forwardRows.push(
-      <div key={`F${i}`} style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 12, alignItems: "start" }}>
+      <div key={`F${i}`} className="lineRow" style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 12, alignItems: "start" }}>
         <RowLabel>{`Line ${i}`}</RowLabel>
         <div className="forwardGrid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
           <Slot id={`F${i}_LW`} title="LW" assignments={activeLineup.assignments} byId={byId} />
