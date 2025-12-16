@@ -269,7 +269,7 @@ export default function Rosters({ data, setData }) {
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
-                color: "rgba(0, 0, 0, 0.8)",
+                background: "var(--background)",
                 padding: 10,
                 borderRadius: 12,
                 border: "1px solid rgba(0,0,0,0.12)",
