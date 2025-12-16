@@ -25,7 +25,8 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
 
   const style = {
     width: "100%",
-    minHeight: 72,
+    minWidth: 0,
+    minHeight: 84,
     padding: "8px 12px",
     borderRadius: 20,
     border: `1px solid ${posVar}`,
@@ -48,88 +49,77 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      {/* Player name */}
       <div
         className="playerLabel"
         style={{
-          fontWeight: 800,
-          fontSize: 14,
+          fontWeight: 700,
+          fontSize: 13,
           lineHeight: 1.15,
           display: "-webkit-box",
           WebkitLineClamp: 2,
+          lineClamp: 2,
           WebkitBoxOrient: "vertical",
           overflow: "hidden",
+          textOverflow: "ellipsis",
         }}
       >
         {label}
       </div>
 
-      {/* Stick / warning */}
-      {sublabel && (
-        <div style={{ fontSize: 12, opacity: 0.75 }}>
-          {sublabel}
-        </div>
-      )}
+      {sublabel && <div style={{ fontSize: 12, opacity: 0.75 }}>{sublabel}</div>}
     </div>
   );
 }
+
 
   
 
   function DroppableSlot({ id, title, player, children }) {
-    const { isOver, setNodeRef } = useDroppable({ id });
-  
-    // Optional: tint the slot title by role group
-    const titleColor =
-      title.includes("G") ? "var(--pos-goalie)" :
-      (title === "LD" || title === "RD") ? "var(--pos-defender)" :
-      (title === "C") ? "var(--pos-centre)" :
-      (title === "LW" || title === "RW") ? "var(--pos-wing)" :
-      "var(--text)";
-  
-    return (
-      <div
-        ref={setNodeRef}
-        style={{
-          padding: 10,
-          borderRadius: 14,
-          border: "1px dashed var(--border)",
-          background: isOver ? "rgba(0,0,0,0.06)" : "transparent",
-          minHeight: 62,
-          minWidth: 0,
-          display: "grid",
-          gap: 8,
-          touchAction: "none",
-        }}
-      >
-        <div style={{ fontSize: 12, fontWeight: 900, opacity: 0.9, color: titleColor }}>
-          {title}
-        </div>
-  
-        {children}
-  
-        {!player ? <div style={{ fontSize: 12, opacity: 0.55 }}>Drop here</div> : null}
-      </div>
-    );
-  }
-  
+  const { isOver, setNodeRef } = useDroppable({ id });
 
-function AvailableDropZone({ children }) {
-  const { isOver, setNodeRef } = useDroppable({ id: "AVAILABLE" });
+  // Optional: tint the slot title by role group
+  const titleColor =
+    title.includes("G") ? "var(--pos-goalie)" :
+    (title === "LD" || title === "RD") ? "var(--pos-defender)" :
+    (title === "C") ? "var(--pos-centre)" :
+    (title === "LW" || title === "RW") ? "var(--pos-wing)" :
+    "var(--text)";
+
   return (
     <div
       ref={setNodeRef}
       style={{
-        borderRadius: 14,
-        padding: 10,
-        background: isOver ? "rgba(0,0,0,0.06)" : "transparent",
+        padding: 12,
+        borderRadius: 16,
+        border: "1px dashed var(--border)",
+        background: isOver
+          ? "color-mix(in srgb, var(--primary) 10%, var(--surface))"
+          : "color-mix(in srgb, var(--surface) 70%, transparent)",
+        minHeight: 108,          // ✅ desktop-friendly slot height
+        minWidth: 0,
         touchAction: "none",
+
+        display: "flex",         // ✅ makes centering easy
+        flexDirection: "column",
+        gap: 8,
       }}
     >
-      {children}
+      <div style={{ fontSize: 12, fontWeight: 900, opacity: 0.9, color: titleColor }}>
+        {title}
+      </div>
+
+      {/* Content area: centers bubble nicely */}
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minWidth: 0 }}>
+        {children ? (
+          <div style={{ width: "100%", minWidth: 0 }}>{children}</div>
+        ) : (
+          <div style={{ fontSize: 12, opacity: 0.55 }}>Drop here</div>
+        )}
+      </div>
     </div>
   );
 }
+
 
 function BoardSection({ title, children }) {
   return (
@@ -685,7 +675,7 @@ export default function Lineups({ data, setData }) {
   }
 
   return (
-    <div className="lineupsLayout" style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 16 }}>
+    <div className="lineupsLayout" style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: 16 }}>
 
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         {/* Left: Available + lineup controls */}
@@ -716,19 +706,26 @@ export default function Lineups({ data, setData }) {
                 {lineups.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
 
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", maxHeight: "40px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
                 <button onClick={createNewLineup}>New</button>
                 <button onClick={renameLineup}>Rename</button>
                 <button onClick={duplicateLineup}>Duplicate</button>
                 <button onClick={deleteLineup}>Delete</button>
               </div>
+
               <div> </div>
             </div>
 
             <div style={{ display: "grid", gap: 4 }}>
-              <div style={{ fontWeight: 900, marginTop: 6, marginBottom: 10 }}>
-                  Structure
-                </div>
+              <h3 style={{ margin: "14px 0 10px" }}>Structure</h3>
+
 
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                   <div>Forward lines: <b>{activeLineup.forwardLines}</b></div>
