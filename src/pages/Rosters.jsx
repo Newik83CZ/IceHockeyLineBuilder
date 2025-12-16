@@ -269,17 +269,28 @@ export default function Rosters({ data, setData }) {
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
-                background: "var(--background)",
+                
                 padding: 10,
                 borderRadius: 12,
                 border: "1px solid rgba(0,0,0,0.12)",
-                background: t.id === data.activeTeamId ? "rgba(168, 25, 25, 0.80)" : "transparent",
+                //background: t.id === data.activeTeamId ? "rgba(168, 25, 25, 0.80)" : "transparent",
+                background: t.id === data.activeTeamId ? "var(--background)" : "transparent",
               }}
             >
               <button
                 onClick={() => updateData((d) => ((d.activeTeamId = t.id), d))}
-                style={{ flex: 1, textAlign: "left", background: "transparent", border: "none" }}
+                style={{
+                  flex: 1,
+                  textAlign: "left",
+                  background: "transparent",
+                  border: "none",
+                  padding: 0,
+                  color: "var(--text)",       // ✅ key fix
+                  font: "inherit",            // ✅ prevents odd button font
+                  cursor: "pointer",
+                }}
               >
+
                 <div style={{ fontWeight: 600 }}>{t.name}</div>
                 <div style={{ fontSize: 12, opacity: 0.7 }}>{t.players.length} players</div>
               </button>
