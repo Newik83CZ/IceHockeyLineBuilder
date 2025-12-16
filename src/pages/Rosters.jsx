@@ -178,10 +178,11 @@ export default function Rosters({ data, setData }) {
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
+                color: "rgba(0, 0, 0, 0.8)",
                 padding: 10,
                 borderRadius: 12,
                 border: "1px solid rgba(0,0,0,0.12)",
-                background: t.id === data.activeTeamId ? "rgba(168, 25, 25, 0.50)" : "transparent",
+                background: t.id === data.activeTeamId ? "rgba(168, 25, 25, 0.80)" : "transparent",
               }}
             >
               <button
