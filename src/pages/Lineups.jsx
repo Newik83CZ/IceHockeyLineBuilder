@@ -275,6 +275,20 @@ export default function Lineups({ data, setData }) {
     useSensor(TouchSensor, { activationConstraint: { distance: 10 } })
   );
 
+  function autoBuildLines() {
+    if (!activeLineup) return;
+
+    const hasAssignments = Object.values(activeLineup.assignments || {}).some(Boolean);
+    if (hasAssignments) {
+      if (!confirm("This will overwrite current assignments. Continue?")) return;
+    }
+
+    saveActiveLineup(lu => {
+      autoAssignLineup(lu, players);
+    });
+  }
+
+
   function updateData(updater) {
     setData(prev => {
       const next = updater(structuredClone(prev));
@@ -435,6 +449,55 @@ export default function Lineups({ data, setData }) {
       return d;
     });
   }
+
+  function autoAssignLineup(lineup, players) {
+    const used = new Set();
+    const next = {};
+
+    function pick(filterFn) {
+      const p = players.find(pl => !used.has(pl.id) && filterFn(pl));
+      if (p) used.add(p.id);
+      return p?.id || null;
+    }
+
+    // ---- Forwards ----
+    for (let i = 1; i <= lineup.forwardLines; i++) {
+      next[`F${i}_LW`] =
+        pick(p => p.canPlay?.includes("LW")) ??
+        pick(p => p.preferredPosition === "Wing");
+
+      next[`F${i}_C`] =
+        pick(p => p.canPlay?.includes("C")) ??
+        pick(p => p.preferredPosition === "Centre");
+
+      next[`F${i}_RW`] =
+        pick(p => p.canPlay?.includes("RW")) ??
+        pick(p => p.preferredPosition === "Wing");
+    }
+
+    // ---- Defence ----
+    for (let i = 1; i <= lineup.defencePairs; i++) {
+      next[`D${i}_LD`] =
+        pick(p => p.canPlay?.includes("LD")) ??
+        pick(p => p.preferredPosition === "Defender");
+
+      next[`D${i}_RD`] =
+        pick(p => p.canPlay?.includes("RD")) ??
+        pick(p => p.preferredPosition === "Defender");
+    }
+
+    // ---- Goalies ----
+    next["G_START"] =
+      pick(p => p.preferredPosition === "Goalie");
+
+    if (lineup.backupGoalieEnabled) {
+      next["G_BACKUP"] =
+        pick(p => p.preferredPosition === "Goalie");
+    }
+
+    lineup.assignments = next;
+  }
+
 
   function clearAllAssignments() {
     if (!activeLineup) return;
@@ -664,7 +727,10 @@ export default function Lineups({ data, setData }) {
                   Backup goalie enabled
                 </label>
 
+                <button onClick={autoBuildLines}>Auto-build lines</button>
+
                 <button onClick={clearAllAssignments}>Clear all assignments</button>
+
               </div>
           </div>
 
