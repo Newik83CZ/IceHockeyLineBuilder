@@ -253,7 +253,7 @@ textarea:focus {
   }
 
   .pageWrap {
-    padding: 8px !important;
+    padding: 3px !important;
   }
 
   .lineRow {
@@ -262,11 +262,11 @@ textarea:focus {
 
   .forwardGrid,
   .defenceGrid {
-    gap: 8px !important;
+    gap: 3px !important;
   }
 
   button {
-    padding: 8px !important;
+    padding: 3px !important;
   }
 }
 
