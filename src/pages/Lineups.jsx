@@ -81,7 +81,6 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
       {/* ONE-LINE header row with auto-shrink text */}
       <div
-        ref={rowRef}
         style={{
           display: "flex",
           alignItems: "center",
@@ -93,9 +92,8 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
       >
         {label?.leadership ? (
           <span
-            ref={badgeRef}
             style={{
-              fontSize: 11,
+              fontSize: 9,
               fontWeight: 900,
               padding: "2px 6px",
               borderRadius: 6,
@@ -109,15 +107,13 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
         ) : null}
 
         <span
-          ref={textRef}
           style={{
             fontWeight: 800,
-            fontSize: textSize,
+            fontSize: "clamp(12px, 2.6vw, 18px)",
             lineHeight: 1.15,
-            display: "block",
             minWidth: 0,
             overflow: "hidden",
-            textOverflow: "clip",
+            textOverflow: "ellipsis",
             whiteSpace: "nowrap",
           }}
         >
@@ -126,7 +122,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
       </div>
 
       {sublabel ? (
-        <div style={{ fontSize: 12, opacity: 0.75 }}>{sublabel}</div>
+        <div style={{ fontSize: "clamp(8px, 3vw, 18px)", opacity: 0.75 }}>{sublabel}</div>
       ) : null}
     </div>
   );
