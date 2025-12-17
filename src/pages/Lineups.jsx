@@ -149,17 +149,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
             gap: 4,
           }}
         >
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-            {label.firstName}
-          </span>
-
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-            {label.lastName}
-          </span>
-
-          <span style={{ opacity: 0.75 }}>
-            #{label.number}
-          </span>
+               
 
           {labelObj.leadership ? (
           <span
@@ -178,6 +168,16 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
             "{labelObj.leadership}"
           </span>
         ) : null}
+          <span style={{ opacity: 0.75 }}>
+            #{label.number}
+          </span>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+            {label.firstName}
+          </span>
+
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+            {label.lastName}
+          </span>  
         </span>
       </div>
 
