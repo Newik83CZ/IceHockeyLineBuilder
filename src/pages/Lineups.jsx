@@ -104,17 +104,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
       {/* ONE-LINE header row with true auto-shrink */}
-      <div
-        ref={rowRef}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          minWidth: 0,
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-        }}
-      >
+      <div>
         {labelObj.leadership ? (
           <span
             ref={badgeRef}
@@ -133,6 +123,39 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
             {labelObj.leadership}
           </span>
         ) : null}
+      </div>
+
+      <div
+        ref={rowRef}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          minWidth: 0,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+        }}
+      >
+        {/*
+        {labelObj.leadership ? (
+          <span
+            ref={badgeRef}
+            style={{
+              fontSize: 10,
+              fontWeight: 900,
+              padding: "2px 6px",
+              borderRadius: 8,
+              background: "var(--primary)",
+              color: "white",
+              flexShrink: 0,
+              lineHeight: 1,
+            }}
+            title={labelObj.leadership === "C" ? "Captain" : "Alternate"}
+          >
+            {labelObj.leadership}
+          </span>
+        ) : null}
+        */}
 
         <span
           ref={textRef}
@@ -298,7 +321,7 @@ function createLineup(name = "New lineup") {
   return {
     id: newId(),
     name,
-    forwardLines: 2,
+    forwardLines: 3,
     defencePairs: 2,
     backupGoalieEnabled: true,
     assignments: {},
