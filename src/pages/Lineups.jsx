@@ -164,49 +164,76 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
             lineHeight: 1.15,
             minWidth: 0,
             overflow: "hidden",
-            whiteSpace: "nowrap",
             display: "flex",
-            alignItems: "baseline",
-            gap: 6,
+            flexDirection: "column",
           }}
         >
-          {labelObj.mode === "parts" ? (
-            <>
-              {/* First name: don’t ellipsis first */}
-              <span style={{ flexShrink: 0 }}>{labelObj.firstName}</span>
+          {/* LINE 1: number, leadership, first name */}
+          <span
+            style={{
+              display: "flex",
+              gap: 6,
+              minWidth: 0,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+            }}
+          >
+            {/* Number */}
+            {labelObj.number !== "" && labelObj.number !== null ? (
+              <span style={{ flexShrink: 0, opacity: 0.85 }}>
+                #{labelObj.number}
+              </span>
+            ) : null}
 
-              <br />
+            {/* Leadership */}
+            {labelObj.leadership ? (
+              <span
+                ref={badgeRef}
+                style={{
+                  fontSize: 10,
+                  fontWeight: 900,
+                  padding: "2px 6px",
+                  borderRadius: 8,
+                  background: "var(--primary)",
+                  color: "white",
+                  flexShrink: 0,
+                  lineHeight: 1,
+                }}
+                title={labelObj.leadership === "C" ? "Captain" : "Alternate"}
+              >
+                "{labelObj.leadership}"
+              </span>
+            ) : null}
 
-              {/* Last name: ellipsis first */}
-              {labelObj.lastName ? (
-                <span
-                  style={{
-                    minWidth: 0,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {labelObj.lastName}
-                </span>
-              ) : null}
+            {/* First name */}
+            {labelObj.firstName ? (
+              <span
+                style={{
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {labelObj.firstName}
+              </span>
+            ) : null}
+          </span>
 
-              {/* Number */}
-              {labelObj.number !== "" && labelObj.number !== null ? (
-                <span style={{ flexShrink: 0, opacity: 0.8 }}>#{labelObj.number}</span>
-              ) : null}
-            </>
-          ) : (
+          {/* LINE 2: last name */}
+          {labelObj.lastName ? (
             <span
               style={{
                 minWidth: 0,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
+                opacity: 0.95,
               }}
             >
-              {labelObj.text}
+              {labelObj.lastName}
             </span>
-          )}
+          ) : null}
         </span>
+
       </div>
 
       {sublabel ? <div style={{ fontSize: 10, opacity: 0.75 }}>{sublabel}</div> : null}
