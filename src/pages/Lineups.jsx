@@ -172,10 +172,10 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
               <span
                 ref={badgeRef}
                 style={{
-                  fontSize: `${textSize * 1.05}px`,
+                  fontSize: `${textSize * 1.0}px`,
                   fontWeight: 900,
                   padding: "2px 2px",
-                  borderRadius: 8,
+                  borderRadius: 4,
                   background: "var(--primary)",
                   color: "white",
                   flexShrink: 0,
@@ -392,8 +392,8 @@ function canPlayMismatch(player, posCode) {
 
 function stickLabel(player) {
   if (!player) return "";
-  if (player.stick === "Left") return "LH Stick";
-  if (player.stick === "Right") return "RH Stick";
+  if (player.stick === "Left") return "LH";
+  if (player.stick === "Right") return "RH";
   return "";
 }
 
