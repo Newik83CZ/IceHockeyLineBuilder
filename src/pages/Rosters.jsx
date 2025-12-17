@@ -399,7 +399,7 @@ export default function Rosters({ data, setData }) {
                   className="addPlayerRow2"
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "minmax(0, 1fr) minmax(0, 160px) minmax(0, 160px)",
+                    gridTemplateColumns: "minmax(0, 160px) minmax(0, 160px) minmax(0, 160px)",
                     gap: 10,
                     minWidth: 0,
                   }}
@@ -480,12 +480,12 @@ export default function Rosters({ data, setData }) {
             <div style={{ marginTop: 14 }}>
               <h3 style={{ marginBottom: 8 }}>Players</h3>
            
-              <div
+              {/*<div
                 style={{
                   opacity: 0.85,
                   display: "grid",
                   gridTemplateColumns:
-                    "40px minmax(160px, 1.4fr) 100px 60px 60px 1fr 70px",
+                    "210px 90px 70px 50px 100px",
                   gap: 2,
                   alignItems: "center",
                   padding: "6px 10px",
@@ -496,14 +496,28 @@ export default function Rosters({ data, setData }) {
                   borderBottom: "1px solid rgba(0,0,0,0.15)",
                 }}
               >
-                <div>#</div>
-                <div>Name</div>
-                <div>Position</div>
-                <div>Lead</div>
+                <div>
+                      #
+                      <span style={{ marginLeft: 10 }}>
+                      Name
+                      </span>
+                      <span style={{ marginLeft: 10 }}>
+                      Leadership
+                      </span>
+                </div>
+
+                <div>
+                      Position
+                </div>
+
                 <div>Stick</div>
+
                 <div>Can play</div>
+
                 <div>Actions</div>
               </div>
+              */}
+
 
               <div style={{ display: "grid", gap: 0, minWidth: 0 }}>
                 {sortedPlayers.map((p) => (
@@ -513,24 +527,28 @@ export default function Rosters({ data, setData }) {
                     style={{
                       display: "grid",
                       gridTemplateColumns:
-                        "40px minmax(160px, 1.4fr) 100px 60px 60px 1fr 70px",
+                        "240px 80px 120px 140px 70px",
                       gap: 2,
                       alignItems: "center",
                       padding: 5,
                       marginTop: 5,
-                      borderRadius: 14,
-                      border: "1px solid rgba(0,0,0,0.12)",
+                      borderBottom: "1px solid rgba(0,0,0,0.12)",
                       minWidth: 0,
                     }}
                   >
 
-                    <div style={{ fontWeight: 700, minWidth: 0 }}>#{p.number}</div>
-
-                    <div style={{ fontWeight: 600, minWidth: 0, whiteSpace: "normal", overflowWrap: "anywhere" }}>
+                    <div style={{ fontWeight: 600, minWidth: 0 /*, whiteSpace: "normal", overflowWrap: "anywhere" */}}>
+                      <span style={{ textAlign: "right", display: "inline-block", width: 30 }}>#{p.number}</span>
+                      <span style={{ marginLeft: 10 }}>
                       {p.name}
+                      </span>
+                      <span style={{ color: "var(--accent)", marginLeft: 10 }}>
+                        {p.leadership || " "}
+                      </span>
                     </div>
 
                     <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                      
                       <span
                         style={{
                           display: "inline-block",
@@ -550,14 +568,17 @@ export default function Rosters({ data, setData }) {
                       </span>
                     </div>
 
-                    <div style={{ minWidth: 0 }}>{p.leadership || " "}</div>
-                    <div style={{ opacity: 0.9, minWidth: 0 }}>{p.stick || " "}</div>
+                    <div>
+                      <span style={{ marginLeft: 35 }}>
+                      {p.stick || " "}
+                      </span>
+                    </div>               
 
-                    <div style={{ opacity: 0.85, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div style={{ opacity: 0.85, minWidth: 0,}}>
                       {(p.canPlay || []).length ? p.canPlay.join(", ") : " "}
                     </div>
 
-                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", minWidth: 0, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", minWidth: 0, marginLeft: 35 }}>
                       <button onClick={() => startEditPlayer(p)}>Edit</button>
                       <button onClick={() => deletePlayer(p.id)}>Del</button>
                     </div>
