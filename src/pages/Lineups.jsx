@@ -162,7 +162,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
           >
             {/* Number */}
             {labelObj.number !== "" && labelObj.number !== null ? (
-              <span style={{ flexShrink: 0, fontSize: `18px`,opacity: 0.85 }}>
+              <span style={{ flexShrink: 0, fontSize: `16px`,opacity: 0.85 }}>
                 #{labelObj.number}
               </span>
             ) : null}

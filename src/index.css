@@ -144,7 +144,7 @@ textarea:focus {
   .rostersLayout,
   .lineupsLayout {
     grid-template-columns: 1fr !important;
-    gap: 12px !important;
+    gap: 10px !important;
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
@@ -183,12 +183,12 @@ textarea:focus {
   .lineRow,
   .pairRow {
     grid-template-columns: 1fr !important;
-    gap: 6px !important;
+    gap: 3px !important;
   }
 
   .forwardGrid,
   .defenceGrid {
-    gap: 6px !important;
+    gap: 3px !important;
   }
 
   .rowLabel {
@@ -239,7 +239,7 @@ textarea:focus {
   @media (max-width: 800px) and (orientation: portrait) {
     .playerRow {
       grid-template-columns: 1fr 1fr !important;
-      gap: 6px !important;
+      gap: 4px !important;
       align-items: start !important;
     }
 

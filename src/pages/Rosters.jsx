@@ -569,7 +569,7 @@ export default function Rosters({ data, setData }) {
                     </div>
 
                     <div>
-                      <span style={{ marginLeft: 35 }}>
+                      <span style={{ marginLeft: 37 }}>
                       {p.stick || " "}
                       </span>
                     </div>               
@@ -578,7 +578,7 @@ export default function Rosters({ data, setData }) {
                       {(p.canPlay || []).length ? p.canPlay.join(", ") : " "}
                     </div>
 
-                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", minWidth: 0, marginLeft: 35 }}>
+                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", minWidth: 0, marginLeft: 37 }}>
                       <button onClick={() => startEditPlayer(p)}>Edit</button>
                       <button onClick={() => deletePlayer(p.id)}>Del</button>
                     </div>
