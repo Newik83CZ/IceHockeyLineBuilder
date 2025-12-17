@@ -449,7 +449,6 @@ export default function Rosters({ data, setData }) {
                 {sortedPlayers.map((p) => (
                   <div
                     key={p.id}
-                    className="rosterPlayerRow"
                     style={{
                       display: "grid",
                       gridTemplateColumns: "80px 1fr 140px 70px 80px 1fr 90px",

@@ -118,6 +118,14 @@ textarea:focus {
     gap: 12px !important;
   }
 
+  /* Rosters: fix layout cut-off on phone portrait */
+  @media (max-width: 800px) and (orientation: portrait) {
+    .rostersLayout {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+
   .rostersSidebar {
     border-right: none !important;
     padding-right: 0 !important;
@@ -231,20 +239,6 @@ textarea:focus {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-
-/* Rosters: prevent right side cut-off on phone portrait */
-@media (max-width: 800px) and (orientation: portrait) {
-  .rosterPlayerRow {
-    grid-template-columns: 1fr !important;
-    align-items: start !important;
-  }
-
-  /* Make sure child cells can shrink */
-  .rosterPlayerRow > * {
-    min-width: 0 !important;
-  }
-}
-
 
 
 }
