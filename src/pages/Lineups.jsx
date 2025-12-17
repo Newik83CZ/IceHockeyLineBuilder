@@ -175,25 +175,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
               </span>
             ) : null}
 
-            {/* Leadership */}
-            {labelObj.leadership ? (
-              <span
-                ref={badgeRef}
-                style={{
-                  fontSize: `10px`,
-                  fontWeight: 900,
-                  padding: "5px 7px",
-                  borderRadius: 12,
-                  background: "var(--accent)",
-                  color: "var(--surface)",
-                  flexShrink: 0,
-                  lineHeight: 1,
-                }}
-                title={labelObj.leadership === "C" ? "Captain" : "Alternate"}
-              >
-                {labelObj.leadership}
-              </span>
-            ) : null}
+            
 
             {/* First name */}
             {labelObj.firstName ? (
@@ -214,6 +196,37 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
           </span>
 
           {/* LINE 2: last name */}
+          
+          <span
+            style={{
+              display: "flex",
+              gap: 6,
+              minWidth: 0,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+            }}
+          >
+
+          {/* Leadership */}
+            {labelObj.leadership ? (
+              <span
+                ref={badgeRef}
+                style={{
+                  fontSize: `7px`,
+                  fontWeight: 900,
+                  padding: "5px 7px",
+                  borderRadius: 14,
+                  background: "var(--accent)",
+                  color: "var(--surface)",
+                  flexShrink: 0,
+                  //lineHeight: 1,
+                }}
+                title={labelObj.leadership === "C" ? "Captain" : "Alternate"}
+              >
+                {labelObj.leadership}
+              </span>
+            ) : null}
+
           {labelObj.lastName ? (
             <span
               style={{
@@ -229,9 +242,9 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
               {labelObj.lastName}
             </span>
           ) : null}
-
+          </span>
         </span>
-
+          
       </div>
 
       {sublabel ? <div style={{ fontSize: 10, opacity: 0.75 }}>{sublabel}</div> : null}
