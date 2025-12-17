@@ -9,7 +9,7 @@
 
 html,
 body {
-  overflow-x: hidden;
+  overflow-x: visible;
 }
 
 /* ---------- Base controls ---------- */
@@ -269,5 +269,60 @@ textarea:focus {
     padding: 2px !important;
   }
 }
+
+/* MOBILE: make content truly edge-to-edge */
+@media (max-width: 800px) {
+  .pageWrap {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* If you have any general container centering, kill it on mobile */
+  .pageWrap > * {
+    max-width: 100% !important;
+  }
+
+  /* Make the Line-ups layout fill full width */
+  .lineupsLayout {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  /* Tighten the inside padding of the cards a bit */
+  .lineupsLeft > div,
+  .lineupsLayout > div > div { /* right panel wrappers */
+    border-radius: 14px !important;
+  }
+}
+
+@media (max-width: 800px) {
+  /* Prevent common overflow offenders */
+  input, select, textarea, button {
+    max-width: 100% !important;
+  }
+
+  /* Flex rows often overflow because children refuse to shrink */
+  .rostersTopRow,
+  .rostersActionsRow {
+    flex-wrap: wrap !important;
+  }
+
+  /* Critical: allow flex/grid children to shrink */
+  .rostersTopRow * ,
+  .rostersActionsRow * ,
+  .rostersLayout * {
+    min-width: 0 !important;
+  }
+
+  /* If your players list is a row-like grid/table, force it to stay within viewport */
+  .playersRow,
+  .playersTable,
+  .playersList {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+
 
 }
