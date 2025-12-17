@@ -172,7 +172,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
               <span
                 ref={badgeRef}
                 style={{
-                  fontSize: 10,
+                  fontSize: `${textSize * 1.05}px`,
                   fontWeight: 900,
                   padding: "2px 2px",
                   borderRadius: 8,
@@ -212,6 +212,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
                 minWidth: 0,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
+                fontSize: `${textSize * 1.01}px`,
                 fontWeight: 900,
                 opacity: 0.95,
               }}
@@ -391,8 +392,8 @@ function canPlayMismatch(player, posCode) {
 
 function stickLabel(player) {
   if (!player) return "";
-  if (player.stick === "Left") return "Stick: Left";
-  if (player.stick === "Right") return "Stick: Right";
+  if (player.stick === "Left") return "LH Stick";
+  if (player.stick === "Right") return "RH Stick";
   return "";
 }
 
