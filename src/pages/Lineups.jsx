@@ -1,3 +1,4 @@
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   useDraggable,
@@ -9,7 +10,6 @@ import {
 } from "@dnd-kit/core";
 
 import { newId } from "../lib/model";
-import React, { useEffect, useMemo, useState } from "react";
 
 const MAX_FORWARD_LINES = 4;
 const MAX_DEF_PAIRS = 4;
@@ -20,38 +20,62 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({ id });
 
+  // Normalize label: allow string OR { leadership, text }
+  const labelObj =
+    label && typeof label === "object"
+      ? { leadership: label.leadership || "", text: label.text || "" }
+      : { leadership: "", text: String(label ?? "") };
+
   const posVar =
     preferredPosition && typeof preferredPosition === "string"
       ? `var(--pos-${preferredPosition.toLowerCase()})`
       : "var(--border)";
 
-  const rowRef = React.useRef(null);
-  const badgeRef = React.useRef(null);
-  const textRef = React.useRef(null);
+  const rowRef = useRef(null);
+  const badgeRef = useRef(null);
+  const textRef = useRef(null);
 
-  const [textSize, setTextSize] = React.useState(16);
+  const [textSize, setTextSize] = useState(18);
 
-  React.useLayoutEffect(() => {
+  useLayoutEffect(() => {
     const rowEl = rowRef.current;
-    const badgeEl = badgeRef.current;
     const textEl = textRef.current;
     if (!rowEl || !textEl) return;
 
-    const badgeW = badgeEl ? badgeEl.getBoundingClientRect().width : 0;
-    const gap = (label?.leadership ? 6 : 0);
-    const available = Math.max(0, rowEl.clientWidth - badgeW - gap);
+    const compute = () => {
+      const badgeEl = badgeRef.current;
 
-    // Start larger and shrink until it fits in available width
-    let size = 18;
-    textEl.style.fontSize = `${size}px`;
-
-    while (size > 11 && textEl.scrollWidth > available) {
-      size -= 0.5;
+      // Reset to max first
+      let size = 18;
       textEl.style.fontSize = `${size}px`;
-    }
 
-    setTextSize(size);
-  }, [label?.text, label?.leadership]);
+      const badgeW = badgeEl ? badgeEl.getBoundingClientRect().width : 0;
+
+      // row uses gap: 6, only matters if badge exists
+      const gap = badgeEl ? 6 : 0;
+      const available = Math.max(0, rowEl.clientWidth - badgeW - gap);
+
+      const MIN = 9;
+      // Prevent infinite loop if something weird happens
+      let guard = 0;
+
+      while (size > MIN && textEl.scrollWidth > available && guard < 50) {
+        size -= 1;
+        textEl.style.fontSize = `${size}px`;
+        guard += 1;
+      }
+
+      setTextSize(size);
+    };
+
+    compute();
+
+    // Recompute when container width changes (desktop resize / mobile orientation / layout shifts)
+    const ro = new ResizeObserver(() => compute());
+    ro.observe(rowEl);
+
+    return () => ro.disconnect();
+  }, [labelObj.text, labelObj.leadership]);
 
   const style = {
     width: "100%",
@@ -79,8 +103,9 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      {/* ONE-LINE header row with auto-shrink text */}
+      {/* ONE-LINE header row with true auto-shrink */}
       <div
+        ref={rowRef}
         style={{
           display: "flex",
           alignItems: "center",
@@ -90,39 +115,44 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
           overflow: "hidden",
         }}
       >
-        {label?.leadership ? (
+        {labelObj.leadership ? (
           <span
+            ref={badgeRef}
             style={{
-              fontSize: 9,
+              fontSize: 10,
               fontWeight: 900,
               padding: "2px 6px",
-              borderRadius: 6,
+              borderRadius: 8,
               background: "var(--primary)",
               color: "white",
               flexShrink: 0,
+              lineHeight: 1,
             }}
+            title={labelObj.leadership === "C" ? "Captain" : "Alternate"}
           >
-            {label.leadership}
+            {labelObj.leadership}
           </span>
         ) : null}
 
         <span
+          ref={textRef}
           style={{
             fontWeight: 800,
-            fontSize: "clamp(12px, 2.6vw, 18px)",
+            fontSize: textSize, // ✅ comes from measured shrink
             lineHeight: 1.15,
             minWidth: 0,
             overflow: "hidden",
-            textOverflow: "ellipsis",
+            textOverflow: "clip", // ✅ we shrink instead of ellipsis
             whiteSpace: "nowrap",
+            flex: "1 1 auto",
           }}
         >
-          {label?.text ?? String(label)}
+          {labelObj.text}
         </span>
       </div>
 
       {sublabel ? (
-        <div style={{ fontSize: "clamp(8px, 3vw, 18px)", opacity: 0.75 }}>{sublabel}</div>
+        <div style={{ fontSize: 12, opacity: 0.75 }}>{sublabel}</div>
       ) : null}
     </div>
   );
@@ -164,7 +194,14 @@ function DroppableSlot({ id, title, player, children }) {
         {title}
       </div>
 
-      <div style={{ flex: 1, minWidth: 0, display: "grid", alignItems: "center" }}>
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          display: "grid",
+          alignItems: "center",
+        }}
+      >
         {children}
         {!player ? <div style={{ fontSize: 12, opacity: 0.55 }}>Drop here</div> : null}
       </div>
@@ -190,7 +227,14 @@ function AvailableDropZone({ children }) {
 
 function BoardSection({ title, children }) {
   return (
-    <div style={{ padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
+    <div
+      style={{
+        padding: 12,
+        borderRadius: 14,
+        border: "1px solid var(--border)",
+        background: "var(--surface)",
+      }}
+    >
       <div style={{ fontWeight: 900, marginBottom: 10 }}>{title}</div>
       <div style={{ display: "grid", gap: 10 }}>{children}</div>
     </div>
@@ -334,7 +378,7 @@ function countAssignedInSlots(lineup, slots) {
 /* ===================== Main component ===================== */
 
 export default function Lineups({ data, setData }) {
-  const activeTeam = data.teams.find(t => t.id === data.activeTeamId) || null;
+  const activeTeam = data.teams.find((t) => t.id === data.activeTeamId) || null;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -342,7 +386,7 @@ export default function Lineups({ data, setData }) {
   );
 
   function updateData(updater) {
-    setData(prev => {
+    setData((prev) => {
       const next = updater(structuredClone(prev));
       next.updatedAt = Date.now();
       return next;
@@ -353,7 +397,7 @@ export default function Lineups({ data, setData }) {
   useEffect(() => {
     if (!activeTeam) return;
 
-    updateData(d => {
+    updateData((d) => {
       d.lineupsByTeam ??= {};
 
       const teamId = d.activeTeamId;
@@ -385,7 +429,7 @@ export default function Lineups({ data, setData }) {
   const bucket = data.lineupsByTeam?.[teamId] || { activeLineupId: null, lineups: [] };
   const lineups = bucket.lineups || [];
   const activeLineup =
-    lineups.find(l => l.id === bucket.activeLineupId) || lineups[0] || null;
+    lineups.find((l) => l.id === bucket.activeLineupId) || lineups[0] || null;
 
   const players = activeTeam?.players ?? [];
   const byId = useMemo(() => {
@@ -402,15 +446,15 @@ export default function Lineups({ data, setData }) {
 
   const available = useMemo(() => {
     return players
-      .filter(p => !assignedIds.has(p.id))
+      .filter((p) => !assignedIds.has(p.id))
       .sort((a, b) => a.number - b.number);
   }, [players, assignedIds]);
 
   function saveActiveLineup(mutator) {
-    updateData(d => {
+    updateData((d) => {
       const b = d.lineupsByTeam?.[d.activeTeamId];
       if (!b) return d;
-      const idx = b.lineups.findIndex(x => x.id === b.activeLineupId);
+      const idx = b.lineups.findIndex((x) => x.id === b.activeLineupId);
       if (idx < 0) return d;
 
       const lu = b.lineups[idx];
@@ -423,7 +467,7 @@ export default function Lineups({ data, setData }) {
   }
 
   function setActiveLineupId(id) {
-    updateData(d => {
+    updateData((d) => {
       d.lineupsByTeam ??= {};
       d.lineupsByTeam[d.activeTeamId] ??= { activeLineupId: null, lineups: [] };
       d.lineupsByTeam[d.activeTeamId].activeLineupId = id;
@@ -434,7 +478,7 @@ export default function Lineups({ data, setData }) {
   function createNewLineup() {
     const name = prompt("Lineup name?", `Lineup ${lineups.length + 1}`);
     if (!name) return;
-    updateData(d => {
+    updateData((d) => {
       d.lineupsByTeam ??= {};
       d.lineupsByTeam[d.activeTeamId] ??= { activeLineupId: null, lineups: [] };
       const lu = createLineup(name.trim());
@@ -449,7 +493,7 @@ export default function Lineups({ data, setData }) {
     if (!activeLineup) return;
     const name = prompt("New lineup name?", activeLineup.name);
     if (!name) return;
-    saveActiveLineup(lu => {
+    saveActiveLineup((lu) => {
       lu.name = name.trim();
     });
   }
@@ -459,9 +503,9 @@ export default function Lineups({ data, setData }) {
     const name = prompt("Name for duplicated lineup?", `${activeLineup.name} (copy)`);
     if (!name) return;
 
-    updateData(d => {
+    updateData((d) => {
       const b = d.lineupsByTeam[d.activeTeamId];
-      const src = b.lineups.find(x => x.id === b.activeLineupId);
+      const src = b.lineups.find((x) => x.id === b.activeLineupId);
       if (!src) return d;
 
       const copy = {
@@ -481,9 +525,9 @@ export default function Lineups({ data, setData }) {
     if (!activeLineup) return;
     if (!confirm(`Delete lineup "${activeLineup.name}"?`)) return;
 
-    updateData(d => {
+    updateData((d) => {
       const b = d.lineupsByTeam[d.activeTeamId];
-      b.lineups = b.lineups.filter(x => x.id !== b.activeLineupId);
+      b.lineups = b.lineups.filter((x) => x.id !== b.activeLineupId);
       b.activeLineupId = b.lineups[0]?.id ?? null;
 
       if (!b.activeLineupId) {
@@ -499,7 +543,7 @@ export default function Lineups({ data, setData }) {
   function clearAllAssignments() {
     if (!activeLineup) return;
     if (!confirm("Clear all assigned players for this lineup?")) return;
-    saveActiveLineup(lu => {
+    saveActiveLineup((lu) => {
       for (const k of Object.keys(lu.assignments)) lu.assignments[k] = null;
     });
   }
@@ -524,33 +568,28 @@ export default function Lineups({ data, setData }) {
     const fromSlot = findSlotHoldingPlayer(draggedPlayerId);
     const toSlot = target === "AVAILABLE" ? null : target;
 
-    // Drop onto Available = unassign
     if (target === "AVAILABLE") {
       if (!fromSlot) return;
-      saveActiveLineup(lu => {
+      saveActiveLineup((lu) => {
         lu.assignments[fromSlot] = null;
       });
       return;
     }
 
-    // Validate slot id exists in current lineup
     if (!activeLineup.assignments.hasOwnProperty(toSlot)) return;
 
     const targetPlayerId = activeLineup.assignments[toSlot];
 
-    // From available -> assign to slot (overwrites occupant)
     if (!fromSlot) {
-      saveActiveLineup(lu => {
+      saveActiveLineup((lu) => {
         lu.assignments[toSlot] = draggedPlayerId;
       });
       return;
     }
 
-    // Same slot -> nothing
     if (fromSlot === toSlot) return;
 
-    // Swap slots
-    saveActiveLineup(lu => {
+    saveActiveLineup((lu) => {
       const next = { ...lu.assignments };
       next[toSlot] = draggedPlayerId;
       next[fromSlot] = targetPlayerId || null;
@@ -558,36 +597,40 @@ export default function Lineups({ data, setData }) {
     });
   }
 
-  // ---- Auto build lines ----
   function autoAssignLineup(lineup, playersList) {
     const used = new Set();
     const next = {};
 
     function pick(filterFn) {
-      const p = playersList.find(pl => !used.has(pl.id) && filterFn(pl));
+      const p = playersList.find((pl) => !used.has(pl.id) && filterFn(pl));
       if (p) used.add(p.id);
       return p?.id || null;
     }
 
     for (let i = 1; i <= lineup.forwardLines; i++) {
       next[`F${i}_LW`] =
-        pick(p => p.canPlay?.includes("LW")) ?? pick(p => p.preferredPosition === "Wing");
+        pick((p) => p.canPlay?.includes("LW")) ??
+        pick((p) => p.preferredPosition === "Wing");
       next[`F${i}_C`] =
-        pick(p => p.canPlay?.includes("C")) ?? pick(p => p.preferredPosition === "Centre");
+        pick((p) => p.canPlay?.includes("C")) ??
+        pick((p) => p.preferredPosition === "Centre");
       next[`F${i}_RW`] =
-        pick(p => p.canPlay?.includes("RW")) ?? pick(p => p.preferredPosition === "Wing");
+        pick((p) => p.canPlay?.includes("RW")) ??
+        pick((p) => p.preferredPosition === "Wing");
     }
 
     for (let i = 1; i <= lineup.defencePairs; i++) {
       next[`D${i}_LD`] =
-        pick(p => p.canPlay?.includes("LD")) ?? pick(p => p.preferredPosition === "Defender");
+        pick((p) => p.canPlay?.includes("LD")) ??
+        pick((p) => p.preferredPosition === "Defender");
       next[`D${i}_RD`] =
-        pick(p => p.canPlay?.includes("RD")) ?? pick(p => p.preferredPosition === "Defender");
+        pick((p) => p.canPlay?.includes("RD")) ??
+        pick((p) => p.preferredPosition === "Defender");
     }
 
-    next["G_START"] = pick(p => p.preferredPosition === "Goalie");
+    next["G_START"] = pick((p) => p.preferredPosition === "Goalie");
     if (lineup.backupGoalieEnabled) {
-      next["G_BACKUP"] = pick(p => p.preferredPosition === "Goalie");
+      next["G_BACKUP"] = pick((p) => p.preferredPosition === "Goalie");
     }
 
     lineup.assignments = next;
@@ -601,17 +644,16 @@ export default function Lineups({ data, setData }) {
       if (!confirm("This will overwrite current assignments. Continue?")) return;
     }
 
-    saveActiveLineup(lu => {
+    saveActiveLineup((lu) => {
       autoAssignLineup(lu, players);
       normalizeAssignments(lu);
     });
   }
 
-  // ----- Structure controls -----
   function addForwardLine() {
     if (!activeLineup) return;
     if (activeLineup.forwardLines >= MAX_FORWARD_LINES) return;
-    saveActiveLineup(lu => {
+    saveActiveLineup((lu) => {
       lu.forwardLines += 1;
     });
   }
@@ -625,10 +667,15 @@ export default function Lineups({ data, setData }) {
     const assignedCount = countAssignedInSlots(activeLineup, slots);
 
     if (assignedCount > 0) {
-      if (!confirm(`Remove Forward Line ${n} and unassign ${assignedCount} player(s) from it?`)) return;
+      if (
+        !confirm(
+          `Remove Forward Line ${n} and unassign ${assignedCount} player(s) from it?`
+        )
+      )
+        return;
     }
 
-    saveActiveLineup(lu => {
+    saveActiveLineup((lu) => {
       removeSlots(lu, slots);
       lu.forwardLines -= 1;
     });
@@ -637,7 +684,7 @@ export default function Lineups({ data, setData }) {
   function addDefPair() {
     if (!activeLineup) return;
     if (activeLineup.defencePairs >= MAX_DEF_PAIRS) return;
-    saveActiveLineup(lu => {
+    saveActiveLineup((lu) => {
       lu.defencePairs += 1;
     });
   }
@@ -651,10 +698,15 @@ export default function Lineups({ data, setData }) {
     const assignedCount = countAssignedInSlots(activeLineup, slots);
 
     if (assignedCount > 0) {
-      if (!confirm(`Remove Defence Pair ${n} and unassign ${assignedCount} player(s) from it?`)) return;
+      if (
+        !confirm(
+          `Remove Defence Pair ${n} and unassign ${assignedCount} player(s) from it?`
+        )
+      )
+        return;
     }
 
-    saveActiveLineup(lu => {
+    saveActiveLineup((lu) => {
       removeSlots(lu, slots);
       lu.defencePairs -= 1;
     });
@@ -667,10 +719,11 @@ export default function Lineups({ data, setData }) {
     const assigned = activeLineup.assignments?.["G_BACKUP"] ? 1 : 0;
 
     if (currentlyOn && assigned) {
-      if (!confirm("Disable Backup Goalie and unassign the current backup goalie?")) return;
+      if (!confirm("Disable Backup Goalie and unassign the current backup goalie?"))
+        return;
     }
 
-    saveActiveLineup(lu => {
+    saveActiveLineup((lu) => {
       if (lu.backupGoalieEnabled) {
         removeSlots(lu, ["G_BACKUP"]);
         lu.backupGoalieEnabled = false;
@@ -683,7 +736,6 @@ export default function Lineups({ data, setData }) {
   if (!activeTeam) return <div>Please create/select a team in Rosters first.</div>;
   if (!activeLineup) return <div>Creating lineup…</div>;
 
-  // Build forward rows
   const forwardRows = [];
   for (let i = 1; i <= activeLineup.forwardLines; i++) {
     forwardRows.push(
@@ -714,7 +766,6 @@ export default function Lineups({ data, setData }) {
     );
   }
 
-  // Build defence rows
   const defRows = [];
   for (let i = 1; i <= activeLineup.defencePairs; i++) {
     defRows.push(
@@ -750,9 +801,7 @@ export default function Lineups({ data, setData }) {
         {/* LEFT PANEL */}
         <div className="lineupsLeft" style={{ display: "grid", gap: 8 }}>
           <div style={{ marginTop: 0 }}>
-            <h2 style={{ margin: "0 0 6px", fontWeight: 900 }}>
-              {activeTeam.name}
-            </h2>
+            <h2 style={{ margin: "0 0 6px", fontWeight: 900 }}>{activeTeam.name}</h2>
           </div>
 
           {/* Lineup selector + actions + structure */}
@@ -765,38 +814,57 @@ export default function Lineups({ data, setData }) {
                 onChange={(e) => setActiveLineupId(e.target.value)}
                 style={{ padding: "8px 10px", borderRadius: 12, border: "1px solid var(--border)" }}
               >
-                {lineups.map(l => (
+                {lineups.map((l) => (
                   <option key={l.id} value={l.id}>
                     {l.name}
                   </option>
                 ))}
               </select>
 
-              <div className="lineupActions">
+              {/* Evenly spread buttons */}
+              <div
+                className="lineupActions"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                  gap: 8,
+                }}
+              >
                 <button onClick={createNewLineup}>New</button>
                 <button onClick={renameLineup}>Rename</button>
                 <button onClick={duplicateLineup}>Duplicate</button>
                 <button onClick={deleteLineup}>Delete</button>
               </div>
-
             </div>
 
             <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
               <div style={{ fontWeight: 900 }}>Structure</div>
 
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <div>Forward lines: <b>{activeLineup.forwardLines}</b></div>
+                <div>
+                  Forward lines: <b>{activeLineup.forwardLines}</b>
+                </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={removeForwardLine} disabled={activeLineup.forwardLines <= 1}>-</button>
-                  <button onClick={addForwardLine} disabled={activeLineup.forwardLines >= MAX_FORWARD_LINES}>+</button>
+                  <button onClick={removeForwardLine} disabled={activeLineup.forwardLines <= 1}>
+                    -
+                  </button>
+                  <button onClick={addForwardLine} disabled={activeLineup.forwardLines >= MAX_FORWARD_LINES}>
+                    +
+                  </button>
                 </div>
               </div>
 
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <div>Defence pairs: <b>{activeLineup.defencePairs}</b></div>
+                <div>
+                  Defence pairs: <b>{activeLineup.defencePairs}</b>
+                </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={removeDefPair} disabled={activeLineup.defencePairs <= 1}>-</button>
-                  <button onClick={addDefPair} disabled={activeLineup.defencePairs >= MAX_DEF_PAIRS}>+</button>
+                  <button onClick={removeDefPair} disabled={activeLineup.defencePairs <= 1}>
+                    -
+                  </button>
+                  <button onClick={addDefPair} disabled={activeLineup.defencePairs >= MAX_DEF_PAIRS}>
+                    +
+                  </button>
                 </div>
               </div>
 
@@ -815,7 +883,7 @@ export default function Lineups({ data, setData }) {
             <AvailableDropZone>
               <div style={{ fontWeight: 800, marginBottom: 10 }}>Available Players</div>
               <div style={{ display: "grid", gap: 10 }}>
-                {available.map(p => (
+                {available.map((p) => (
                   <DraggablePlayer
                     key={p.id}
                     id={p.id}
@@ -825,22 +893,26 @@ export default function Lineups({ data, setData }) {
                   />
                 ))}
                 {available.length === 0 && (
-                  <div style={{ fontSize: 12, opacity: 0.65 }}>
-                    No available players (everyone assigned).
-                  </div>
+                  <div style={{ fontSize: 12, opacity: 0.65 }}>No available players (everyone assigned).</div>
                 )}
               </div>
             </AvailableDropZone>
           </div>
         </div>
 
-        {/* RIGHT PANEL: Board */}
+        {/* RIGHT PANEL */}
         <div style={{ display: "grid", gap: 12 }}>
           <BoardSection title="Forward Lines">{forwardRows}</BoardSection>
           <BoardSection title="Defence Pairs">{defRows}</BoardSection>
 
           <BoardSection title="Goalies">
-            <div style={{ display: "grid", gridTemplateColumns: activeLineup.backupGoalieEnabled ? "1fr 1fr" : "1fr", gap: 12 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: activeLineup.backupGoalieEnabled ? "1fr 1fr" : "1fr",
+                gap: 12,
+              }}
+            >
               <Slot id="G_START" title="Starter (G)" assignments={activeLineup.assignments} byId={byId} />
               {activeLineup.backupGoalieEnabled ? (
                 <Slot id="G_BACKUP" title="Backup (G)" assignments={activeLineup.assignments} byId={byId} />
