@@ -136,24 +136,6 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
           overflow: "hidden",
         }}
       >
-        {labelObj.leadership ? (
-          <span
-            ref={badgeRef}
-            style={{
-              fontSize: 10,
-              fontWeight: 900,
-              padding: "2px 6px",
-              borderRadius: 8,
-              background: "var(--primary)",
-              color: "white",
-              flexShrink: 0,
-              lineHeight: 1,
-            }}
-            title={labelObj.leadership === "C" ? "Captain" : "Alternate"}
-          >
-            "{labelObj.leadership}"
-          </span>
-        ) : null}
 
         {/* Measured text block */}
         <span
@@ -192,7 +174,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
                 style={{
                   fontSize: 10,
                   fontWeight: 900,
-                  padding: "2px 6px",
+                  padding: "2px 2px",
                   borderRadius: 8,
                   background: "var(--primary)",
                   color: "white",
@@ -212,10 +194,14 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
                   minWidth: 0,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
+                  fontSize: `${textSize * 0.85}px`,
+                  fontWeight: 700,
+                  opacity: 0.9,
                 }}
               >
                 {labelObj.firstName}
               </span>
+
             ) : null}
           </span>
 
@@ -226,6 +212,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
                 minWidth: 0,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
+                fontWeight: 900,
                 opacity: 0.95,
               }}
             >
