@@ -8,9 +8,8 @@ import {
   TouchSensor,
 } from "@dnd-kit/core";
 
-import { useEffect, useMemo } from "react";
 import { newId } from "../lib/model";
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 const MAX_FORWARD_LINES = 4;
 const MAX_DEF_PAIRS = 4;
