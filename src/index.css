@@ -215,4 +215,39 @@ textarea:focus {
     -webkit-line-clamp: 1 !important;
     line-clamp: 1 !important;
   }
+
+
+  /* ROSTERS LAYOUT OVERRIDES */
+  
+  /* Prevent grid/flex children from forcing overflow */
+  .rostersLayout,
+  .rostersLayout * {
+    min-width: 0;
+  }
+
+  /* Add Player row 2 becomes 2 columns on phone (Position full width, then Leadership+Stick) */
+  @media (max-width: 800px) {
+    .addPlayerRow2 {
+      grid-template-columns: 1fr 1fr !important;
+    }
+    .addPlayerRow2 select:first-child {
+      grid-column: 1 / -1; /* Position on its own row */
+    }
+  }
+
+  /* Players list: replace the 7-column table with a stacked card layout on phone portrait */
+  @media (max-width: 800px) and (orientation: portrait) {
+    .playerRow {
+      grid-template-columns: 1fr 1fr !important;
+      gap: 6px !important;
+      align-items: start !important;
+    }
+
+    /* Make action buttons full width at bottom */
+    .playerRow > div:last-child {
+      grid-column: 1 / -1;
+      justify-content: flex-start !important;
+    }
+  }
+
 }

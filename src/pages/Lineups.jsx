@@ -162,7 +162,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
           >
             {/* Number */}
             {labelObj.number !== "" && labelObj.number !== null ? (
-              <span style={{ flexShrink: 0, opacity: 0.85 }}>
+              <span style={{ flexShrink: 0, fontSize: `18px`,opacity: 0.85 }}>
                 #{labelObj.number}
               </span>
             ) : null}
@@ -172,10 +172,10 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
               <span
                 ref={badgeRef}
                 style={{
-                  fontSize: `${textSize * 1.0}px`,
+                  fontSize: `10px`,
                   fontWeight: 900,
-                  padding: "2px 2px",
-                  borderRadius: 4,
+                  padding: "5px 7px",
+                  borderRadius: 12,
                   background: "var(--primary)",
                   color: "white",
                   flexShrink: 0,
@@ -183,7 +183,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
                 }}
                 title={labelObj.leadership === "C" ? "Captain" : "Alternate"}
               >
-                "{labelObj.leadership}"
+                {labelObj.leadership}
               </span>
             ) : null}
 

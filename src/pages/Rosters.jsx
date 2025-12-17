@@ -17,6 +17,16 @@ export default function Rosters({ data, setData }) {
 
   const importRef = useRef(null);
 
+  const activeTeam = data.teams.find((t) => t.id === data.activeTeamId) || null;
+
+  function updateData(updater) {
+    setData((prev) => {
+      const next = updater(structuredClone(prev));
+      next.updatedAt = Date.now();
+      return next;
+    });
+  }
+
   function exportActiveTeam() {
     if (!activeTeam) return;
 
@@ -25,7 +35,7 @@ export default function Rosters({ data, setData }) {
       exportedAt: new Date().toISOString(),
       team: {
         name: activeTeam.name,
-        players: activeTeam.players.map(p => ({
+        players: activeTeam.players.map((p) => ({
           number: String(p.number),
           name: p.name,
           preferredPosition: p.preferredPosition,
@@ -37,7 +47,9 @@ export default function Rosters({ data, setData }) {
       },
     };
 
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
 
     const safeName = activeTeam.name.replace(/[^a-z0-9-_]+/gi, "_");
@@ -67,26 +79,25 @@ export default function Rosters({ data, setData }) {
         const name = (teamData?.name || "Imported Team").toString().trim();
         const rawPlayers = Array.isArray(teamData?.players) ? teamData.players : [];
 
-        updateData(d => {
+        updateData((d) => {
           const team = createTeam(name);
 
-          // Convert players into your internal shape (new ids generated)
           for (const rp of rawPlayers) {
             const playerDraft = {
               number: String(rp?.number ?? ""),
               name: String(rp?.name ?? ""),
-              preferredPosition: POSITIONS.includes(rp?.preferredPosition) ? rp.preferredPosition : "Centre",
+              preferredPosition: POSITIONS.includes(rp?.preferredPosition)
+                ? rp.preferredPosition
+                : "Centre",
               leadership: LEADERSHIP.includes(rp?.leadership) ? rp.leadership : "",
               stick: STICKS.includes(rp?.stick) ? rp.stick : "",
               canPlay: Array.isArray(rp?.canPlay)
-                ? rp.canPlay.filter(x => CANPLAY.includes(x))
+                ? rp.canPlay.filter((x) => CANPLAY.includes(x))
                 : [],
               notes: String(rp?.notes ?? ""),
             };
 
-            // Skip totally empty rows
             if (!playerDraft.number && !playerDraft.name) continue;
-
             team.players.push(createPlayer(playerDraft));
           }
 
@@ -94,19 +105,14 @@ export default function Rosters({ data, setData }) {
           d.activeTeamId = team.id;
           return d;
         });
-
       } catch (e) {
         alert("Import failed: invalid JSON file.");
       } finally {
-        // allow importing same file twice
         if (importRef.current) importRef.current.value = "";
       }
     };
     reader.readAsText(file);
   }
-
-
-  const activeTeam = data.teams.find((t) => t.id === data.activeTeamId) || null;
 
   const sortedPlayers = useMemo(() => {
     if (!activeTeam) return [];
@@ -139,14 +145,6 @@ export default function Rosters({ data, setData }) {
   });
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState("");
-
-  function updateData(updater) {
-    setData((prev) => {
-      const next = updater(structuredClone(prev));
-      next.updatedAt = Date.now();
-      return next;
-    });
-  }
 
   function createNewTeam() {
     const name = teamName.trim();
@@ -243,18 +241,33 @@ export default function Rosters({ data, setData }) {
   }
 
   return (
-    <div className="rostersLayout" style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16 }}>
+    <div
+      className="rostersLayout"
+      style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16, minWidth: 0 }}
+    >
       {/* Teams */}
-      <aside className="rostersSidebar" style={{ borderRight: "1px solid rgba(0,0,0,0.12)", paddingRight: 16 }}>
-
+      <aside
+        className="rostersSidebar"
+        style={{
+          borderRight: "1px solid rgba(0,0,0,0.12)",
+          paddingRight: 16,
+          minWidth: 0,
+        }}
+      >
         <h3 style={{ marginTop: 0 }}>Teams</h3>
 
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, minWidth: 0 }}>
           <input
             value={teamName}
             onChange={(e) => setTeamName(e.target.value)}
             placeholder="New team name"
-            style={{ flex: 1, padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              padding: 8,
+              borderRadius: 10,
+              border: "1px solid rgba(0,0,0,0.2)",
+            }}
           />
           <button onClick={createNewTeam} style={{ padding: "8px 10px", borderRadius: 10 }}>
             Add
@@ -270,30 +283,33 @@ export default function Rosters({ data, setData }) {
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
-                
                 padding: 10,
                 borderRadius: 12,
                 border: "1px solid rgba(0,0,0,0.12)",
                 background: t.id === data.activeTeamId ? "rgba(255, 169, 99, 0.1)" : "transparent",
+                minWidth: 0,
               }}
             >
               <button
                 onClick={() => updateData((d) => ((d.activeTeamId = t.id), d))}
                 style={{
                   flex: 1,
+                  minWidth: 0,
                   textAlign: "left",
                   background: "transparent",
                   border: "none",
                   padding: 0,
-                  color: "var(--text)",       // ✅ key fix
-                  font: "inherit",            // ✅ prevents odd button font
+                  color: "var(--text)",
+                  font: "inherit",
                   cursor: "pointer",
                 }}
               >
-
-                <div style={{ fontWeight: 600 }}>{t.name}</div>
+                <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {t.name}
+                </div>
                 <div style={{ fontSize: 12, opacity: 0.7 }}>{t.players.length} players</div>
               </button>
+
               <button onClick={() => deleteTeam(t.id)} title="Delete team">
                 🗑️
               </button>
@@ -303,11 +319,20 @@ export default function Rosters({ data, setData }) {
       </aside>
 
       {/* Players */}
-      <section>
-        <div className="rostersTopRow" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+      <section style={{ minWidth: 0 }}>
+        <div
+          className="rostersTopRow"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            minWidth: 0,
+          }}
+        >
           <h2 style={{ margin: 0 }}>Rosters</h2>
 
-          <div className="rostersActionsRow" style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <div className="rostersActionsRow" style={{ display: "flex", gap: 10, alignItems: "center", minWidth: 0 }}>
             {activeTeam ? (
               <>
                 <button onClick={exportActiveTeam}>Export team</button>
@@ -325,13 +350,19 @@ export default function Rosters({ data, setData }) {
             <input
               className="rostersSearch"
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Search players…"
-              style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)", width: 260 }}
+              style={{
+                padding: 8,
+                borderRadius: 10,
+                border: "1px solid rgba(0,0,0,0.2)",
+                width: 260,
+                maxWidth: "100%",
+                minWidth: 0,
+              }}
             />
           </div>
         </div>
-
 
         {!activeTeam ? (
           <div style={{ marginTop: 14, opacity: 0.8 }}>Create a team on the left to start adding players.</div>
@@ -346,30 +377,37 @@ export default function Rosters({ data, setData }) {
                 </div>
               )}
 
-              {/* NEW LAYOUT */}
-              <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ display: "grid", gap: 12, minWidth: 0 }}>
                 {/* Row 1: Number + Name */}
-                <div style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: 10 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 140px) minmax(0, 1fr)", gap: 10 }}>
                   <input
                     value={draft.number}
                     onChange={(e) => setDraft((p) => ({ ...p, number: e.target.value }))}
                     placeholder="Number"
-                    style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+                    style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)", minWidth: 0, width: "100%" }}
                   />
                   <input
                     value={draft.name}
                     onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
                     placeholder="Name"
-                    style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+                    style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)", minWidth: 0, width: "100%" }}
                   />
                 </div>
 
                 {/* Row 2: Position + Leadership + Stick */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 170px 170px", gap: 10 }}>
+                <div
+                  className="addPlayerRow2"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "minmax(0, 1fr) minmax(0, 160px) minmax(0, 160px)",
+                    gap: 10,
+                    minWidth: 0,
+                  }}
+                >
                   <select
                     value={draft.preferredPosition}
                     onChange={(e) => setDraft((p) => ({ ...p, preferredPosition: e.target.value }))}
-                    style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+                    style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)", minWidth: 0, width: "100%" }}
                   >
                     {POSITIONS.map((p) => (
                       <option key={p} value={p}>
@@ -381,7 +419,7 @@ export default function Rosters({ data, setData }) {
                   <select
                     value={draft.leadership}
                     onChange={(e) => setDraft((p) => ({ ...p, leadership: e.target.value }))}
-                    style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+                    style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)", minWidth: 0, width: "100%" }}
                   >
                     {LEADERSHIP.map((l) => (
                       <option key={l} value={l}>
@@ -393,7 +431,7 @@ export default function Rosters({ data, setData }) {
                   <select
                     value={draft.stick}
                     onChange={(e) => setDraft((p) => ({ ...p, stick: e.target.value }))}
-                    style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+                    style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)", minWidth: 0, width: "100%" }}
                   >
                     {STICKS.map((s) => (
                       <option key={s} value={s}>
@@ -403,34 +441,30 @@ export default function Rosters({ data, setData }) {
                   </select>
                 </div>
 
-                {/* Row 3: Can play (full width) */}
+                {/* Row 3: Can play */}
                 <div style={{ display: "grid", gap: 8 }}>
                   <div style={{ fontWeight: 700, opacity: 0.85 }}>Can play:</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
                     {CANPLAY.map((code) => (
                       <label key={code} style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                        <input
-                          type="checkbox"
-                          checked={draft.canPlay.includes(code)}
-                          onChange={() => toggleCanPlay(code)}
-                        />
+                        <input type="checkbox" checked={draft.canPlay.includes(code)} onChange={() => toggleCanPlay(code)} />
                         {code}
                       </label>
                     ))}
                   </div>
                 </div>
 
-                {/* Row 4: Notes (full width) */}
+                {/* Row 4: Notes */}
                 <textarea
                   value={draft.notes}
                   onChange={(e) => setDraft((p) => ({ ...p, notes: e.target.value }))}
                   placeholder="Notes (optional)"
                   rows={3}
-                  style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+                  style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)", minWidth: 0, width: "100%" }}
                 />
 
                 {/* Actions */}
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button onClick={savePlayer} style={{ padding: "8px 12px", borderRadius: 10 }}>
                     {editingId ? "Save changes" : "Add player"}
                   </button>
@@ -445,26 +479,51 @@ export default function Rosters({ data, setData }) {
 
             <div style={{ marginTop: 14 }}>
               <h3 style={{ marginBottom: 8 }}>Players</h3>
-              <div style={{ display: "grid", gap: 8 }}>
+           
+                    <div style={{ 
+                      opacity: 0.9, 
+                      display: "grid",
+                      gridTemplateColumns: "30px 1fr 70px 50px 50px 1fr 80px",
+                      gap: 10,
+                      alignItems: "center",
+                      padding: 10,
+                      fontSize: 10,
+                    }}>
+                    
+                      <div>number</div>
+                      <div>name</div>
+                      <div>preferred role</div>
+                      <div>captaincy</div>
+                      <div>stick</div>
+                      <div>can play</div>
+                      <div>action</div>
+                    </div>
+
+              
+
+              <div style={{ display: "grid", gap: 8, minWidth: 0 }}>
                 {sortedPlayers.map((p) => (
                   <div
                     key={p.id}
+                    className="playerRow"
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "80px 1fr 140px 70px 80px 1fr 90px",
+                      gridTemplateColumns: "30px 1fr 70px 50px 50px 1fr 80px",
                       gap: 10,
                       alignItems: "center",
                       padding: 10,
                       borderRadius: 14,
                       border: "1px solid rgba(0,0,0,0.12)",
-                      minWidth: 0, // ✅ helps shrinking inside grid
+                      minWidth: 0,
                     }}
                   >
+                    <div style={{ fontWeight: 700, minWidth: 0 }}>#{p.number}</div>
 
-                    <div style={{ fontWeight: 700 }}>#{p.number}</div>
-                    <div style={{ fontWeight: 600 }}>{p.name}</div>
+                    <div style={{ fontWeight: 600, minWidth: 0, whiteSpace: "normal", overflowWrap: "anywhere" }}>
+                      {p.name}
+                    </div>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                       <span
                         style={{
                           display: "inline-block",
@@ -474,17 +533,24 @@ export default function Rosters({ data, setData }) {
                           fontSize: 12,
                           color: "white",
                           background: `var(--pos-${p.preferredPosition.toLowerCase()})`,
+                          maxWidth: "100%",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
                         }}
                       >
                         {p.preferredPosition}
                       </span>
                     </div>
 
-                    <div>{p.leadership || "—"}</div>
-                    <div style={{ opacity: 0.9 }}>{p.stick || "—"}</div>
-                    <div style={{ opacity: 0.85 }}>{(p.canPlay || []).length ? p.canPlay.join(", ") : "—"}</div>
+                    <div style={{ minWidth: 0 }}>{p.leadership || " "}</div>
+                    <div style={{ opacity: 0.9, minWidth: 0 }}>{p.stick || " "}</div>
 
-                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                    <div style={{ opacity: 0.85, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {(p.canPlay || []).length ? p.canPlay.join(", ") : " "}
+                    </div>
+
+                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", minWidth: 0, flexWrap: "wrap" }}>
                       <button onClick={() => startEditPlayer(p)}>Edit</button>
                       <button onClick={() => deletePlayer(p.id)}>Del</button>
                     </div>
