@@ -104,27 +104,6 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
       {/* ONE-LINE header row with true auto-shrink */}
-      <div>
-        {labelObj.leadership ? (
-          <span
-            ref={badgeRef}
-            style={{
-              fontSize: 10,
-              fontWeight: 900,
-              padding: "2px 6px",
-              borderRadius: 8,
-              background: "var(--primary)",
-              color: "white",
-              flexShrink: 0,
-              lineHeight: 1,
-            }}
-            title={labelObj.leadership === "C" ? "Captain" : "Alternate"}
-          >
-            {labelObj.leadership}
-          </span>
-        ) : null}
-      </div>
-
       <div
         ref={rowRef}
         style={{
@@ -177,6 +156,27 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
       {sublabel ? (
         <div style={{ fontSize: 12, opacity: 0.75 }}>{sublabel}</div>
       ) : null}
+
+      <div>
+        {labelObj.leadership ? (
+          <span
+            ref={badgeRef}
+            style={{
+              fontSize: 10,
+              fontWeight: 900,
+              padding: "2px 6px",
+              borderRadius: 8,
+              background: "var(--primary)",
+              color: "white",
+              flexShrink: 0,
+              lineHeight: 1,
+            }}
+            title={labelObj.leadership === "C" ? "Captain" : "Alternate"}
+          >
+            {labelObj.leadership}
+          </span>
+        ) : null}
+      </div>
     </div>
   );
 }
