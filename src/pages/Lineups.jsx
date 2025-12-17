@@ -17,14 +17,32 @@ const MAX_DEF_PAIRS = 4;
 /* ===================== UI: Draggable Player ===================== */
 
 function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useDraggable({ id });
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
 
-  // Normalize label: allow string OR { leadership, text }
-  const labelObj =
-    label && typeof label === "object"
-      ? { leadership: label.leadership || "", text: label.text || "" }
-      : { leadership: "", text: String(label ?? "") };
+  // Normalize label:
+  // - string => { mode:"text", text:"..." }
+  // - object parts => { mode:"parts", firstName, lastName, number, leadership }
+  const labelObj = (() => {
+    if (label && typeof label === "object") {
+      // parts-mode
+      if ("firstName" in label || "lastName" in label || "number" in label) {
+        return {
+          mode: "parts",
+          leadership: label.leadership || "",
+          firstName: label.firstName || "",
+          lastName: label.lastName || "",
+          number: label.number ?? "",
+        };
+      }
+      // fallback object-mode (text)
+      return {
+        mode: "text",
+        leadership: label.leadership || "",
+        text: label.text || "",
+      };
+    }
+    return { mode: "text", leadership: "", text: String(label ?? "") };
+  })();
 
   const posVar =
     preferredPosition && typeof preferredPosition === "string"
@@ -50,16 +68,14 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
       textEl.style.fontSize = `${size}px`;
 
       const badgeW = badgeEl ? badgeEl.getBoundingClientRect().width : 0;
-
-      // row uses gap: 6, only matters if badge exists
-      const gap = badgeEl ? 6 : 0;
+      const gap = badgeEl ? 6 : 0; // matches row gap
       const available = Math.max(0, rowEl.clientWidth - badgeW - gap);
 
-      const MIN = 8;
-      // Prevent infinite loop if something weird happens
+      const MIN = 10;
       let guard = 0;
 
-      while (size > MIN && textEl.scrollWidth > available && guard < 50) {
+      // Shrink until it fits
+      while (size > MIN && textEl.scrollWidth > available && guard < 60) {
         size -= 1;
         textEl.style.fontSize = `${size}px`;
         guard += 1;
@@ -70,12 +86,19 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
 
     compute();
 
-    // Recompute when container width changes (desktop resize / mobile orientation / layout shifts)
+    // Recompute on resize/orientation/layout changes
     const ro = new ResizeObserver(() => compute());
     ro.observe(rowEl);
 
     return () => ro.disconnect();
-  }, [labelObj.text, labelObj.leadership]);
+  }, [
+    labelObj.mode,
+    labelObj.leadership,
+    labelObj.text,
+    labelObj.firstName,
+    labelObj.lastName,
+    labelObj.number,
+  ]);
 
   const style = {
     width: "100%",
@@ -89,9 +112,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
     userSelect: "none",
     touchAction: "none",
     opacity: isDragging ? 0.6 : 1,
-    transform: transform
-      ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-      : undefined,
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
     boxShadow: isDragging ? "0 6px 18px rgba(0,0,0,0.12)" : "none",
     position: "relative",
     overflow: "hidden",
@@ -103,7 +124,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      {/* ONE-LINE header row with true auto-shrink */}
+      {/* ONE-LINE header row with auto-shrink */}
       <div
         ref={rowRef}
         style={{
@@ -115,7 +136,6 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
           overflow: "hidden",
         }}
       >
-        {/*
         {labelObj.leadership ? (
           <span
             ref={badgeRef}
@@ -131,11 +151,11 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
             }}
             title={labelObj.leadership === "C" ? "Captain" : "Alternate"}
           >
-            {labelObj.leadership}
+            "{labelObj.leadership}"
           </span>
         ) : null}
-        */}
 
+        {/* Measured text block */}
         <span
           ref={textRef}
           style={{
@@ -146,45 +166,48 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
             overflow: "hidden",
             whiteSpace: "nowrap",
             display: "flex",
-            gap: 4,
+            alignItems: "baseline",
+            gap: 6,
           }}
         >
-               
+          {labelObj.mode === "parts" ? (
+            <>
+              {/* First name: don’t ellipsis first */}
+              <span style={{ flexShrink: 0 }}>{labelObj.firstName}</span>
 
-          {labelObj.leadership ? (
-          <span
-            style={{
-              fontSize: textSize,
-              fontWeight: 900,
-              padding: "2px 6px",
-              borderRadius: 4,
-              background: "var(--primary)",
-              color: "white",
-              flexShrink: 0,
-              lineHeight: 1,
-            }}
-            title={labelObj.leadership === "C" ? "Captain" : "Alternate"}
-          >
-            "{labelObj.leadership}"
-          </span>
-        ) : null}
-          <span style={{ opacity: 0.75 }}>
-            #{label.number}
-          </span>
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-            {label.firstName}
-          </span>
+              {/* Last name: ellipsis first */}
+              {labelObj.lastName ? (
+                <span
+                  style={{
+                    minWidth: 0,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {labelObj.lastName}
+                </span>
+              ) : null}
 
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-            {label.lastName}
-          </span>  
+              {/* Number */}
+              {labelObj.number !== "" && labelObj.number !== null ? (
+                <span style={{ flexShrink: 0, opacity: 0.8 }}>#{labelObj.number}</span>
+              ) : null}
+            </>
+          ) : (
+            <span
+              style={{
+                minWidth: 0,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {labelObj.text}
+            </span>
+          )}
         </span>
       </div>
 
-      {sublabel ? (
-        <div style={{ fontSize: 10, opacity: 0.75 }}>{sublabel}</div>
-      ) : null}
-    
+      {sublabel ? <div style={{ fontSize: 10, opacity: 0.75 }}>{sublabel}</div> : null}
     </div>
   );
 }
@@ -221,18 +244,9 @@ function DroppableSlot({ id, title, player, children }) {
         gap: 8,
       }}
     >
-      <div style={{ fontSize: 12, fontWeight: 900, color: titleColor }}>
-        {title}
-      </div>
+      <div style={{ fontSize: 12, fontWeight: 900, color: titleColor }}>{title}</div>
 
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0,
-          display: "grid",
-          alignItems: "center",
-        }}
-      >
+      <div style={{ flex: 1, minWidth: 0, display: "grid", alignItems: "center" }}>
         {children}
         {!player ? <div style={{ fontSize: 12, opacity: 0.55 }}>Drop here</div> : null}
       </div>
@@ -258,14 +272,7 @@ function AvailableDropZone({ children }) {
 
 function BoardSection({ title, children }) {
   return (
-    <div
-      style={{
-        padding: 12,
-        borderRadius: 14,
-        border: "1px solid var(--border)",
-        background: "var(--surface)",
-      }}
-    >
+    <div style={{ padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
       <div style={{ fontWeight: 900, marginBottom: 10 }}>{title}</div>
       <div style={{ display: "grid", gap: 10 }}>{children}</div>
     </div>
@@ -280,7 +287,7 @@ function RowLabel({ children }) {
   );
 }
 
-/* ===================== Slot renderer (gets player data) ===================== */
+/* ===================== Slot renderer ===================== */
 
 function Slot({ id, title, assignments, byId }) {
   const playerId = assignments[id];
@@ -306,13 +313,13 @@ function Slot({ id, title, assignments, byId }) {
     sublabel = stick;
   }
 
-  // Safely split player name into first/last parts for display
+  // SAFE name split: trims and collapses whitespace
   let firstName = "";
   let lastName = "";
   if (player && typeof player.name === "string") {
-    const parts = player.name.split(" ");
-    firstName = parts.shift() || "";
-    lastName = parts.join(" ");
+    const parts = player.name.trim().split(/\s+/).filter(Boolean);
+    firstName = parts[0] || "";
+    lastName = parts.slice(1).join(" ");
   }
 
   return (
@@ -323,7 +330,8 @@ function Slot({ id, title, assignments, byId }) {
           preferredPosition={player.preferredPosition}
           label={{
             leadership: player.leadership || "",
-            text: `${firstName} ${lastName}`.trim(),
+            firstName,
+            lastName,
             number: player.number,
           }}
           sublabel={sublabel}
@@ -434,7 +442,6 @@ export default function Lineups({ data, setData }) {
     });
   }
 
-  /* ---- Migration from old MVP storage (lineup_<teamId>) to new structure ---- */
   useEffect(() => {
     if (!activeTeam) return;
 
@@ -480,15 +487,10 @@ export default function Lineups({ data, setData }) {
   }, [players]);
 
   const assignments = activeLineup?.assignments || {};
-  const assignedIds = useMemo(
-    () => new Set(Object.values(assignments).filter(Boolean)),
-    [assignments]
-  );
+  const assignedIds = useMemo(() => new Set(Object.values(assignments).filter(Boolean)), [assignments]);
 
   const available = useMemo(() => {
-    return players
-      .filter((p) => !assignedIds.has(p.id))
-      .sort((a, b) => a.number - b.number);
+    return players.filter((p) => !assignedIds.has(p.id)).sort((a, b) => a.number - b.number);
   }, [players, assignedIds]);
 
   function saveActiveLineup(mutator) {
@@ -649,30 +651,18 @@ export default function Lineups({ data, setData }) {
     }
 
     for (let i = 1; i <= lineup.forwardLines; i++) {
-      next[`F${i}_LW`] =
-        pick((p) => p.canPlay?.includes("LW")) ??
-        pick((p) => p.preferredPosition === "Wing");
-      next[`F${i}_C`] =
-        pick((p) => p.canPlay?.includes("C")) ??
-        pick((p) => p.preferredPosition === "Centre");
-      next[`F${i}_RW`] =
-        pick((p) => p.canPlay?.includes("RW")) ??
-        pick((p) => p.preferredPosition === "Wing");
+      next[`F${i}_LW`] = pick((p) => p.canPlay?.includes("LW")) ?? pick((p) => p.preferredPosition === "Wing");
+      next[`F${i}_C`] = pick((p) => p.canPlay?.includes("C")) ?? pick((p) => p.preferredPosition === "Centre");
+      next[`F${i}_RW`] = pick((p) => p.canPlay?.includes("RW")) ?? pick((p) => p.preferredPosition === "Wing");
     }
 
     for (let i = 1; i <= lineup.defencePairs; i++) {
-      next[`D${i}_LD`] =
-        pick((p) => p.canPlay?.includes("LD")) ??
-        pick((p) => p.preferredPosition === "Defender");
-      next[`D${i}_RD`] =
-        pick((p) => p.canPlay?.includes("RD")) ??
-        pick((p) => p.preferredPosition === "Defender");
+      next[`D${i}_LD`] = pick((p) => p.canPlay?.includes("LD")) ?? pick((p) => p.preferredPosition === "Defender");
+      next[`D${i}_RD`] = pick((p) => p.canPlay?.includes("RD")) ?? pick((p) => p.preferredPosition === "Defender");
     }
 
     next["G_START"] = pick((p) => p.preferredPosition === "Goalie");
-    if (lineup.backupGoalieEnabled) {
-      next["G_BACKUP"] = pick((p) => p.preferredPosition === "Goalie");
-    }
+    if (lineup.backupGoalieEnabled) next["G_BACKUP"] = pick((p) => p.preferredPosition === "Goalie");
 
     lineup.assignments = next;
   }
@@ -708,12 +698,7 @@ export default function Lineups({ data, setData }) {
     const assignedCount = countAssignedInSlots(activeLineup, slots);
 
     if (assignedCount > 0) {
-      if (
-        !confirm(
-          `Remove Forward Line ${n} and unassign ${assignedCount} player(s) from it?`
-        )
-      )
-        return;
+      if (!confirm(`Remove Forward Line ${n} and unassign ${assignedCount} player(s) from it?`)) return;
     }
 
     saveActiveLineup((lu) => {
@@ -739,12 +724,7 @@ export default function Lineups({ data, setData }) {
     const assignedCount = countAssignedInSlots(activeLineup, slots);
 
     if (assignedCount > 0) {
-      if (
-        !confirm(
-          `Remove Defence Pair ${n} and unassign ${assignedCount} player(s) from it?`
-        )
-      )
-        return;
+      if (!confirm(`Remove Defence Pair ${n} and unassign ${assignedCount} player(s) from it?`)) return;
     }
 
     saveActiveLineup((lu) => {
@@ -760,8 +740,7 @@ export default function Lineups({ data, setData }) {
     const assigned = activeLineup.assignments?.["G_BACKUP"] ? 1 : 0;
 
     if (currentlyOn && assigned) {
-      if (!confirm("Disable Backup Goalie and unassign the current backup goalie?"))
-        return;
+      if (!confirm("Disable Backup Goalie and unassign the current backup goalie?")) return;
     }
 
     saveActiveLineup((lu) => {
@@ -783,22 +762,10 @@ export default function Lineups({ data, setData }) {
       <div
         key={`F${i}`}
         className="lineRow"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "120px 1fr",
-          gap: 12,
-          alignItems: "start",
-        }}
+        style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 12, alignItems: "start" }}
       >
         <RowLabel>{`Line ${i}`}</RowLabel>
-        <div
-          className="forwardGrid"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
-            gap: 12,
-          }}
-        >
+        <div className="forwardGrid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
           <Slot id={`F${i}_LW`} title="LW" assignments={activeLineup.assignments} byId={byId} />
           <Slot id={`F${i}_C`} title="C" assignments={activeLineup.assignments} byId={byId} />
           <Slot id={`F${i}_RW`} title="RW" assignments={activeLineup.assignments} byId={byId} />
@@ -813,22 +780,10 @@ export default function Lineups({ data, setData }) {
       <div
         key={`D${i}`}
         className="pairRow"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "120px 1fr",
-          gap: 12,
-          alignItems: "start",
-        }}
+        style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 12, alignItems: "start" }}
       >
         <RowLabel>{`Pair ${i}`}</RowLabel>
-        <div
-          className="defenceGrid"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 12,
-          }}
-        >
+        <div className="defenceGrid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Slot id={`D${i}_LD`} title="LD" assignments={activeLineup.assignments} byId={byId} />
           <Slot id={`D${i}_RD`} title="RD" assignments={activeLineup.assignments} byId={byId} />
         </div>
@@ -845,7 +800,6 @@ export default function Lineups({ data, setData }) {
             <h2 style={{ margin: "0 0 6px", fontWeight: 900 }}>{activeTeam.name}</h2>
           </div>
 
-          {/* Lineup selector + actions + structure */}
           <div style={{ padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
             <div style={{ display: "grid", gap: 8 }}>
               <div style={{ fontWeight: 800 }}>Line-up</div>
@@ -862,15 +816,7 @@ export default function Lineups({ data, setData }) {
                 ))}
               </select>
 
-              {/* Evenly spread buttons */}
-              <div
-                className="lineupActions"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                  gap: 8,
-                }}
-              >
+              <div className="lineupActions" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8 }}>
                 <button onClick={createNewLineup}>New</button>
                 <button onClick={renameLineup}>Rename</button>
                 <button onClick={duplicateLineup}>Duplicate</button>
@@ -919,7 +865,6 @@ export default function Lineups({ data, setData }) {
             </div>
           </div>
 
-          {/* Available players */}
           <div style={{ padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
             <AvailableDropZone>
               <div style={{ fontWeight: 800, marginBottom: 10 }}>Available Players</div>
@@ -933,9 +878,7 @@ export default function Lineups({ data, setData }) {
                     sublabel={(p.canPlay || []).length ? `Can play: ${p.canPlay.join(", ")}` : ""}
                   />
                 ))}
-                {available.length === 0 && (
-                  <div style={{ fontSize: 12, opacity: 0.65 }}>No available players (everyone assigned).</div>
-                )}
+                {available.length === 0 && <div style={{ fontSize: 12, opacity: 0.65 }}>No available players (everyone assigned).</div>}
               </div>
             </AvailableDropZone>
           </div>
@@ -947,17 +890,9 @@ export default function Lineups({ data, setData }) {
           <BoardSection title="Defence Pairs">{defRows}</BoardSection>
 
           <BoardSection title="Goalies">
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: activeLineup.backupGoalieEnabled ? "1fr 1fr" : "1fr",
-                gap: 12,
-              }}
-            >
+            <div style={{ display: "grid", gridTemplateColumns: activeLineup.backupGoalieEnabled ? "1fr 1fr" : "1fr", gap: 12 }}>
               <Slot id="G_START" title="Starter (G)" assignments={activeLineup.assignments} byId={byId} />
-              {activeLineup.backupGoalieEnabled ? (
-                <Slot id="G_BACKUP" title="Backup (G)" assignments={activeLineup.assignments} byId={byId} />
-              ) : null}
+              {activeLineup.backupGoalieEnabled ? <Slot id="G_BACKUP" title="Backup (G)" assignments={activeLineup.assignments} byId={byId} /> : null}
             </div>
           </BoardSection>
         </div>
