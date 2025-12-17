@@ -162,8 +162,12 @@ textarea:focus {
   /* Mobile board stacking */
   /* Phone portrait: stack (easier to read) */
   @media (max-width: 800px) and (orientation: portrait) {
+    /*
     .forwardGrid { grid-template-columns: 1fr !important; }
-    .defenceGrid { grid-template-columns: 1fr !important; }
+    .defenceGrid { grid-template-columns: 1fr !important; } 
+    */
+    .forwardGrid { grid-template-columns: 1fr 1fr 1fr !important; }
+    .defenceGrid { grid-template-columns: 1fr 1fr !important; }
   }
 
   /* Phone landscape: keep them next to each other */

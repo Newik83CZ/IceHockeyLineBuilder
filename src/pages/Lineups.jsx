@@ -73,15 +73,40 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
       <div
         ref={labelRef}
         style={{
-          fontWeight: 800,
-          fontSize: labelSize,
-          lineHeight: 1.15,
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
           whiteSpace: "nowrap",
           overflow: "hidden",
-          textOverflow: "clip",
         }}
       >
-        {label}
+        {label.leadership && (
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 900,
+              padding: "2px 6px",
+              borderRadius: 6,
+              background: "var(--primary)",
+              color: "white",
+              flexShrink: 0,
+            }}
+          >
+            {label.leadership}
+          </span>
+        )}
+
+        <span
+          style={{
+            fontWeight: 800,
+            fontSize: labelSize,
+            lineHeight: 1.15,
+            overflow: "hidden",
+            textOverflow: "clip",
+          }}
+        >
+          {label.text}
+        </span>
       </div>
 
       {sublabel ? (
@@ -200,7 +225,10 @@ function Slot({ id, title, assignments, byId }) {
         <DraggablePlayer
           id={player.id}
           preferredPosition={player.preferredPosition}
-          label={`${player.leadership ? `${player.leadership} ` : ""}${player.name} #${player.number}`}
+          label={{
+            leadership: player.leadership || "",
+            text: `${player.name} #${player.number}`,
+          }}
           sublabel={sublabel}
         />
       ) : null}
