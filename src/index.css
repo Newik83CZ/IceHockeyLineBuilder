@@ -232,6 +232,18 @@ textarea:focus {
   }
 }
 
+/* Rosters: prevent right side cut-off on phone portrait */
+@media (max-width: 800px) and (orientation: portrait) {
+  .rosterPlayerRow {
+    grid-template-columns: 1fr !important;
+    align-items: start !important;
+  }
+
+  /* Make sure child cells can shrink */
+  .rosterPlayerRow > * {
+    min-width: 0 !important;
+  }
+}
 
 
 

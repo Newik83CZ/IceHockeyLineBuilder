@@ -449,6 +449,7 @@ export default function Rosters({ data, setData }) {
                 {sortedPlayers.map((p) => (
                   <div
                     key={p.id}
+                    className="rosterPlayerRow"
                     style={{
                       display: "grid",
                       gridTemplateColumns: "80px 1fr 140px 70px 80px 1fr 90px",
@@ -457,8 +458,10 @@ export default function Rosters({ data, setData }) {
                       padding: 10,
                       borderRadius: 14,
                       border: "1px solid rgba(0,0,0,0.12)",
+                      minWidth: 0, // ✅ helps shrinking inside grid
                     }}
                   >
+
                     <div style={{ fontWeight: 700 }}>#{p.number}</div>
                     <div style={{ fontWeight: 600 }}>{p.name}</div>
 
