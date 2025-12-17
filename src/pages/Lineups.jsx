@@ -10,6 +10,7 @@ import {
 
 import { useEffect, useMemo } from "react";
 import { newId } from "../lib/model";
+import React, { useEffect, useMemo } from "react";
 
 const MAX_FORWARD_LINES = 4;
 const MAX_DEF_PAIRS = 4;
@@ -24,6 +25,25 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
     preferredPosition && typeof preferredPosition === "string"
       ? `var(--pos-${preferredPosition.toLowerCase()})`
       : "var(--border)";
+
+  const labelRef = React.useRef(null);
+  const [labelSize, setLabelSize] = React.useState(16);
+
+  React.useLayoutEffect(() => {
+    const el = labelRef.current;
+    if (!el) return;
+
+    // Start a bit larger, then shrink until it fits on ONE line
+    let size = 18;
+    el.style.fontSize = `${size}px`;
+
+    while (size > 11 && el.scrollWidth > el.clientWidth) {
+      size -= 0.5;
+      el.style.fontSize = `${size}px`;
+    }
+
+    setLabelSize(size);
+  }, [label]);
 
   const style = {
     width: "100%",
@@ -52,17 +72,14 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
       <div
-        className="playerLabel"
+        ref={labelRef}
         style={{
-          fontWeight: 700,
-          fontSize: 20,
+          fontWeight: 800,
+          fontSize: labelSize,
           lineHeight: 1.15,
-          display: "-webkit-box",
-          WebkitLineClamp: 2,
-          lineClamp: 2,
-          WebkitBoxOrient: "vertical",
+          whiteSpace: "nowrap",
           overflow: "hidden",
-          textOverflow: "ellipsis",
+          textOverflow: "clip",
         }}
       >
         {label}
@@ -184,7 +201,7 @@ function Slot({ id, title, assignments, byId }) {
         <DraggablePlayer
           id={player.id}
           preferredPosition={player.preferredPosition}
-          label={`#${player.number} ${player.name}${player.leadership ? ` (${player.leadership})` : ""}`}
+          label={`${player.leadership ? `${player.leadership} ` : ""}${player.name} #${player.number}`}
           sublabel={sublabel}
         />
       ) : null}
@@ -692,10 +709,11 @@ export default function Lineups({ data, setData }) {
     <div className="lineupsLayout" style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: 16 }}>
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         {/* LEFT PANEL */}
-        <div className="lineupsLeft" style={{ display: "grid", gap: 10 }}>
-          <div style={{ display: "grid", gap: 4 }}>
-            <h2 style={{ margin: 0 }}>Line-ups</h2>
-            <div style={{ fontSize: 12, opacity: 0.7 }}>{activeTeam.name}</div>
+        <div className="lineupsLeft" style={{ display: "grid", gap: 8 }}>
+          <div style={{ marginTop: 0 }}>
+            <h2 style={{ margin: "0 0 6px", fontWeight: 900 }}>
+              {activeTeam.name}
+            </h2>
           </div>
 
           {/* Lineup selector + actions + structure */}
@@ -715,12 +733,13 @@ export default function Lineups({ data, setData }) {
                 ))}
               </select>
 
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <div className="lineupActions">
                 <button onClick={createNewLineup}>New</button>
                 <button onClick={renameLineup}>Rename</button>
                 <button onClick={duplicateLineup}>Duplicate</button>
                 <button onClick={deleteLineup}>Delete</button>
               </div>
+
             </div>
 
             <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
