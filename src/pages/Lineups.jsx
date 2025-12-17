@@ -25,28 +25,37 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
       ? `var(--pos-${preferredPosition.toLowerCase()})`
       : "var(--border)";
 
-  const labelRef = React.useRef(null);
-  const [labelSize, setLabelSize] = React.useState(16);
+  const rowRef = React.useRef(null);
+  const badgeRef = React.useRef(null);
+  const textRef = React.useRef(null);
+
+  const [textSize, setTextSize] = React.useState(16);
 
   React.useLayoutEffect(() => {
-    const el = labelRef.current;
-    if (!el) return;
+    const rowEl = rowRef.current;
+    const badgeEl = badgeRef.current;
+    const textEl = textRef.current;
+    if (!rowEl || !textEl) return;
 
-    // Start a bit larger, then shrink until it fits on ONE line
+    const badgeW = badgeEl ? badgeEl.getBoundingClientRect().width : 0;
+    const gap = (label?.leadership ? 6 : 0);
+    const available = Math.max(0, rowEl.clientWidth - badgeW - gap);
+
+    // Start larger and shrink until it fits in available width
     let size = 18;
-    el.style.fontSize = `${size}px`;
+    textEl.style.fontSize = `${size}px`;
 
-    while (size > 11 && el.scrollWidth > el.clientWidth) {
+    while (size > 11 && textEl.scrollWidth > available) {
       size -= 0.5;
-      el.style.fontSize = `${size}px`;
+      textEl.style.fontSize = `${size}px`;
     }
 
-    setLabelSize(size);
-  }, [label]);
+    setTextSize(size);
+  }, [label?.text, label?.leadership]);
 
   const style = {
     width: "100%",
-    minWidth: 0, // ✅ allow shrink inside grids
+    minWidth: 0,
     minHeight: 84,
     padding: "8px 12px",
     borderRadius: 20,
@@ -70,18 +79,21 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+      {/* ONE-LINE header row with auto-shrink text */}
       <div
-        ref={labelRef}
+        ref={rowRef}
         style={{
           display: "flex",
           alignItems: "center",
           gap: 6,
+          minWidth: 0,
           whiteSpace: "nowrap",
           overflow: "hidden",
         }}
       >
-        {label.leadership && (
+        {label?.leadership ? (
           <span
+            ref={badgeRef}
             style={{
               fontSize: 11,
               fontWeight: 900,
@@ -94,18 +106,22 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
           >
             {label.leadership}
           </span>
-        )}
+        ) : null}
 
         <span
+          ref={textRef}
           style={{
             fontWeight: 800,
-            fontSize: labelSize,
+            fontSize: textSize,
             lineHeight: 1.15,
+            display: "block",
+            minWidth: 0,
             overflow: "hidden",
             textOverflow: "clip",
+            whiteSpace: "nowrap",
           }}
         >
-          {label.text}
+          {label?.text ?? String(label)}
         </span>
       </div>
 
