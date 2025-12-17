@@ -176,7 +176,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
                   fontWeight: 900,
                   padding: "5px 7px",
                   borderRadius: 12,
-                  background: "var(--primary)",
+                  background: "var(--accent)",
                   color: "white",
                   flexShrink: 0,
                   lineHeight: 1,

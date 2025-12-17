@@ -136,7 +136,7 @@ export default function ThemePage({ data, setData }) {
         <ColorRow label="Background" value={activeTheme.app.background} onChange={(v) => setAppColor("background", v)} />
         <ColorRow label="Surface" value={activeTheme.app.surface} onChange={(v) => setAppColor("surface", v)} />
         <ColorRow label="Text" value={activeTheme.app.text} onChange={(v) => setAppColor("text", v)} />
-        <ColorRow label="Accent" value={activeTheme.app.accent} onChange={(v) => setAppColor("accent", v)} />
+        <ColorRow label="Leadership" value={activeTheme.app.accent} onChange={(v) => setAppColor("accent", v)} />
       </Card>
 
       <Card title="Position Colors (Preferred Position)">
@@ -153,7 +153,7 @@ export default function ThemePage({ data, setData }) {
       <Card title="Preview">
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Badge text="Primary" style={{ background: "var(--primary)", color: "white" }} />
-          <Badge text="Accent" style={{ background: "var(--accent)", color: "white" }} />
+          <Badge text="Leadership" style={{ background: "var(--accent)", color: "white" }} />
           <Badge text="Surface" style={{ background: "var(--surface)", border: "1px solid var(--border)" }} />
           {POSITIONS.map(p => (
             <Badge key={p} text={p} style={{ background: `var(--pos-${p.toLowerCase()})`, color: "white" }} />
