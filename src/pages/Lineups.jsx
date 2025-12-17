@@ -114,8 +114,11 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
     minHeight: 84,
     padding: "8px 12px",
     borderRadius: 20,
-    border: `1px solid ${posVar}`,
-    background: "var(--surface)",
+    //border: `1px solid ${posVar}`,
+    border: `1px solid var(--primary)`,
+    //background: "var(--surface)",
+    color: "var(--surface)",
+    background: posVar,
     cursor: "grab",
     userSelect: "none",
     touchAction: "none",
@@ -832,7 +835,7 @@ export default function Lineups({ data, setData }) {
   }
 
   return (
-    <div className="lineupsLayout" style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 16 }}>
+    <div className="lineupsLayout" style={{ display: "grid", gridTemplateColumns: "310px 1fr", gap: 16 }}>
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         {/* LEFT PANEL */}
         <div className="lineupsLeft" style={{ display: "grid", gap: 8 }}>
@@ -840,7 +843,7 @@ export default function Lineups({ data, setData }) {
             <h2 style={{ margin: "0 0 6px", fontWeight: 900 }}>{activeTeam.name}</h2>
           </div>
 
-          <div style={{ marginTop: -270, padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
+          <div style={{ marginTop: -10, padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
             <div style={{ display: "grid", gap: 8 }}>
               <div style={{ fontWeight: 800 }}>Line-up</div>
 

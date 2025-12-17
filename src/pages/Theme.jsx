@@ -150,16 +150,18 @@ export default function ThemePage({ data, setData }) {
         ))}
       </Card>
 
+      {/*
       <Card title="Preview">
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Badge text="Primary" style={{ background: "var(--primary)", color: "white" }} />
           <Badge text="Leadership" style={{ background: "var(--accent)", color: "white" }} />
           <Badge text="Surface" style={{ background: "var(--surface)", border: "1px solid var(--border)" }} />
           {POSITIONS.map(p => (
-            <Badge key={p} text={p} style={{ background: `var(--pos-${p.toLowerCase()})`, color: "white" }} />
+            <Badge key={p} text={p} style={{ background: `var(--pos-${p.toLowerCase()})`, color: "var(--surface)" }} />
           ))}
         </div>
       </Card>
+      */}
     </div>
   );
 }
@@ -175,7 +177,7 @@ function Card({ title, children }) {
 
 function ColorRow({ label, value, onChange }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "180px 120px 1fr", gap: 10, alignItems: "center" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "100px 80px 100px", gap: 10, alignItems: "center" }}>
       <div style={{ fontWeight: 700 }}>{label}</div>
       <input type="color" value={value} onChange={(e) => onChange(e.target.value)} />
       <input
