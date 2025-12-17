@@ -9,7 +9,7 @@
 
 html,
 body {
-  overflow-x: visible;
+  overflow-x: auto;
 }
 
 /* ---------- Base controls ---------- */
@@ -288,6 +288,12 @@ textarea:focus {
     margin: 0 !important;
   }
 
+  /* Prevent any child from forcing horizontal overflow */
+  .lineupsLayout,
+  .lineupsLayout * {
+    min-width: 0;
+  }
+
   /* Tighten the inside padding of the cards a bit */
   .lineupsLeft > div,
   .lineupsLayout > div > div { /* right panel wrappers */
@@ -322,6 +328,46 @@ textarea:focus {
     max-width: 100% !important;
   }
 }
+
+@media (max-width: 800px) {
+  /* Rosters layout must not exceed viewport */
+  .rostersLayout {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Force flex rows to wrap instead of overflow */
+  .rostersTopRow,
+  .rostersActionsRow,
+  .playersRow {
+    flex-wrap: wrap !important;
+  }
+
+  /* Buttons should never push width */
+  button {
+    max-width: 100%;
+  }
+
+  /* Critical: allow flex/grid children to shrink */
+  .rostersLayout *,
+  .playersRow *,
+  .playersList * {
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 800px) {
+  .lineRow {
+    grid-template-columns: 1fr !important;
+  }
+
+  .rowLabel {
+    padding-top: 0 !important;
+    margin-bottom: -6px;
+  }
+}
+
+
 
 
 
