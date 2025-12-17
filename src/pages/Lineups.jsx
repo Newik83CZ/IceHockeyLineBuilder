@@ -175,6 +175,8 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
               {/* First name: don’t ellipsis first */}
               <span style={{ flexShrink: 0 }}>{labelObj.firstName}</span>
 
+              <br />
+
               {/* Last name: ellipsis first */}
               {labelObj.lastName ? (
                 <span
