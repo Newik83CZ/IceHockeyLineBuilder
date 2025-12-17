@@ -480,43 +480,50 @@ export default function Rosters({ data, setData }) {
             <div style={{ marginTop: 14 }}>
               <h3 style={{ marginBottom: 8 }}>Players</h3>
            
-                    <div style={{ 
-                      opacity: 0.9, 
-                      display: "grid",
-                      gridTemplateColumns: "30px 1fr 70px 50px 50px 1fr 80px",
-                      gap: 10,
-                      alignItems: "center",
-                      padding: 10,
-                      fontSize: 10,
-                    }}>
-                    
-                      <div>number</div>
-                      <div>name</div>
-                      <div>preferred role</div>
-                      <div>captaincy</div>
-                      <div>stick</div>
-                      <div>can play</div>
-                      <div>action</div>
-                    </div>
+              <div
+                style={{
+                  opacity: 0.85,
+                  display: "grid",
+                  gridTemplateColumns:
+                    "40px minmax(160px, 1.4fr) 100px 60px 60px 1fr 70px",
+                  gap: 2,
+                  alignItems: "center",
+                  padding: "6px 10px",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em",
+                  borderBottom: "1px solid rgba(0,0,0,0.15)",
+                }}
+              >
+                <div>#</div>
+                <div>Name</div>
+                <div>Position</div>
+                <div>Lead</div>
+                <div>Stick</div>
+                <div>Can play</div>
+                <div>Actions</div>
+              </div>
 
-              
-
-              <div style={{ display: "grid", gap: 8, minWidth: 0 }}>
+              <div style={{ display: "grid", gap: 0, minWidth: 0 }}>
                 {sortedPlayers.map((p) => (
                   <div
                     key={p.id}
                     className="playerRow"
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "30px 1fr 70px 50px 50px 1fr 80px",
-                      gap: 10,
+                      gridTemplateColumns:
+                        "40px minmax(160px, 1.4fr) 100px 60px 60px 1fr 70px",
+                      gap: 2,
                       alignItems: "center",
-                      padding: 10,
+                      padding: 5,
+                      marginTop: 5,
                       borderRadius: 14,
                       border: "1px solid rgba(0,0,0,0.12)",
                       minWidth: 0,
                     }}
                   >
+
                     <div style={{ fontWeight: 700, minWidth: 0 }}>#{p.number}</div>
 
                     <div style={{ fontWeight: 600, minWidth: 0, whiteSpace: "normal", overflowWrap: "anywhere" }}>
