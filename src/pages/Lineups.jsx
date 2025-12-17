@@ -149,7 +149,23 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
             flex: "1 1 auto",
           }}
         >
-          "{labelObj.leadership}" {labelObj.text}
+          {labelObj.leadership ? (
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 900,
+              padding: "2px 6px",
+              borderRadius: 8,
+              background: "var(--primary)",
+              color: "white",
+              flexShrink: 0,
+              lineHeight: 1,
+            }}
+            title={labelObj.leadership === "C" ? "Captain" : "Alternate"}
+          >
+            "{labelObj.leadership}"
+          </span>
+        ) : null} {labelObj.text}
         </span>
       </div>
 
