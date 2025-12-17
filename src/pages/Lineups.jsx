@@ -152,7 +152,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
           {labelObj.leadership ? (
           <span
             style={{
-              fontSize: 10,
+              fontSize: textSize,
               fontWeight: 900,
               padding: "2px 6px",
               borderRadius: 8,
@@ -170,7 +170,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
       </div>
 
       {sublabel ? (
-        <div style={{ fontSize: 12, opacity: 0.75 }}>{sublabel}</div>
+        <div style={{ fontSize: 8, opacity: 0.75 }}>{sublabel}</div>
       ) : null}
     
     </div>
