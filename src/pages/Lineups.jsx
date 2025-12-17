@@ -55,7 +55,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
       const gap = badgeEl ? 6 : 0;
       const available = Math.max(0, rowEl.clientWidth - badgeW - gap);
 
-      const MIN = 9;
+      const MIN = 8;
       // Prevent infinite loop if something weird happens
       let guard = 0;
 
