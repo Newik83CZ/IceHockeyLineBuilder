@@ -140,22 +140,34 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
           ref={textRef}
           style={{
             fontWeight: 800,
-            fontSize: textSize, // ✅ comes from measured shrink
+            fontSize: textSize,
             lineHeight: 1.15,
             minWidth: 0,
             overflow: "hidden",
-            textOverflow: "clip", // ✅ we shrink instead of ellipsis
             whiteSpace: "nowrap",
-            flex: "1 1 auto",
+            display: "flex",
+            gap: 4,
           }}
         >
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+            {label.firstName}
+          </span>
+
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+            {label.lastName}
+          </span>
+
+          <span style={{ opacity: 0.75 }}>
+            #{label.number}
+          </span>
+
           {labelObj.leadership ? (
           <span
             style={{
               fontSize: textSize,
               fontWeight: 900,
               padding: "2px 6px",
-              borderRadius: 8,
+              borderRadius: 2,
               background: "var(--primary)",
               color: "white",
               flexShrink: 0,
@@ -294,6 +306,15 @@ function Slot({ id, title, assignments, byId }) {
     sublabel = stick;
   }
 
+  // Safely split player name into first/last parts for display
+  let firstName = "";
+  let lastName = "";
+  if (player && typeof player.name === "string") {
+    const parts = player.name.split(" ");
+    firstName = parts.shift() || "";
+    lastName = parts.join(" ");
+  }
+
   return (
     <DroppableSlot id={id} title={title} player={player}>
       {player ? (
@@ -302,7 +323,8 @@ function Slot({ id, title, assignments, byId }) {
           preferredPosition={player.preferredPosition}
           label={{
             leadership: player.leadership || "",
-            text: `${player.name} #${player.number}`,
+            text: `${firstName} ${lastName}`.trim(),
+            number: player.number,
           }}
           sublabel={sublabel}
         />
