@@ -177,7 +177,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
                   padding: "5px 7px",
                   borderRadius: 12,
                   background: "var(--accent)",
-                  color: "white",
+                  color: "var(--surface)",
                   flexShrink: 0,
                   lineHeight: 1,
                 }}
@@ -809,7 +809,7 @@ export default function Lineups({ data, setData }) {
   }
 
   return (
-    <div className="lineupsLayout" style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: 16 }}>
+    <div className="lineupsLayout" style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 16 }}>
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         {/* LEFT PANEL */}
         <div className="lineupsLeft" style={{ display: "grid", gap: 8 }}>
@@ -817,7 +817,7 @@ export default function Lineups({ data, setData }) {
             <h2 style={{ margin: "0 0 6px", fontWeight: 900 }}>{activeTeam.name}</h2>
           </div>
 
-          <div style={{ padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
+          <div style={{ marginTop: -270, padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
             <div style={{ display: "grid", gap: 8 }}>
               <div style={{ fontWeight: 800 }}>Line-up</div>
 
@@ -891,7 +891,7 @@ export default function Lineups({ data, setData }) {
                     key={p.id}
                     id={p.id}
                     preferredPosition={p.preferredPosition}
-                    label={`#${p.number} ${p.name}${p.leadership ? ` (${p.leadership})` : ""}`}
+                    label={`#${p.number} ${p.lastname}${p.leadership ? ` (${p.leadership})` : ""}`}
                     sublabel={(p.canPlay || []).length ? `Can play: ${p.canPlay.join(", ")}` : ""}
                   />
                 ))}
