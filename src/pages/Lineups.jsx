@@ -55,6 +55,14 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
 
   const [textSize, setTextSize] = useState(18);
 
+  const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 800px)").matches;
+
+  const lastNameFixed =
+    labelObj.lastName && labelObj.lastName.length <= 8
+      ? (isMobile ? 14 : 18)
+      : null;
+
+
   useLayoutEffect(() => {
     const rowEl = rowRef.current;
     const textEl = textRef.current;
@@ -212,14 +220,16 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
                 minWidth: 0,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                fontSize: `${textSize * 1.01}px`,
+                fontSize: lastNameFixed ?? `${textSize * 1.01}px`,
                 fontWeight: 900,
                 opacity: 0.95,
+                lineHeight: 1.05,
               }}
             >
               {labelObj.lastName}
             </span>
           ) : null}
+
         </span>
 
       </div>
@@ -886,15 +896,27 @@ export default function Lineups({ data, setData }) {
             <AvailableDropZone>
               <div style={{ fontWeight: 800, marginBottom: 10 }}>Available Players</div>
               <div style={{ display: "grid", gap: 10 }}>
-                {available.map((p) => (
-                  <DraggablePlayer
-                    key={p.id}
-                    id={p.id}
-                    preferredPosition={p.preferredPosition}
-                    label={`#${p.number} ${p.lastname}${p.leadership ? ` (${p.leadership})` : ""}`}
-                    sublabel={(p.canPlay || []).length ? `Can play: ${p.canPlay.join(", ")}` : ""}
-                  />
-                ))}
+                {available.map((p) => {
+                  const parts = String(p.name || "").trim().split(/\s+/).filter(Boolean);
+                  const firstName = parts[0] || "";
+                  const lastName = parts.slice(1).join(" ");
+
+                  return (
+                    <DraggablePlayer
+                      key={p.id}
+                      id={p.id}
+                      preferredPosition={p.preferredPosition}
+                      label={{
+                        number: p.number,
+                        leadership: p.leadership || "",
+                        firstName,
+                        lastName,
+                      }}
+                      sublabel={(p.canPlay || []).length ? `Can play: ${p.canPlay.join(", ")}` : ""}
+                    />
+                  );
+                })}
+
                 {available.length === 0 && <div style={{ fontSize: 12, opacity: 0.65 }}>No available players (everyone assigned).</div>}
               </div>
             </AvailableDropZone>
