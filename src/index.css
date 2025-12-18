@@ -205,6 +205,10 @@ textarea:focus {
     grid-template-columns: 1fr 1fr !important;
   }
 
+  .goalieGrid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
   /* Action buttons: 2 columns on phone */
   .lineupActions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
