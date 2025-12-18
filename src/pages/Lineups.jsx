@@ -112,7 +112,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
     width: "100%",
     minWidth: 0,
     minHeight: 84,
-    padding: "8px 12px",
+    padding: "6px 10px",
     borderRadius: 20,
     //border: `1px solid ${posVar}`,
     border: `1px solid var(--primary)`,
@@ -288,7 +288,7 @@ function DroppableSlot({ id, title, player, children }) {
     <div
       ref={setNodeRef}
       style={{
-        padding: 12,
+        padding: "2px 2px",
         borderRadius: 16,
         border: "1px dashed var(--border)",
         background: isOver ? "rgba(0,0,0,0.06)" : "var(--surface)",
