@@ -178,14 +178,12 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
                 style={{
                   fontSize: `16px`,
                   fontWeight: 900,
-                  padding: "0px 7px",
+                  padding: "0px 5px",
                   borderRadius: 14,
-                  //background: "var(--accent)",
-                  //color: "var(--surface)",
                   color: "var(--accent)",
-                  border: "1px solid var(--accent)",
+                  borderRight: "2px solid var(--accent)",
+                  borderLeft: "2px solid var(--accent)",
                   flexShrink: 0,
-                  //lineHeight: 1,
                 }}
                 title={labelObj.leadership === "C" ? "Captain" : "Alternate"}
               >

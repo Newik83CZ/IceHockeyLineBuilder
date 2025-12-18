@@ -542,9 +542,25 @@ export default function Rosters({ data, setData }) {
                       <span style={{ marginLeft: 10 }}>
                       {p.name}
                       </span>
-                      <span style={{ color: "var(--accent)", marginLeft: 10 }}>
-                        {p.leadership || " "}
-                      </span>
+
+                      {p.leadership && (
+                        <span
+                          style={{
+                            color: "var(--accent)",
+                            borderRadius: 14,
+                            padding: "0px 5px",
+                            borderRight: "2px solid var(--accent)",
+                            borderLeft: "2px solid var(--accent)",
+                            marginLeft: 10,
+                            fontSize: 16,
+                            fontWeight: 900,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {p.leadership}
+                        </span>
+                      )}
+
                     </div>
 
                     <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
