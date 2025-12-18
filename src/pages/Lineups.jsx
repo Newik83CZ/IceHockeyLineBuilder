@@ -958,9 +958,12 @@ export default function Lineups({ data, setData }) {
           <BoardSection title="Defence Pairs">{defRows}</BoardSection>
 
           <BoardSection title="Goalies">
-            <div style={{ display: "grid", gridTemplateColumns: activeLineup.backupGoalieEnabled ? "170px 1fr" : "170px", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 12, alignItems: "start" }}>
+            <RowLabel> </RowLabel>
+            <div style={{ display: "grid", gridTemplateColumns: activeLineup.backupGoalieEnabled ? "170px 170px" : "170px", gap: 12 }}>
               <Slot id="G_START" title="Starter (G)" assignments={activeLineup.assignments} byId={byId} />
               {activeLineup.backupGoalieEnabled ? <Slot id="G_BACKUP" title="Backup (G)" assignments={activeLineup.assignments} byId={byId} /> : null}
+            </div>
             </div>
           </BoardSection>
         </div>
