@@ -821,7 +821,7 @@ export default function Lineups({ data, setData }) {
         style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 12, alignItems: "start" }}
       >
         <RowLabel>{`Line ${i}`}</RowLabel>
-        <div className="forwardGrid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+        <div className="forwardGrid" style={{ display: "grid", gridTemplateColumns: "170px 170px 170px", gap: 12 }}>
           <Slot id={`F${i}_LW`} title="LW" assignments={activeLineup.assignments} byId={byId} />
           <Slot id={`F${i}_C`} title="C" assignments={activeLineup.assignments} byId={byId} />
           <Slot id={`F${i}_RW`} title="RW" assignments={activeLineup.assignments} byId={byId} />
@@ -839,7 +839,7 @@ export default function Lineups({ data, setData }) {
         style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 12, alignItems: "start" }}
       >
         <RowLabel>{`Pair ${i}`}</RowLabel>
-        <div className="defenceGrid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div className="defenceGrid" style={{ display: "grid", gridTemplateColumns: "170px 170px", gap: 12 }}>
           <Slot id={`D${i}_LD`} title="LD" assignments={activeLineup.assignments} byId={byId} />
           <Slot id={`D${i}_RD`} title="RD" assignments={activeLineup.assignments} byId={byId} />
         </div>
@@ -958,7 +958,7 @@ export default function Lineups({ data, setData }) {
           <BoardSection title="Defence Pairs">{defRows}</BoardSection>
 
           <BoardSection title="Goalies">
-            <div style={{ display: "grid", gridTemplateColumns: activeLineup.backupGoalieEnabled ? "1fr 1fr" : "1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: activeLineup.backupGoalieEnabled ? "170px 1fr" : "170px", gap: 12 }}>
               <Slot id="G_START" title="Starter (G)" assignments={activeLineup.assignments} byId={byId} />
               {activeLineup.backupGoalieEnabled ? <Slot id="G_BACKUP" title="Backup (G)" assignments={activeLineup.assignments} byId={byId} /> : null}
             </div>
