@@ -286,7 +286,7 @@ textarea:focus {
 
   @media (max-width: 800px) and (orientation: portrait) {
     .colorRow {
-      grid-template-columns: 100 50 70 !important;
+      grid-template-columns: 150 50 70 !important;
       grid-auto-rows: auto;
     }
 
