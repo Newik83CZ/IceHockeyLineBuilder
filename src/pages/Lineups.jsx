@@ -453,6 +453,10 @@ function countAssignedInSlots(lineup, slots) {
 export default function Lineups({ data, setData }) {
   const activeTeam = data.teams.find((t) => t.id === data.activeTeamId) || null;
 
+  const isMobile =
+  typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { distance: 10 } })
@@ -1301,7 +1305,14 @@ const goalies = `
               <div className="lineupActions" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
                 <button onClick={autoFillLines}>Auto-fill lines</button>
                 <button onClick={clearAllAssignments}>Clear all assignments</button>
-                <button onClick={printLineupToPDF}>Print current lines</button>
+                <button
+                  onClick={printLineupToPDF}
+                  disabled={isMobile}
+                  title={isMobile ? "Printing is available on desktop or tablet" : ""}
+                >
+                  Print current lines
+                </button>
+
               </div>
 
             </div>
