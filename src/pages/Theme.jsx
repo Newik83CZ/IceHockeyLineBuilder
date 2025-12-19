@@ -151,7 +151,7 @@ export default function ThemePage({ data, setData }) {
         <button onClick={deleteTheme}>Delete</button>
       </div>
 
-    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "minmax(300, 1fr)", gap: 10 }}>
 
       <Card title="Colors in App UI">
         
