@@ -696,6 +696,38 @@ export default function Lineups({ data, setData }) {
     });
   }
 
+  function pickRandomFrom(list) {
+    if (!list || list.length === 0) return null;
+    const idx = Math.floor(Math.random() * list.length);
+    return list[idx];
+  }
+
+  function buildFillOrder(lineup) {
+    const order = [];
+
+    // 1) Starter goalie
+    order.push("G_START");
+
+    // 2) Defence pairs
+    for (let i = 1; i <= lineup.defencePairs; i++) {
+      order.push(`D${i}_LD`, `D${i}_RD`);
+    }
+
+    // 3) Line 1
+    order.push("F1_LW", "F1_C", "F1_RW");
+
+    // 4) Remaining lines
+    for (let i = 2; i <= lineup.forwardLines; i++) {
+      order.push(`F${i}_LW`, `F${i}_C`, `F${i}_RW`);
+    }
+
+    // 5) Backup goalie last (only if enabled)
+    if (lineup.backupGoalieEnabled) order.push("G_BACKUP");
+
+    return order;
+  }
+
+
   function autoAssignLineup(lineup, playersList) {
     const used = new Set();
     const next = {};
@@ -723,19 +755,47 @@ export default function Lineups({ data, setData }) {
     lineup.assignments = next;
   }
 
-  function autoBuildLines() {
+  function autoFillLines() {
     if (!activeLineup) return;
 
-    const hasAssignments = Object.values(activeLineup.assignments || {}).some(Boolean);
-    if (hasAssignments) {
-      if (!confirm("This will overwrite current assignments. Continue?")) return;
+    // Build available pool (not currently assigned anywhere)
+    const assigned = new Set(Object.values(activeLineup.assignments || {}).filter(Boolean));
+    const pool = players.filter((p) => !assigned.has(p.id));
+
+    if (pool.length === 0) {
+      alert("No available players to assign.");
+      return;
     }
 
     saveActiveLineup((lu) => {
-      autoAssignLineup(lu, players);
+      const order = buildFillOrder(lu);
+
+      for (const slotId of order) {
+        // only fill empty slots (never overwrite)
+        if (lu.assignments?.[slotId]) continue;
+
+        const code = slotToPosCode(slotId); // LW/C/RW/LD/RD/G
+        const canPlayMatches = pool.filter((p) => (p.canPlay || []).includes(code));
+
+        // pick randomly: from matches first, otherwise from the whole pool
+        const pickFrom = canPlayMatches.length ? canPlayMatches : pool;
+        const chosen = pickRandomFrom(pickFrom);
+        if (!chosen) break;
+
+        lu.assignments[slotId] = chosen.id;
+
+        // remove chosen from pool so they can't be placed twice
+        const poolIdx = pool.findIndex((p) => p.id === chosen.id);
+        if (poolIdx >= 0) pool.splice(poolIdx, 1);
+
+        // optional early stop if pool is empty
+        if (pool.length === 0) break;
+      }
+
       normalizeAssignments(lu);
     });
   }
+
 
   function addForwardLine() {
     if (!activeLineup) return;
@@ -1262,7 +1322,7 @@ const goalies = `
                 Backup goalie enabled
               </label>
 
-              <button onClick={autoBuildLines}>Auto-build lines</button>
+              <button onClick={autoFillLines}>Auto-fill lines</button>
               <button onClick={clearAllAssignments}>Clear all assignments</button>
               <button onClick={printLineupToPDF}>Print current lines</button>
 
@@ -1308,7 +1368,7 @@ const goalies = `
 
           <BoardSection title="Goalies">
             <div className="goalieRow">
-              <RowLabel>Goalies</RowLabel>
+              <RowLabel>.</RowLabel>
 
               <div className="goalieGrid">
                 <Slot

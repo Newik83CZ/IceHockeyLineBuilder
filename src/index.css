@@ -101,6 +101,7 @@ textarea:focus {
   grid-template-columns: 120px 170px;
   gap: 12px;
   align-items: start;
+  color: var(--surface);
 }
 
 .goalieGrid {

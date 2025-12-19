@@ -764,7 +764,7 @@ function importFromFile(file) {
               */}
 
 
-              <div style={{ display: "grid", gap: 0, minWidth: 0 }}>
+              <div style={{ display: "grid", gap: 0, minWidth: 0, borderRadius: 10, background: "var(--surface)" }}>
                 {sortedPlayers.map((p) => (
                   <div
                     key={p.id}
