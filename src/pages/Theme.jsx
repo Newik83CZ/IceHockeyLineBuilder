@@ -111,6 +111,22 @@ export default function ThemePage({ data, setData }) {
     );
   }
 
+    // Backward compatible fallbacks (old themes used primary/accent)
+    const app = activeTheme.app || {};
+
+    const uiBackground = app.background;
+    const uiButtons = app.buttons ?? app.primary;        // NEW
+    const uiSurface = app.surface;
+    const uiText = app.text;
+
+    const leaderColor = app.leader ?? app.accent;        // NEW
+
+    const printTeamColor = app.printTeamColor ?? app.primary;   // NEW
+    const printText = app.printText ?? app.text;                // NEW
+    const printCardText = app.printCardText ?? app.surface;     // NEW
+    const printLeader = app.printLeader ?? app.accent;          // NEW
+
+
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
@@ -139,16 +155,14 @@ export default function ThemePage({ data, setData }) {
 
       <Card title="Colors in App UI">
         
-        <ColorRow label="Background" value={activeTheme.app.background} onChange={(v) => setAppColor("background", v)} />
-        <ColorRow label="Buttons" value={activeTheme.app.primary} onChange={(v) => setAppColor("primary", v)} />
-        <ColorRow label="Surface" value={activeTheme.app.surface} onChange={(v) => setAppColor("surface", v)} />
-        <ColorRow label="Text" value={activeTheme.app.text} onChange={(v) => setAppColor("text", v)} />
+        <ColorRow label="Background" value={uiBackground} onChange={(v) => setAppColor("background", v)} />
+        <ColorRow label="Buttons" value={uiButtons} onChange={(v) => setAppColor("buttons", v)} />
+        <ColorRow label="Surface" value={uiSurface} onChange={(v) => setAppColor("surface", v)} />
+        <ColorRow label="Text" value={uiText} onChange={(v) => setAppColor("text", v)} />
         
       </Card>
 
-
-
-      <Card title="Preferred Position Colors">
+       <Card title="Preferred Position Colors">
         {POSITIONS.map(pos => (
           <ColorRow
             key={pos}
@@ -158,16 +172,17 @@ export default function ThemePage({ data, setData }) {
           />
           
         ))}
-        <ColorRow label="Leadership" value={activeTheme.app.accent} onChange={(v) => setAppColor("accent", v)} />
+        <ColorRow label="Leadership" value={leaderColor} onChange={(v) => setAppColor("leader", v)} />
+
       </Card>
 
       
       <Card title="Colors for printing Lineups">
         
-        <ColorRow label="Team Color" value={activeTheme.app.primary} onChange={(v) => setAppColor("primary", v)} />
-        <ColorRow label="Labels" value={activeTheme.app.text} onChange={(v) => setAppColor("text", v)} />
-        <ColorRow label="Players Cards Text" value={activeTheme.app.surface} onChange={(v) => setAppColor("surface", v)} />
-        <ColorRow label="Leadership" value={activeTheme.app.accent} onChange={(v) => setAppColor("accent", v)} />
+        <ColorRow label="Team Color" value={printTeamColor} onChange={(v) => setAppColor("printTeamColor", v)} />
+        <ColorRow label="Labels" value={printText} onChange={(v) => setAppColor("printText", v)} />
+        <ColorRow label="Players Cards Text" value={printCardText} onChange={(v) => setAppColor("printCardText", v)} />
+        <ColorRow label="Leadership" value={printLeader} onChange={(v) => setAppColor("printLeader", v)} />
 
       </Card>
 
@@ -177,32 +192,28 @@ export default function ThemePage({ data, setData }) {
         APP:
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, fontSize: 12 }}>           
           <Badge text="Background" style={{ background: "var(--background)", color: "var(--text)" }} />
-          <Badge text="Buttons" style={{ background: "var(--primary)", color: "var(--surface)" }} />
+          <Badge text="Buttons" style={{ background: "var(--buttons)", color: "var(--surface)" }} />
           <Badge text="Surface" style={{ background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)" }} />
         </div>
           
         Positions in APP:          
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 5, marginBottom: 10, fontSize: 12 }}>
           {POSITIONS.map(p => (
-            <Badge key={p} text={p} style={{ background: `var(--pos-${p.toLowerCase()})`, color: "var(--surface)", border: `1px solid var(--primary)` }} />
+            <Badge key={p} text={p} style={{ background: `var(--pos-${p.toLowerCase()})`, color: "var(--surface)", border: `1px solid var(--buttons)` }} />
           ))}
         </div>
 
         Print:  
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 5, marginBottom: 10, fontSize: 12 }}>
-          <Badge text="Team Name" style={{ background: "white", color: "var(--primary)" }} />      
-          <Badge text="Labels" style={{ background: "white", color: "var(--text)" }} /> 
-          <Badge text="#99" style={{ background: "var(--text)", color: "var(--surface)", marginRight: -40, zIndex: 2, fontSize: 10, padding: 10 }} />
-          <Badge text="Players Card" style={{
-                                       background: "var(--primary)", 
-                                       color: "var(--surface)", 
+          <Badge text="Team Name" style={{ background: "white", color: "var(--printTeamColor)" }} />     
+          <Badge text="Labels" style={{ background: "white", color: "var(--printText)" }} />
+          <Badge text="#99" style={{ background: "var(--printText)", color: "var(--printCardText)", marginRight: -40, zIndex: 2, fontSize: 10, padding: 10 }} />
+          <Badge text="Players Card" style={{ background: "var(--printTeamColor)", color: "var(--printCardText)", 
                                        paddingLeft: 35,
                                        paddingRight: 35,
                                        paddingTop: 8
                                        }} />
-          <Badge text="C" style={{
-                           background: "var(--accent)", 
-                           color: "var(--surface)", 
+          <Badge text="C" style={{ background: "var(--printLeader)", color: "var(--printCardText)", 
                            marginLeft: -40, 
                            fontSize: 10, 
                            paddingTop: 10, 

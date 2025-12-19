@@ -164,9 +164,9 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
                 fontWeight: 900,
                 padding: "0px 5px",
                 borderRadius: 14,
-                color: "var(--accent)",
-                borderRight: "2px solid var(--accent)",
-                borderLeft: "2px solid var(--accent)",
+                color: "var(--leader, var(--accent))",
+                borderRight: "2px solid var(--leader, var(--accent))",
+                borderLeft: "2px solid var(--leader, var(--accent))",
                 flexShrink: 0,
               }}
               title={labelObj.leadership === "C" ? "Captain" : "Alternate"}
@@ -881,14 +881,17 @@ function printLineupToPDF() {
   const activeTheme =
   data.themes?.find((t) => t.id === data.activeThemeId) || null;
 
-  const teamC = activeTheme?.app?.primary || "#d32f2f";
-  const labelsC    = activeTheme?.app?.text || "#111111";
-  const lineupTitleC    = activeTheme?.app?.text || "#111111";
-  const numberBackgroundC    = activeTheme?.app?.text || "#111111";
-  const text    = activeTheme?.app?.text || "#111111";
-  const numberC = activeTheme?.app?.surface || "#ffffff";
-  const playerNameC = activeTheme?.app?.surface || "#ffffff";
-  const leadershipBackgroundC = activeTheme?.app?.accent || "#ffd54a";
+  const teamC = activeTheme?.app?.printTeamColor ?? activeTheme?.app?.primary ?? "#d32f2f";
+  const labelsC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
+  const lineupTitleC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
+  const numberBackgroundC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
+
+  const text = labelsC; // ✅ add this back
+
+  const numberC = activeTheme?.app?.printCardText ?? activeTheme?.app?.surface ?? "#ffffff";
+  const playerNameC = activeTheme?.app?.printCardText ?? activeTheme?.app?.surface ?? "#ffffff";
+  const leadershipBackgroundC = activeTheme?.app?.printLeader ?? activeTheme?.app?.accent ?? "#ffd54a";
+
   
   const teamName = escapeHtml(activeTeam.name);
   const lineupName = escapeHtml(activeLineup.name);
@@ -909,9 +912,11 @@ function printLineupToPDF() {
       <div class="row">
         <div class="rowLabel">Line ${i}</div>
         <div class="pillRow pillRow--3">
+          <div class="edgePad"></div>
           ${pillHtml(lw)}
           ${pillHtml(c)}
           ${pillHtml(rw)}
+          <div class="edgePad"></div>
         </div>
       </div>
     `;
@@ -957,7 +962,7 @@ const goalies = `
         <title>${teamName} - ${lineupName}</title>
         <style>
           * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          @page { size: A4 portrait; margin: 8mm; }
+          @page { size: A4 portrait; margin: 18mm; }
 
           body {
             margin: 0;
@@ -967,15 +972,15 @@ const goalies = `
           }
           
           :root{
-            --labelW: 96px;
-            --pillW: 240px;
+            --labelW: 70px;
+            --pillW: 245px;
             --pillGap: 10px;
-            --pillH: 40px;
-            --circle: 40px;
+            --pillH: 38px;
+            --circle: 38px;
           }
 
           .sheet {
-            padding: 4mm 2mm;
+            padding: 2mm 2mm;
           }
 
           .teamTitle {
@@ -1007,7 +1012,8 @@ const goalies = `
 
           .rowLabel {
             font-weight: 900;
-            font-size: 22px;
+            font-size: 20px;
+            width: var(--labelW);
             color: ${labelsC};
             white-space: nowrap;
             text-align: left;
@@ -1026,14 +1032,14 @@ const goalies = `
 
           .posHeaderCols3 {
             display: grid;
-            grid-template-columns: repeat(3, var(--pillW));
+            grid-template-columns: repeat(3, minmax(0,var(--pillW)));
             gap: var(--pillGap);
             justify-content: center;
           }
 
           .posHeaderCols2 {
             display: grid;
-            grid-template-columns: repeat(2, var(--pillW));
+            grid-template-columns: repeat(2, minmax(0, var(--pillW)));
             gap: var(--pillGap);
             justify-content: center;
           }
@@ -1076,7 +1082,7 @@ const goalies = `
 
           .numCircle {
             position: absolute;
-            left: -2px;
+            left: 1px;
             width: var(--circle);
             height: var(--circle);
             border-radius: 999px;
@@ -1098,10 +1104,17 @@ const goalies = `
             text-overflow: ellipsis;
             padding: 0 8px 0 6px;
           }
+          
+          .edgePad { width: 2px; height: 1px; } /* invisible */
+
+          .pillRow--3 {
+            grid-template-columns: 2px repeat(3, var(--pillW)) 2px;
+          }
+
 
           .leadCircle {
             position: absolute;
-            right: -2px;
+            right: 1px;
             width: var(--circle);
             height: var(--circle);
             border-radius: 999px;

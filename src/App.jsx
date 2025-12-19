@@ -69,8 +69,20 @@ export default function App() {
 
   const themeStyle = activeTheme
     ? {
+        // keep old vars for backwards compatibility (optional but recommended)
         "--primary": activeTheme.app.primary,
         "--accent": activeTheme.app.accent,
+
+        // NEW vars
+        "--buttons": activeTheme.app.buttons ?? activeTheme.app.primary,
+        "--leader": activeTheme.app.leader ?? activeTheme.app.accent,
+
+        "--printTeamColor": activeTheme.app.printTeamColor ?? activeTheme.app.primary,
+        "--printText": activeTheme.app.printText ?? activeTheme.app.text,
+        "--printCardText": activeTheme.app.printCardText ?? activeTheme.app.surface,
+        "--printLeader": activeTheme.app.printLeader ?? activeTheme.app.accent,
+
+
         "--background": activeTheme.app.background,
         "--surface": activeTheme.app.surface,
         "--text": activeTheme.app.text,
@@ -81,10 +93,10 @@ export default function App() {
         "--pos-defender": activeTheme.positions.Defender,
         "--pos-goalie": activeTheme.positions.Goalie,
 
-          background: "var(--background)",
+        background: "var(--background)",
         color: "var(--text)",
         minHeight: "100vh",
-        paddingBottom: "96px", // ✅ space for bottom nav
+        paddingBottom: "96px",
       } : {
         minHeight: "100vh",
         paddingBottom: "96px",

@@ -791,11 +791,11 @@ function importFromFile(file) {
                       {p.leadership && (
                         <span
                           style={{
-                            color: "var(--accent)",
+                            color: "var(--leader, var(--accent))",
                             borderRadius: 14,
                             padding: "0px 5px",
-                            borderRight: "2px solid var(--accent)",
-                            borderLeft: "2px solid var(--accent)",
+                            borderRight: "2px solid var(--leader, var(--accent))",
+                            borderLeft: "2px solid var(--leader, var(--accent))",
                             marginLeft: 10,
                             fontSize: 16,
                             fontWeight: 900,

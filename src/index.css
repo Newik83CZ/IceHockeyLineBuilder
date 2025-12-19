@@ -17,7 +17,7 @@ body {
 /* ---------- Base controls ---------- */
 
 button {
-  background: var(--primary);
+  background: var(--buttons);
   color: white;
   border: 1px solid transparent;
   padding: 2px 2px;
@@ -57,8 +57,8 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent);
-  border-color: color-mix(in srgb, var(--primary) 60%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--buttons) 25%, transparent);
+  border-color: color-mix(in srgb, var(--buttons) 60%, var(--border));
 }
 
 /* ---------- Layout helpers ---------- */
