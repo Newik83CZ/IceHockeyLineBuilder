@@ -263,7 +263,7 @@ function ColorRow({ label, value, onChange }) {
       className="colorRow"
       style={{
         display: "grid",
-        gridTemplateColumns: "100px 50px 70px 1fr",
+        gridTemplateColumns: "100px 50px 70px",
         gap: 10,
         alignItems: "center",
         minWidth: 0,
