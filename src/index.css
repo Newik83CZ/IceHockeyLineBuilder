@@ -118,7 +118,7 @@ textarea:focus {
 @media (max-width: 800px) {
   /* EDGE-TO-EDGE: removes the red margins you highlighted */
   .pageWrap {
-    padding: 1 !important;
+    padding: 3 !important;
     padding-bottom: 140px !important; /* space for bottom nav */
     margin: 0 !important;
     max-width: 100% !important;
