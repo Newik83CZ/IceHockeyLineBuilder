@@ -135,6 +135,8 @@ export default function ThemePage({ data, setData }) {
         <button onClick={deleteTheme}>Delete</button>
       </div>
 
+    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
+
       <Card title="Colors in App UI">
         
         <ColorRow label="Background" value={activeTheme.app.background} onChange={(v) => setAppColor("background", v)} />
@@ -214,6 +216,7 @@ export default function ThemePage({ data, setData }) {
       </Card>
       
       }
+      </div>
     </div>
   );
 }

@@ -55,6 +55,11 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
 
   const [textSize, setTextSize] = useState(18);
 
+  const metaRef = useRef(null);
+  const nameRef = useRef(null);
+  const [nameSize, setNameSize] = useState(18);
+
+
   const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 800px)").matches;
 
   const lastNameFixed =
@@ -64,59 +69,53 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
 
 
   useLayoutEffect(() => {
-    const rowEl = rowRef.current;
-    const textEl = textRef.current;
-    if (!rowEl || !textEl) return;
+  const rowEl = rowRef.current;
+  const metaEl = metaRef.current;
+  const nameEl = nameRef.current;
+  if (!rowEl || !nameEl) return;
 
-    const compute = () => {
-      const badgeEl = badgeRef.current;
+  const compute = () => {
+    // Reset to max first
+    let size = 18;
+    nameEl.style.fontSize = `${size}px`;
 
-      // Reset to max first
-      let size = 18;
-      textEl.style.fontSize = `${size}px`;
+    const available = Math.max(0, rowEl.clientWidth);
 
-      const badgeW = badgeEl ? badgeEl.getBoundingClientRect().width : 0;
-      const gap = badgeEl ? 6 : 0; // matches row gap
-      const available = Math.max(0, rowEl.clientWidth - badgeW - gap);
+    const MIN = 10;
+    let guard = 0;
 
-      const MIN = 10;
-      let guard = 0;
+    // Shrink ONLY the name block until it fits
+    while (size > MIN && nameEl.scrollWidth > available && guard < 60) {
+      size -= 1;
+      nameEl.style.fontSize = `${size}px`;
+      guard += 1;
+    }
 
-      // Shrink until it fits
-      while (size > MIN && textEl.scrollWidth > available && guard < 60) {
-        size -= 1;
-        textEl.style.fontSize = `${size}px`;
-        guard += 1;
-      }
+    setNameSize(size);
+  };
 
-      setTextSize(size);
-    };
+  compute();
 
-    compute();
+  const ro = new ResizeObserver(() => compute());
+  ro.observe(rowEl);
 
-    // Recompute on resize/orientation/layout changes
-    const ro = new ResizeObserver(() => compute());
-    ro.observe(rowEl);
+  return () => ro.disconnect();
+}, [
+  labelObj.firstName,
+  labelObj.lastName,
+  labelObj.number,
+  labelObj.leadership,
+]);
 
-    return () => ro.disconnect();
-  }, [
-    labelObj.mode,
-    labelObj.leadership,
-    labelObj.text,
-    labelObj.firstName,
-    labelObj.lastName,
-    labelObj.number,
-  ]);
 
   const style = {
     width: "100%",
     minWidth: 0,
-    minHeight: 84,
-    padding: "6px 10px",
+    height: 100,
+    minHeight: 100,
+    padding: "10px 10px",
     borderRadius: 20,
-    //border: `1px solid ${posVar}`,
     border: `1px solid var(--primary)`,
-    //background: "var(--surface)",
     color: "var(--surface)",
     background: posVar,
     cursor: "grab",
@@ -129,7 +128,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     gap: 4,
   };
 
@@ -140,128 +139,97 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
         ref={rowRef}
         style={{
           display: "flex",
-          alignItems: "center",
-          gap: 6,
+          flexDirection: "column",
+          gap: 2,
           minWidth: 0,
-          whiteSpace: "nowrap",
           overflow: "hidden",
         }}
       >
-
-        {/* Measured text block */}
-        <span
-          ref={textRef}
+        {/* Row 1: leadership + number */}
+        <div
+          ref={metaRef}
           style={{
-            fontWeight: 800,
-            fontSize: textSize,
-            lineHeight: 1.15,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            flexShrink: 0,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {labelObj.leadership ? (
+            <span
+              ref={badgeRef}
+              style={{
+                fontSize: `16px`,
+                fontWeight: 900,
+                padding: "0px 5px",
+                borderRadius: 14,
+                color: "var(--accent)",
+                borderRight: "2px solid var(--accent)",
+                borderLeft: "2px solid var(--accent)",
+                flexShrink: 0,
+              }}
+              title={labelObj.leadership === "C" ? "Captain" : "Alternate"}
+            >
+              {labelObj.leadership}
+            </span>
+          ) : null}
+
+          {labelObj.number !== "" && labelObj.number !== null ? (
+            <span style={{ flexShrink: 0, fontSize: `18px`, opacity: 0.85 }}>
+              #{labelObj.number}
+            </span>
+          ) : null}
+        </div>
+
+        {/* Rows 2–3: name (shrinkable) */}
+        <div
+          ref={nameRef}
+          style={{
             minWidth: 0,
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
+            fontSize: nameSize,
+            lineHeight: 1.15,
           }}
         >
-          {/* LINE 1: number, leadership, LINE2: first name */}
-          <span
-            style={{
-              display: "flex",
-              gap: 6,
-              minWidth: 0,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-            }}
-          >
-            {/* Leadership */}
-            {labelObj.leadership ? (
-              <span
-                ref={badgeRef}
-                style={{
-                  fontSize: `16px`,
-                  fontWeight: 900,
-                  padding: "0px 5px",
-                  borderRadius: 14,
-                  color: "var(--accent)",
-                  borderRight: "2px solid var(--accent)",
-                  borderLeft: "2px solid var(--accent)",
-                  flexShrink: 0,
-                }}
-                title={labelObj.leadership === "C" ? "Captain" : "Alternate"}
-              >
-                {labelObj.leadership}
-              </span>
-            ) : null}
-
-            {/* Number */}
-            {labelObj.number !== "" && labelObj.number !== null ? (
-              <span style={{ flexShrink: 0, fontSize: `18px`,opacity: 0.85 }}>
-                #{labelObj.number}
-              </span>
-            ) : null}
-          </span>
-
-          
-          <span
-            style={{
-              display: "flex",
-              gap: 6,
-              minWidth: 0,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-            }}
-          >
-
-
-            {/* First name */}
-            {labelObj.firstName ? (
-              <span
-                style={{
-                  minWidth: 0,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  fontSize: `${textSize * 0.85}px`,
-                  fontWeight: 700,
-                  opacity: 0.9,
-                }}
-              >
-                {labelObj.firstName}
-              </span>
-
-            ) : null}
-          </span>
-
-          {/* LINE 3: last name */}
-          
-          <span
-            style={{
-              display: "flex",
-              gap: 6,
-              minWidth: 0,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-            }}
-          >
-
-          
-
-          {labelObj.lastName ? (
-            <span
+          {labelObj.firstName ? (
+            <div
               style={{
                 minWidth: 0,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                fontSize: lastNameFixed ?? `${textSize * 1.01}px`,
+                whiteSpace: "nowrap",
+                fontSize: `${nameSize * 0.85}px`,
+                fontWeight: 700,
+                opacity: 0.9,
+              }}
+            >
+              {labelObj.firstName}
+            </div>
+          ) : null}
+
+          {labelObj.lastName ? (
+            <div
+              style={{
+                minWidth: 0,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                fontSize: lastNameFixed ?? `${nameSize * 1.01}px`,
                 fontWeight: 900,
                 opacity: 0.95,
                 lineHeight: 1.05,
               }}
             >
               {labelObj.lastName}
-            </span>
+            </div>
           ) : null}
-          </span>
-        </span>
-          
+        </div>
       </div>
+
+
 
       {sublabel ? <div style={{ fontSize: 10, opacity: 0.75 }}>{sublabel}</div> : null}
     </div>
