@@ -1254,17 +1254,12 @@ const goalies = `
   }
 
   return (
-    <div className="lineupsLayout" style={{ display: "grid", gridTemplateColumns: "310px 1fr", gap: 16 }}>
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        {/* LEFT PANEL */}
-        <div className="lineupsLeft" style={{ display: "grid", gap: 8 }}>
-          <div style={{ marginTop: 0 }}>
-            <h2 style={{ margin: "0 0 6px", fontWeight: 900 }}>{activeTeam.name}</h2>
-          </div>
-
-          <div style={{ marginTop: -10, padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
+  <div className="lineupsLayout" style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
+       
+    {/*<h2 style={{ margin: "0 0 6px", fontWeight: 900 }}>{activeTeam.name}</h2>*/}
+    <div style={{ marginTop: 0, padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
             <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ fontWeight: 800 }}>Line-up</div>
+              <div style={{ fontWeight: 800 }}><h2 style={{ margin: "0 0 10px", fontWeight: 900 }}>{activeTeam.name}</h2> Line-ups</div>
 
               <select
                 value={bucket.activeLineupId || ""}
@@ -1289,29 +1284,29 @@ const goalies = `
             <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
               <div style={{ fontWeight: 900 }}>Structure</div>
 
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div>
                   Forward lines: <b>{activeLineup.forwardLines}</b>
                 </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={removeForwardLine} disabled={activeLineup.forwardLines <= 1}>
+                <div style={{ display: "flex", gap: 8, marginLeft: 8 }}>
+                  <button style={{ padding: "4px 8px", borderRadius: 8 }} onClick={removeForwardLine} disabled={activeLineup.forwardLines <= 1}>
                     -
                   </button>
-                  <button onClick={addForwardLine} disabled={activeLineup.forwardLines >= MAX_FORWARD_LINES}>
+                  <button style={{ padding: "4px 7px", borderRadius: 8 }} onClick={addForwardLine} disabled={activeLineup.forwardLines >= MAX_FORWARD_LINES}>
                     +
                   </button>
                 </div>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div>
                   Defence pairs: <b>{activeLineup.defencePairs}</b>
                 </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={removeDefPair} disabled={activeLineup.defencePairs <= 1}>
+                <div style={{ display: "flex", gap: 8, marginLeft: 8 }}>
+                  <button style={{ padding: "4px 8px", borderRadius: 8 }}onClick={removeDefPair} disabled={activeLineup.defencePairs <= 1}>
                     -
                   </button>
-                  <button onClick={addDefPair} disabled={activeLineup.defencePairs >= MAX_DEF_PAIRS}>
+                  <button style={{ padding: "4px 7px", borderRadius: 8 }} onClick={addDefPair} disabled={activeLineup.defencePairs >= MAX_DEF_PAIRS}>
                     +
                   </button>
                 </div>
@@ -1321,14 +1316,21 @@ const goalies = `
                 <input type="checkbox" checked={!!activeLineup.backupGoalieEnabled} onChange={toggleBackupGoalie} />
                 Backup goalie enabled
               </label>
-
-              <button onClick={autoFillLines}>Auto-fill lines</button>
-              <button onClick={clearAllAssignments}>Clear all assignments</button>
-              <button onClick={printLineupToPDF}>Print current lines</button>
-
+            
+              <div className="lineupActions" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+                <button onClick={autoFillLines}>Auto-fill lines</button>
+                <button onClick={clearAllAssignments}>Clear all assignments</button>
+                <button onClick={printLineupToPDF}>Print current lines</button>
+              </div>
 
             </div>
           </div>
+    
+    <div className="lineupsLayout" style={{ display: "grid", gridTemplateColumns: "310px 1fr", gap: 16 }}>
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        {/* LEFT PANEL */}
+        <div className="lineupsLeft" style={{ display: "grid", gap: 8 }}>
+          
 
           <div style={{ padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
             <AvailableDropZone>
@@ -1393,5 +1395,6 @@ const goalies = `
         </div>
       </DndContext>
     </div>
+  </div>
   );
 }

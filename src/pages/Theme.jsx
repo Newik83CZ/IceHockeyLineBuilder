@@ -126,6 +126,10 @@ export default function ThemePage({ data, setData }) {
           ))}
         </select>
 
+        
+      </div>
+      
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <button onClick={saveNewThemeCopy}>Save as new</button>
         <button onClick={renameTheme}>Rename</button>
         <button onClick={deleteTheme}>Delete</button>
