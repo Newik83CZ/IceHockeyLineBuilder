@@ -95,6 +95,22 @@ textarea:focus {
   overflow: hidden;
 }
 
+/* Goalies: align with Forward / Defence rows on desktop */
+.goalieRow {
+  display: grid;
+  grid-template-columns: 120px 170px;
+  gap: 12px;
+  align-items: start;
+}
+
+.goalieGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 170px));
+  gap: 12px;
+  min-width: 0;
+}
+
+
 /* ---------- Mobile overrides ---------- */
 @media (max-width: 800px) {
   /* EDGE-TO-EDGE: removes the red margins you highlighted */
@@ -186,6 +202,13 @@ textarea:focus {
     gap: 3px !important;
   }
 
+  /* GOALIES: on phone ignore the 120px alignment */
+.goalieRow {
+  grid-template-columns: 1fr !important;
+  gap: 3px !important;
+}
+
+
   .forwardGrid,
   .defenceGrid {
     gap: 3px !important;
@@ -254,4 +277,6 @@ textarea:focus {
     }
   }
 
+
+ 
 }

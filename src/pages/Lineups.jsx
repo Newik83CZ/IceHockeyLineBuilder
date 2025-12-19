@@ -809,6 +809,352 @@ export default function Lineups({ data, setData }) {
     });
   }
 
+///PRINTING FUNCTIONALITY BELOW///
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function getCssVar(name) {
+  // reads current theme-applied CSS variables
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function pillHtml(player) {
+  if (!player) return `<div class="pill pill--empty"></div>`;
+
+  const num = escapeHtml(player.number);
+  const name = escapeHtml(player.name);
+  const lead = (player.leadership || "").trim();
+
+  return `
+    <div class="pill">
+      <div class="numCircle">#${num}</div>
+      <div class="pillName">${name}</div>
+      ${lead ? `<div class="leadCircle">${escapeHtml(lead)}</div>` : ``}
+    </div>
+  `;
+}
+
+function printLineupToPDF() {
+  if (!activeTeam || !activeLineup) return;
+
+  const w = window.open("", "_blank");
+  if (!w) {
+    alert("Popup blocked. Please allow popups.");
+    return;
+  }
+
+  // Pull active theme colors from CSS variables (already set by your Theme page)
+  const activeTheme =
+  data.themes?.find((t) => t.id === data.activeThemeId) || null;
+
+  const teamC = activeTheme?.app?.primary || "#d32f2f";
+  const labelsC    = activeTheme?.app?.text || "#111111";
+  const lineupTitleC    = activeTheme?.app?.text || "#111111";
+  const numberBackgroundC    = activeTheme?.app?.text || "#111111";
+  const text    = activeTheme?.app?.text || "#111111";
+  const numberC = activeTheme?.app?.surface || "#ffffff";
+  const playerNameC = activeTheme?.app?.surface || "#ffffff";
+  const leadershipBackgroundC = activeTheme?.app?.accent || "#ffd54a";
+  
+  const teamName = escapeHtml(activeTeam.name);
+  const lineupName = escapeHtml(activeLineup.name);
+
+  const getPlayerForSlot = (slotId) => {
+    const pid = activeLineup.assignments?.[slotId];
+    return pid ? byId.get(pid) : null;
+  };
+
+  // Forward lines HTML
+  let forwards = "";
+  for (let i = 1; i <= activeLineup.forwardLines; i++) {
+    const lw = getPlayerForSlot(`F${i}_LW`);
+    const c = getPlayerForSlot(`F${i}_C`);
+    const rw = getPlayerForSlot(`F${i}_RW`);
+
+    forwards += `
+      <div class="row">
+        <div class="rowLabel">Line ${i}</div>
+        <div class="pillRow pillRow--3">
+          ${pillHtml(lw)}
+          ${pillHtml(c)}
+          ${pillHtml(rw)}
+        </div>
+      </div>
+    `;
+  }
+
+  // Defence pairs HTML
+  let defence = "";
+  for (let i = 1; i <= activeLineup.defencePairs; i++) {
+    const ld = getPlayerForSlot(`D${i}_LD`);
+    const rd = getPlayerForSlot(`D${i}_RD`);
+
+    defence += `
+      <div class="row">
+        <div class="rowLabel">D Pair ${i}</div>
+        <div class="pillRow pillRow--2">
+          ${pillHtml(ld)}
+          ${pillHtml(rd)}
+        </div>
+      </div>
+    `;
+  }
+
+  // Goalies (1 or 2 depending on backup enabled)
+const gs = getPlayerForSlot("G_START");
+const gb = activeLineup.backupGoalieEnabled ? getPlayerForSlot("G_BACKUP") : null;
+
+const goalies = `
+  <div class="row">
+    <div class="rowLabel">Goalie(s)</div>
+    <div class="pillRow ${activeLineup.backupGoalieEnabled ? "pillRow--2" : "pillRow--1"}">
+      ${pillHtml(gs)}
+      ${activeLineup.backupGoalieEnabled ? pillHtml(gb) : ""}
+    </div>
+  </div>
+`;
+
+
+  w.document.write(`
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>${teamName} - ${lineupName}</title>
+        <style>
+          * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          @page { size: A4 portrait; margin: 8mm; }
+
+          body {
+            margin: 0;
+            background: white;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            color: ${text};
+          }
+          
+          :root{
+            --labelW: 96px;
+            --pillW: 240px;
+            --pillGap: 10px;
+            --pillH: 40px;
+            --circle: 40px;
+          }
+
+          .sheet {
+            padding: 4mm 2mm;
+          }
+
+          .teamTitle {
+            text-align: center;
+            font-weight: 900;
+            font-size: 56px;
+            letter-spacing: 0.5px;
+            color: ${teamC};
+            margin: 0;
+          }
+
+          .lineupTitle {
+            text-align: center;
+            font-weight: 900;
+            font-size: 28px;
+            margin: 16px 0 30px;
+            color: ${lineupTitleC};
+          }
+
+          /* Sections */
+          .section { margin-top: 18px; }
+          .row {
+            display: grid;
+            grid-template-columns: 96px 1fr;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 0;
+          }
+
+          .rowLabel {
+            font-weight: 900;
+            font-size: 22px;
+            color: ${labelsC};
+            white-space: nowrap;
+            text-align: left;
+          }
+
+          /* Position headers */
+          .posHeaderRow {
+            display: grid;
+            grid-template-columns: 96px 1fr;
+            align-items: end;
+            gap: 8px;
+            margin: 6px 0 2px;
+          }
+
+          .posHeaderSpacer { height: 1px; }
+
+          .posHeaderCols3 {
+            display: grid;
+            grid-template-columns: repeat(3, var(--pillW));
+            gap: var(--pillGap);
+            justify-content: center;
+          }
+
+          .posHeaderCols2 {
+            display: grid;
+            grid-template-columns: repeat(2, var(--pillW));
+            gap: var(--pillGap);
+            justify-content: center;
+          }
+
+          .posHeader {
+            font-weight: 900;
+            color: ${text};
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            text-align: center;
+          }
+
+          /* Pills */
+          .pillRow {
+            display: grid;
+            gap: var(--pillGap);
+            justify-self: center;     /* centers the pills-area within the row (right side) */
+          }
+
+          .pillRow--3 { grid-template-columns: repeat(3, var(--pillW)); }
+          .pillRow--2 { grid-template-columns: repeat(2, var(--pillW)); }
+          .pillRow--1 { grid-template-columns: repeat(1, var(--pillW)); } /* NEW: for 1 goalie */
+
+
+          .pill {
+            position: relative;
+            height: var(--pillH);
+            width: var(--pillW);
+            border-radius: 999px;
+            background: ${teamC};
+            display: flex;
+            align-items: center;
+            padding-left: var(--circle);
+            padding-right: var(--circle);
+            overflow: hidden;
+          }
+
+          .pill--empty { background: transparent; }
+
+          .numCircle {
+            position: absolute;
+            left: -2px;
+            width: var(--circle);
+            height: var(--circle);
+            border-radius: 999px;
+            background: ${numberBackgroundC};
+            color: ${numberC};
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 12px;
+          }
+
+          .pillName {
+            color: ${playerNameC};
+            font-weight: 900;
+            font-size: 14px;      /* smaller so names fit */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0 8px 0 6px;
+          }
+
+          .leadCircle {
+            position: absolute;
+            right: -2px;
+            width: var(--circle);
+            height: var(--circle);
+            border-radius: 999px;
+            background: ${leadershipBackgroundC};
+            color: ${playerNameC};
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 14px;
+          }
+
+
+          /* Separate Defence spacing similar to mock */
+          .spacer { height: 18px; }
+
+          /* Hide any accidental links */
+          a { color: inherit; text-decoration: none; }
+
+        </style>
+      </head>
+      <body>
+        <div class="sheet">
+          <h1 class="teamTitle">${teamName}</h1>
+          <div class="lineupTitle">${lineupName}</div>
+
+          <!-- Forwards header -->
+          <div class="posHeaderRow">
+            <div class="posHeaderSpacer"></div>
+            <div class="posHeaderCols3">
+              <div class="posHeader">LW</div>
+              <div class="posHeader">C</div>
+              <div class="posHeader">RW</div>
+            </div>
+          </div>
+
+          <div class="section">
+            ${forwards}
+          </div>
+
+          <div class="spacer"></div>
+
+          <!-- Defence header -->
+          <div class="posHeaderRow">
+            <div class="posHeaderSpacer"></div>
+            <div class="posHeaderCols2">
+              <div class="posHeader">LD</div>
+              <div class="posHeader">RD</div>
+            </div>
+          </div>
+
+          <div class="section">
+            ${defence}
+          </div>
+
+          <div class="spacer"></div>
+
+          <div class="section">
+            ${goalies}
+          </div>
+
+        </div>
+      </body>
+    </html>
+  `);
+
+  w.document.close();
+
+  w.onload = () => {
+    w.focus();
+    w.print();     // user chooses “Save as PDF”
+    w.close();
+  };
+}
+
+
+
+///PRINTING FUNCTIONALITY ABOVE///
+
+
+
   if (!activeTeam) return <div>Please create/select a team in Rosters first.</div>;
   if (!activeLineup) return <div>Creating lineup…</div>;
 
@@ -918,6 +1264,9 @@ export default function Lineups({ data, setData }) {
 
               <button onClick={autoBuildLines}>Auto-build lines</button>
               <button onClick={clearAllAssignments}>Clear all assignments</button>
+              <button onClick={printLineupToPDF}>Print current lines</button>
+
+
             </div>
           </div>
 
@@ -958,15 +1307,29 @@ export default function Lineups({ data, setData }) {
           <BoardSection title="Defence Pairs">{defRows}</BoardSection>
 
           <BoardSection title="Goalies">
+            <div className="goalieRow">
+              <RowLabel>Goalies</RowLabel>
 
-            <div style={{ display: "grid", gridTemplateColumns: activeLineup.backupGoalieEnabled ? "120px 1fr 1fr" : "120px 170px", gap: 12 }}>
-              
-              <div className="goalieGrid"> </div>
-              <Slot id="G_START" title="Starter (G)" assignments={activeLineup.assignments} byId={byId} />
-              {activeLineup.backupGoalieEnabled ? <Slot id="G_BACKUP" title="Backup (G)" assignments={activeLineup.assignments} byId={byId} /> : null}
-              
+              <div className="goalieGrid">
+                <Slot
+                  id="G_START"
+                  title="Starter (G)"
+                  assignments={activeLineup.assignments}
+                  byId={byId}
+                />
+
+                {activeLineup.backupGoalieEnabled ? (
+                  <Slot
+                    id="G_BACKUP"
+                    title="Backup (G)"
+                    assignments={activeLineup.assignments}
+                    byId={byId}
+                  />
+                ) : null}
+              </div>
             </div>
           </BoardSection>
+
         </div>
       </DndContext>
     </div>
