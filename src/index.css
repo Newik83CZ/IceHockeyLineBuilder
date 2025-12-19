@@ -118,7 +118,7 @@ textarea:focus {
 @media (max-width: 800px) {
   /* EDGE-TO-EDGE: removes the red margins you highlighted */
   .pageWrap {
-    padding: 0 !important;
+    padding: 2 !important;
     padding-bottom: 140px !important; /* space for bottom nav */
     margin: 0 !important;
     max-width: 100% !important;
@@ -280,7 +280,7 @@ textarea:focus {
     }
   }
 
-  @media (max-width: 800px) {
+  @media (max-width: 800px) and (orientation: portrait) {
     .colorRow {
       grid-template-columns: 1fr 50 70 !important;
       grid-auto-rows: auto;

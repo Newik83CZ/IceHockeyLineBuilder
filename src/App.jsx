@@ -105,7 +105,7 @@ export default function App() {
   return (
     <div style={themeStyle}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <h1 style={{ margin: 0, paddingTop: 20, paddingLeft: 10 }}>Ice Hockey Line Builder</h1>
+        <h1 style={{ margin: 0, paddingTop: 20, paddingLeft: 10, paddingBottom: 10 }}>Ice Hockey Line Builder</h1>
 
         <nav className="tabNav">
           <TabLink to="/">Rosters</TabLink>
