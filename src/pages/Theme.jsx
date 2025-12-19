@@ -169,24 +169,24 @@ export default function ThemePage({ data, setData }) {
       
       <Card title="Preview">
         APP:
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10}}>           
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, fontSize: 12 }}>           
           <Badge text="Background" style={{ background: "var(--background)", color: "var(--text)" }} />
           <Badge text="Buttons" style={{ background: "var(--primary)", color: "var(--surface)" }} />
           <Badge text="Surface" style={{ background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)" }} />
         </div>
           
         Positions in APP:          
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 5, marginBottom: 10 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 5, marginBottom: 10, fontSize: 12 }}>
           {POSITIONS.map(p => (
             <Badge key={p} text={p} style={{ background: `var(--pos-${p.toLowerCase()})`, color: "var(--surface)", border: `1px solid var(--primary)` }} />
           ))}
         </div>
 
         Print:  
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 5, marginBottom: 10 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 5, marginBottom: 10, fontSize: 12 }}>
           <Badge text="Team Name" style={{ background: "white", color: "var(--primary)" }} />      
           <Badge text="Labels" style={{ background: "white", color: "var(--text)" }} /> 
-          <Badge text="#99" style={{ background: "var(--text)", color: "var(--surface)", marginRight: -40, zIndex: 2, fontSize: 12, padding: 10 }} />
+          <Badge text="#99" style={{ background: "var(--text)", color: "var(--surface)", marginRight: -40, zIndex: 2, fontSize: 10, padding: 10 }} />
           <Badge text="Players Card" style={{
                                        background: "var(--primary)", 
                                        color: "var(--surface)", 
@@ -198,7 +198,7 @@ export default function ThemePage({ data, setData }) {
                            background: "var(--accent)", 
                            color: "var(--surface)", 
                            marginLeft: -40, 
-                           fontSize: 12, 
+                           fontSize: 10, 
                            paddingTop: 10, 
                            paddingRight: 14, 
                            paddingBottom: 5, 
