@@ -131,15 +131,18 @@ export default function ThemePage({ data, setData }) {
         <button onClick={deleteTheme}>Delete</button>
       </div>
 
-      <Card title="App Colors">
-        <ColorRow label="Primary" value={activeTheme.app.primary} onChange={(v) => setAppColor("primary", v)} />
+      <Card title="Colors in App UI">
+        
         <ColorRow label="Background" value={activeTheme.app.background} onChange={(v) => setAppColor("background", v)} />
+        <ColorRow label="Buttons" value={activeTheme.app.primary} onChange={(v) => setAppColor("primary", v)} />
         <ColorRow label="Surface" value={activeTheme.app.surface} onChange={(v) => setAppColor("surface", v)} />
         <ColorRow label="Text" value={activeTheme.app.text} onChange={(v) => setAppColor("text", v)} />
-        <ColorRow label="Leadership" value={activeTheme.app.accent} onChange={(v) => setAppColor("accent", v)} />
+        
       </Card>
 
-      <Card title="Position Colors (Preferred Position)">
+
+
+      <Card title="Preferred Position Colors">
         {POSITIONS.map(pos => (
           <ColorRow
             key={pos}
@@ -147,21 +150,66 @@ export default function ThemePage({ data, setData }) {
             value={activeTheme.positions[pos]}
             onChange={(v) => setPosColor(pos, v)}
           />
+          
         ))}
+        <ColorRow label="Leadership" value={activeTheme.app.accent} onChange={(v) => setAppColor("accent", v)} />
       </Card>
 
-      {/*
+      
+      <Card title="Colors for printing Lineups">
+        
+        <ColorRow label="Team Color" value={activeTheme.app.primary} onChange={(v) => setAppColor("primary", v)} />
+        <ColorRow label="Labels" value={activeTheme.app.text} onChange={(v) => setAppColor("text", v)} />
+        <ColorRow label="Players Cards Text" value={activeTheme.app.surface} onChange={(v) => setAppColor("surface", v)} />
+        <ColorRow label="Leadership" value={activeTheme.app.accent} onChange={(v) => setAppColor("accent", v)} />
+
+      </Card>
+
+      {
+      
       <Card title="Preview">
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <Badge text="Primary" style={{ background: "var(--primary)", color: "white" }} />
-          <Badge text="Leadership" style={{ background: "var(--accent)", color: "white" }} />
-          <Badge text="Surface" style={{ background: "var(--surface)", border: "1px solid var(--border)" }} />
+        APP:
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10}}>           
+          <Badge text="Background" style={{ background: "var(--background)", color: "var(--text)" }} />
+          <Badge text="Buttons" style={{ background: "var(--primary)", color: "var(--surface)" }} />
+          <Badge text="Surface" style={{ background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)" }} />
+        </div>
+          
+        Positions in APP:          
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 5, marginBottom: 10 }}>
           {POSITIONS.map(p => (
-            <Badge key={p} text={p} style={{ background: `var(--pos-${p.toLowerCase()})`, color: "var(--surface)" }} />
+            <Badge key={p} text={p} style={{ background: `var(--pos-${p.toLowerCase()})`, color: "var(--surface)", border: `1px solid var(--primary)` }} />
           ))}
         </div>
+
+        Print:  
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 5, marginBottom: 10 }}>
+          <Badge text="Team Name" style={{ background: "white", color: "var(--primary)" }} />      
+          <Badge text="Labels" style={{ background: "white", color: "var(--text)" }} /> 
+          <Badge text="#99" style={{ background: "var(--text)", color: "var(--surface)", marginRight: -40, zIndex: 2, fontSize: 12, padding: 10 }} />
+          <Badge text="Players Card" style={{
+                                       background: "var(--primary)", 
+                                       color: "var(--surface)", 
+                                       paddingLeft: 35,
+                                       paddingRight: 35,
+                                       paddingTop: 8
+                                       }} />
+          <Badge text="C" style={{
+                           background: "var(--accent)", 
+                           color: "var(--surface)", 
+                           marginLeft: -40, 
+                           fontSize: 12, 
+                           paddingTop: 10, 
+                           paddingRight: 14, 
+                           paddingBottom: 5, 
+                           paddingLeft: 14
+                           }} />
+
+        </div>
+        
       </Card>
-      */}
+      
+      }
     </div>
   );
 }
@@ -177,7 +225,7 @@ function Card({ title, children }) {
 
 function ColorRow({ label, value, onChange }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "100px 80px 100px", gap: 10, alignItems: "center" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "130px 80px 70px 50px", gap: 10, alignItems: "center" }}>
       <div style={{ fontWeight: 700 }}>{label}</div>
       <input type="color" value={value} onChange={(e) => onChange(e.target.value)} />
       <input
@@ -185,6 +233,7 @@ function ColorRow({ label, value, onChange }) {
         onChange={(e) => onChange(e.target.value)}
         style={{ padding: 8, borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--text)" }}
       />
+      
     </div>
   );
 }

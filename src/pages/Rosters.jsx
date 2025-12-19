@@ -814,7 +814,7 @@ function importFromFile(file) {
                         style={{
                           display: "inline-block",
                           padding: "4px 10px",
-                          border: "1px solid var(--border)",
+                          border: `1px solid var(--primary)`,
                           borderRadius: 999,
                           fontWeight: 800,
                           fontSize: 12,
