@@ -240,7 +240,7 @@ function Card({ title, children }) {
     </div>
   );
 }
-
+/*
 function ColorRow({ label, value, onChange }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "130px 80px 70px 50px", gap: 10, alignItems: "center" }}>
@@ -252,6 +252,45 @@ function ColorRow({ label, value, onChange }) {
         style={{ padding: 8, borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--text)" }}
       />
       
+    </div>
+  );
+}
+*/
+
+function ColorRow({ label, value, onChange }) {
+  return (
+    <div
+      className="colorRow"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "100px 50px 70px 1fr",
+        gap: 10,
+        alignItems: "center",
+        minWidth: 0,
+      }}
+    >
+      <div style={{ fontWeight: 700, minWidth: 0 }}>{label}</div>
+
+      <input
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{ width: 56, height: 36, padding: 0, border: 0, background: "transparent" }}
+      />
+
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          width: "100%",
+          minWidth: 0,
+          padding: 8,
+          borderRadius: 10,
+          border: "1px solid var(--border)",
+          background: "transparent",
+          color: "var(--text)",
+        }}
+      />
     </div>
   );
 }
