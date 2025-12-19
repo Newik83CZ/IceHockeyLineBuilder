@@ -104,7 +104,7 @@ export default function App() {
 
   return (
     <div style={themeStyle}>
-      <div style={{ padding: 18, maxWidth: 1100, margin: "0 auto" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         <h1 style={{ marginTop: 0 }}>Ice Hockey Line Builder</h1>
 
         <nav className="tabNav">
@@ -114,7 +114,7 @@ export default function App() {
         </nav>
 
 
-        <div className="pageWrap" style={{ padding: 18, maxWidth: 1100, margin: "0 auto", width: "100%" }}>
+        <div className="pageWrap" style={{ maxWidth: 1100, margin: "0 auto", width: "100%" }}>
 
           <Routes>
             <Route path="/" element={<RostersPage data={data} setData={setData} />} />
