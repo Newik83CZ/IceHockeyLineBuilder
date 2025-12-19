@@ -118,7 +118,7 @@ textarea:focus {
 @media (max-width: 800px) {
   /* EDGE-TO-EDGE: removes the red margins you highlighted */
   .pageWrap {
-    padding: 3 !important;
+    padding: 0 !important;
     padding-bottom: 140px !important; /* space for bottom nav */
     margin: 0 !important;
     max-width: 100% !important;
@@ -277,6 +277,21 @@ textarea:focus {
     .playerRow > div:last-child {
       grid-column: 1 / -1;
       justify-content: flex-start !important;
+    }
+  }
+
+  @media (max-width: 800px) {
+    .colorRow {
+      grid-template-columns: 100px 50 1fr !important;
+      grid-auto-rows: auto;
+    }
+
+    /* make the hex input drop to the next line */
+    .colorRow input[type="text"],
+    .colorRow input:not([type="color"]) {
+      grid-column: 1 / -1;
+      width: 100%;
+      min-width: 0;
     }
   }
 
