@@ -772,7 +772,7 @@ function importFromFile(file) {
                     style={{
                       display: "grid",
                       gridTemplateColumns:
-                        "260px 70px 100px 140px 70px",
+                        "270px 90px 70px 140px 100px",
                       gap: 2,
                       alignItems: "center",
                       padding: 5,

@@ -189,26 +189,28 @@ export default function ThemePage({ data, setData }) {
       {
       
       <Card title="Preview">
-        APP:
+        
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, fontSize: 12 }}>           
           <Badge text="Background" style={{ background: "var(--background)", color: "var(--text)" }} />
           <Badge text="Buttons" style={{ background: "var(--buttons)", color: "var(--surface)" }} />
           <Badge text="Surface" style={{ background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)" }} />
         </div>
-          
-        Positions in APP:          
+
+        <hr></hr>
+
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 5, marginBottom: 10, fontSize: 12 }}>
           {POSITIONS.map(p => (
             <Badge key={p} text={p} style={{ background: `var(--pos-${p.toLowerCase()})`, color: "var(--surface)", border: `1px solid var(--buttons)` }} />
           ))}
         </div>
-
-        Print:  
+       
+        <hr></hr>
+        
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 5, marginBottom: 10, fontSize: 12 }}>
-          <Badge text="Team Name" style={{ background: "white", color: "var(--printTeamColor)" }} />     
+          <Badge text="Team" style={{ background: "white", color: "var(--printTeamColor)" }} />     
           <Badge text="Labels" style={{ background: "white", color: "var(--printText)" }} />
           <Badge text="#99" style={{ background: "var(--printText)", color: "var(--printCardText)", marginRight: -40, zIndex: 2, fontSize: 10, padding: 10 }} />
-          <Badge text="Players Card" style={{ background: "var(--printTeamColor)", color: "var(--printCardText)", 
+          <Badge text="NAME" style={{ background: "var(--printTeamColor)", color: "var(--printCardText)", 
                                        paddingLeft: 35,
                                        paddingRight: 35,
                                        paddingTop: 8
