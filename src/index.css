@@ -282,7 +282,7 @@ textarea:focus {
 
   @media (max-width: 800px) {
     .colorRow {
-      grid-template-columns: 100px 50 1fr !important;
+      grid-template-columns: 1fr 50 70 !important;
       grid-auto-rows: auto;
     }
 
