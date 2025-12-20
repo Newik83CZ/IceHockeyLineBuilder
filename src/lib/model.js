@@ -25,15 +25,15 @@ export const DEFAULT_THEME_APP = {
   // Printing (Lineups print)
   printTeamColor: "#961f1f",
   printText: "#000000",
-  printCardText: "#a3b2b8ff",
+  printCardText: "#a3b2b8",
   printLeader: "#a88718",
 };
 
 export const DEFAULT_POSITION_COLORS = {
   Centre: "#4f46e5",
   Wing: "#16a34a",
-  Defender: "#a88718ff",
-  Goalie: "#a926dcff",
+  Defender: "#a88718",
+  Goalie: "#a926dc",
 };
 
 /**
