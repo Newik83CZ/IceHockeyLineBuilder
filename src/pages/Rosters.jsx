@@ -792,6 +792,7 @@ function importFromFile(file) {
 
                     <div className="playerLeader">{p.leadership || ""}</div>
 
+                    
                     <div className="playerPos">
                       <span
                         style={{
