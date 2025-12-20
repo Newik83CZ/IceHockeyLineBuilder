@@ -8,8 +8,8 @@ export function newId() {
  */
 export const DEFAULT_THEME_APP = {
   // UI
-  background: "#f8fafc",
-  surface: "#ffffff",
+  background: "#ffffff",
+  surface: "#f8fafc",
   text: "#0f172a",
   border: "rgba(0,0,0,0.12)",
 
@@ -17,7 +17,7 @@ export const DEFAULT_THEME_APP = {
   buttons: "#2563eb",
 
   // NEW leadership color (replaces old accent for this purpose)
-  leader: "#ffd54a",
+  leader: "#a88718",
 
   // ✅ NEW: error bubble color
   errorBubble: "#dc2626",
@@ -25,14 +25,14 @@ export const DEFAULT_THEME_APP = {
   // Printing (Lineups print)
   printTeamColor: "#961f1f",
   printText: "#000000",
-  printCardText: "#a3b2b8",
+  printCardText: "#f8fafc",
   printLeader: "#a88718",
 };
 
 export const DEFAULT_POSITION_COLORS = {
   Centre: "#4f46e5",
   Wing: "#16a34a",
-  Defender: "#a88718",
+  Defender: "#000999",
   Goalie: "#a926dc",
 };
 
