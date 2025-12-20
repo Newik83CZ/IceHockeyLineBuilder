@@ -23,17 +23,17 @@ export const DEFAULT_THEME_APP = {
   errorBubble: "#dc2626",
 
   // Printing (Lineups print)
-  printTeamColor: "#d32f2f",
-  printText: "#111111",
-  printCardText: "#ffffff",
-  printLeader: "#ffd54a",
+  printTeamColor: "#961f1fff",
+  printText: "#000000ff",
+  printCardText: "#b6a9a9ff",
+  printLeader: "#a88718ff",
 };
 
 export const DEFAULT_POSITION_COLORS = {
   Centre: "#4f46e5",
   Wing: "#16a34a",
-  Defender: "#f59e0b",
-  Goalie: "#4726dcff",
+  Defender: "#a88718ff",
+  Goalie: "#a926dcff",
 };
 
 /**
@@ -126,7 +126,7 @@ export function normalizeAppData(data) {
 }
 
 export function createEmptyAppData() {
-  const defaultTeam = createTeam("Default Team");
+  const defaultTeam = createTeam("SNIPERS DIV 1");
 
   defaultTeam.players.push(
     createPlayer({
