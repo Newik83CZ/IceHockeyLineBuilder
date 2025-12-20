@@ -2,7 +2,7 @@ import { NavLink, Route, Routes } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 import { loadAppData, saveAppData } from "./lib/storage";
-import { createEmptyAppData, createTheme } from "./lib/model";
+import { createEmptyAppData, normalizeAppData } from "./lib/model";
 
 import RostersPage from "./pages/Rosters";
 import LineupsPage from "./pages/Lineups";
@@ -27,61 +27,32 @@ function TabLink({ to, children }) {
 }
 
 export default function App() {
-  const [data, setData] = useState(() => loadAppData() ?? createEmptyAppData());
+  const [data, setData] = useState(() =>
+    normalizeAppData(loadAppData() ?? createEmptyAppData())
+  );
 
   // Persist all app data
   useEffect(() => {
     saveAppData(data);
   }, [data]);
 
-  // One-time migration: ensure at least one theme exists
-  useEffect(() => {
-    setData((prev) => {
-      const next = structuredClone(prev);
-
-      if (!next.themes || next.themes.length === 0) {
-        const t = createTheme("Default");
-        next.themes = [t];
-        next.activeThemeId = t.id;
-        next.updatedAt = Date.now();
-      } else if (!next.activeThemeId) {
-        next.activeThemeId = next.themes[0].id;
-        next.updatedAt = Date.now();
-      }
-
-      if (!next.teams || next.teams.length === 0) {
-        const t = createTeam("Default Team");
-        next.teams = [t];
-        next.activeTeamId = t.id;
-        next.updatedAt = Date.now();
-      } else if (!next.activeTeamId) {
-        next.activeTeamId = next.teams[0].id;
-        next.updatedAt = Date.now();
-      }
-
-      return next;
-    });
-    // run once on mount
-  }, []);
-
   const activeTheme =
     data.themes?.find((t) => t.id === data.activeThemeId) || data.themes?.[0] || null;
 
   const themeStyle = activeTheme
     ? {
-        // keep old vars for backwards compatibility (optional but recommended)
-        "--primary": activeTheme.app.primary,
-        "--accent": activeTheme.app.accent,
+        // legacy aliases (avoid undefined)
+        "--primary": activeTheme.app.buttons,
+        "--accent": activeTheme.app.leader,
 
         // NEW vars
-        "--buttons": activeTheme.app.buttons ?? activeTheme.app.primary,
-        "--leader": activeTheme.app.leader ?? activeTheme.app.accent,
+        "--buttons": activeTheme.app.buttons,
+        "--leader": activeTheme.app.leader,
 
-        "--printTeamColor": activeTheme.app.printTeamColor ?? activeTheme.app.primary,
-        "--printText": activeTheme.app.printText ?? activeTheme.app.text,
-        "--printCardText": activeTheme.app.printCardText ?? activeTheme.app.surface,
-        "--printLeader": activeTheme.app.printLeader ?? activeTheme.app.accent,
-
+        "--printTeamColor": activeTheme.app.printTeamColor,
+        "--printText": activeTheme.app.printText,
+        "--printCardText": activeTheme.app.printCardText,
+        "--printLeader": activeTheme.app.printLeader,
 
         "--background": activeTheme.app.background,
         "--surface": activeTheme.app.surface,
@@ -93,11 +64,14 @@ export default function App() {
         "--pos-defender": activeTheme.positions.Defender,
         "--pos-goalie": activeTheme.positions.Goalie,
 
+        "--errorBubble": activeTheme.app.errorBubble ?? "#dc2626",
+
         background: "var(--background)",
         color: "var(--text)",
         minHeight: "100vh",
         paddingBottom: "96px",
-      } : {
+      }
+    : {
         minHeight: "100vh",
         paddingBottom: "96px",
       };
@@ -105,7 +79,9 @@ export default function App() {
   return (
     <div style={themeStyle}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <h1 style={{ margin: 0, paddingTop: 20, paddingLeft: 10, paddingBottom: 10 }}>Ice Hockey Line Builder</h1>
+        <h1 style={{ margin: 0, paddingTop: 20, paddingLeft: 10, paddingBottom: 10 }}>
+          Ice Hockey Line Builder
+        </h1>
 
         <nav className="tabNav">
           <TabLink to="/">Rosters</TabLink>
@@ -113,9 +89,7 @@ export default function App() {
           <TabLink to="/theme">Theme</TabLink>
         </nav>
 
-
         <div className="pageWrap" style={{ maxWidth: 1100, margin: "0 auto", width: "100%" }}>
-
           <Routes>
             <Route path="/" element={<RostersPage data={data} setData={setData} />} />
             <Route path="/lineups" element={<LineupsPage data={data} setData={setData} />} />

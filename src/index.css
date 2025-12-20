@@ -210,14 +210,15 @@ textarea:focus {
   min-width: 0;
 }
 
+/* NOT USED ANYMORE
 .playerMeta {
   min-width: 0;
   display: flex;
   gap: 10px;
-  flex-wrap: wrap;     /* allows wrap when tight */
+  flex-wrap: wrap;     
   align-items: center;
 }
-
+*/
 
 /* =========================
    Breakpoint A: “doesn’t fit” (small desktop / landscape tablets)
@@ -505,7 +506,7 @@ textarea:focus {
 
   @media (max-width: 800px) and (orientation: portrait) {
     .colorRow {
-      grid-template-columns: 150 50 70 !important;
+      grid-template-columns: 150px 50px 70px !important;
       grid-auto-rows: auto;
     }
   }

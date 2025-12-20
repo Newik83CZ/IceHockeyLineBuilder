@@ -16,7 +16,7 @@ const MAX_DEF_PAIRS = 4;
 
 /* ===================== UI: Draggable Player ===================== */
 
-function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
+function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = false }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
 
   // Normalize label:
@@ -115,9 +115,9 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
     minHeight: 100,
     padding: "10px 10px",
     borderRadius: 20,
-    border: `1px solid var(--primary)`,
+    border: isError ? `2px solid var(--errorBubble)` : `1px solid var(--primary)`,
     color: "var(--surface)",
-    background: posVar,
+    background: isError ? "var(--errorBubble)" : posVar,
     cursor: "grab",
     userSelect: "none",
     touchAction: "none",
@@ -327,8 +327,8 @@ function Slot({ id, title, assignments, byId }) {
   if (warningText && stick) {
     sublabel = (
       <>
-        <div>{warningText}</div>
-        <div style={{ fontSize: 12, opacity: 0.8 }}>{stick}</div>
+        <div style={{ color: "black" }}>{warningText}</div>
+        {/* <div style={{ fontSize: 12, opacity: 0.8 }}>{stick}</div> */}
       </>
     );
   } else if (warningText) {
@@ -352,6 +352,7 @@ function Slot({ id, title, assignments, byId }) {
         <DraggablePlayer
           id={player.id}
           preferredPosition={player.preferredPosition}
+          isError={warn}
           label={{
             leadership: player.leadership || "",
             firstName,
@@ -360,6 +361,7 @@ function Slot({ id, title, assignments, byId }) {
           }}
           sublabel={sublabel}
         />
+
       ) : null}
     </DroppableSlot>
   );
@@ -907,57 +909,69 @@ function printLineupToPDF() {
     return pid ? byId.get(pid) : null;
   };
 
-  // Forward lines HTML
-  let forwards = "";
-  for (let i = 1; i <= activeLineup.forwardLines; i++) {
-    const lw = getPlayerForSlot(`F${i}_LW`);
-    const c = getPlayerForSlot(`F${i}_C`);
-    const rw = getPlayerForSlot(`F${i}_RW`);
+  // Forward lines HTML (NO labels)
+let forwards = "";
+for (let i = 1; i <= activeLineup.forwardLines; i++) {
+  const lw = getPlayerForSlot(`F${i}_LW`);
+  const c = getPlayerForSlot(`F${i}_C`);
+  const rw = getPlayerForSlot(`F${i}_RW`);
 
-    forwards += `
-      <div class="row">
-        <div class="rowLabel">Line ${i}</div>
-        <div class="pillRow pillRow--3">
-          <div class="edgePad"></div>
-          ${pillHtml(lw)}
-          ${pillHtml(c)}
-          ${pillHtml(rw)}
-          <div class="edgePad"></div>
-        </div>
-      </div>
-    `;
-  }
+  forwards += `
+    <div class="pillRow pillRow--3">
+      <div class="edgePad"></div>
+      ${pillHtml(lw)}
+      ${pillHtml(c)}
+      ${pillHtml(rw)}
+      <div class="edgePad"></div>
+    </div>
+  `;
+}
 
-  // Defence pairs HTML
-  let defence = "";
-  for (let i = 1; i <= activeLineup.defencePairs; i++) {
-    const ld = getPlayerForSlot(`D${i}_LD`);
-    const rd = getPlayerForSlot(`D${i}_RD`);
 
-    defence += `
-      <div class="row">
-        <div class="rowLabel">D Pair ${i}</div>
-        <div class="pillRow pillRow--2">
-          ${pillHtml(ld)}
-          ${pillHtml(rd)}
-        </div>
-      </div>
-    `;
-  }
+// Defence pairs HTML (NO labels) + edge pads
+let defence = "";
+for (let i = 1; i <= activeLineup.defencePairs; i++) {
+  const ld = getPlayerForSlot(`D${i}_LD`);
+  const rd = getPlayerForSlot(`D${i}_RD`);
+
+  defence += `
+    <div class="pillRow pillRow--2">
+      <div class="edgePad"></div>
+      ${pillHtml(ld)}
+      ${pillHtml(rd)}
+      <div class="edgePad"></div>
+    </div>
+  `;
+}
+
 
   // Goalies (1 or 2 depending on backup enabled)
 const gs = getPlayerForSlot("G_START");
 const gb = activeLineup.backupGoalieEnabled ? getPlayerForSlot("G_BACKUP") : null;
 
 const goalies = `
-  <div class="row">
-    <div class="rowLabel">Goalie(s)</div>
-    <div class="pillRow ${activeLineup.backupGoalieEnabled ? "pillRow--2" : "pillRow--1"}">
+  <div class="goaliesStack">
+    <div class="pillRow pillRow--1">
+      <div class="edgePad"></div>
       ${pillHtml(gs)}
-      ${activeLineup.backupGoalieEnabled ? pillHtml(gb) : ""}
+      <div class="edgePad"></div>
     </div>
+
+    ${
+      activeLineup.backupGoalieEnabled
+        ? `
+          <div class="pillRow pillRow--1">
+            /*<div class="edgePad"></div>*/
+            ${pillHtml(gb)}
+            /*<div class="edgePad"></div>*/
+          </div>
+        `
+        : ""
+    }
   </div>
 `;
+
+
 
 
   w.document.write(`
@@ -978,15 +992,14 @@ const goalies = `
           }
           
           :root{
-            --labelW: 70px;
             --pillW: 245px;
             --pillGap: 10px;
-            --pillH: 38px;
-            --circle: 38px;
+            --pillH: 40px;
+            --circle: 40px;
           }
 
           .sheet {
-            padding: 2mm 2mm;
+            padding: 4mm 4mm;
           }
 
           .teamTitle {
@@ -1006,58 +1019,14 @@ const goalies = `
             color: ${lineupTitleC};
           }
 
-          /* Sections */
-          .section { margin-top: 18px; }
-          .row {
+          /* sections become simple stacks */
+          .section {
             display: grid;
-            grid-template-columns: 96px 1fr;
-            align-items: center;
-            gap: 8px;
-            margin: 10px 0;
-          }
-
-          .rowLabel {
-            font-weight: 900;
-            font-size: 20px;
-            width: var(--labelW);
-            color: ${labelsC};
-            white-space: nowrap;
-            text-align: left;
-          }
-
-          /* Position headers */
-          .posHeaderRow {
-            display: grid;
-            grid-template-columns: 96px 1fr;
-            align-items: end;
-            gap: 8px;
-            margin: 6px 0 2px;
+            gap: 14px;
+            margin-top: 14px;
           }
 
           .posHeaderSpacer { height: 1px; }
-
-          .posHeaderCols3 {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0,var(--pillW)));
-            gap: var(--pillGap);
-            justify-content: center;
-          }
-
-          .posHeaderCols2 {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, var(--pillW)));
-            gap: var(--pillGap);
-            justify-content: center;
-          }
-
-          .posHeader {
-            font-weight: 900;
-            color: ${text};
-            font-size: 12px;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            text-align: center;
-          }
 
           /* Pills */
           .pillRow {
@@ -1111,11 +1080,14 @@ const goalies = `
             padding: 0 8px 0 6px;
           }
           
-          .edgePad { width: 2px; height: 1px; } /* invisible */
+          .edgePad { width: 50px; height: 1px; } /* invisible */
 
           .pillRow--3 {
             grid-template-columns: 2px repeat(3, var(--pillW)) 2px;
           }
+          
+          .pillRow--2 { grid-template-columns: 2px repeat(2, var(--pillW)) 2px; }
+          .pillRow--1 { grid-template-columns: 2px repeat(1, var(--pillW)) 2px; }
 
 
           .leadCircle {
@@ -1133,9 +1105,22 @@ const goalies = `
             font-size: 14px;
           }
 
+          /* goalies stacked vertically */
+          .goalieBlock {
+            display: grid;
+            gap: var(--pillGap);
+            justify-content: center;
+            justify-self: center;
+          }
+
+          .goaliesStack {
+            display: grid;
+            gap: var(--pillGap);
+          }
+
 
           /* Separate Defence spacing similar to mock */
-          .spacer { height: 18px; }
+          .spacer { height: 100px; }
 
           /* Hide any accidental links */
           a { color: inherit; text-decoration: none; }
@@ -1147,30 +1132,11 @@ const goalies = `
           <h1 class="teamTitle">${teamName}</h1>
           <div class="lineupTitle">${lineupName}</div>
 
-          <!-- Forwards header -->
-          <div class="posHeaderRow">
-            <div class="posHeaderSpacer"></div>
-            <div class="posHeaderCols3">
-              <div class="posHeader">LW</div>
-              <div class="posHeader">C</div>
-              <div class="posHeader">RW</div>
-            </div>
-          </div>
-
           <div class="section">
             ${forwards}
           </div>
 
           <div class="spacer"></div>
-
-          <!-- Defence header -->
-          <div class="posHeaderRow">
-            <div class="posHeaderSpacer"></div>
-            <div class="posHeaderCols2">
-              <div class="posHeader">LD</div>
-              <div class="posHeader">RD</div>
-            </div>
-          </div>
 
           <div class="section">
             ${defence}
