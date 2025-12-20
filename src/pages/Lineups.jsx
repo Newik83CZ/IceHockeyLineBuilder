@@ -1321,7 +1321,12 @@ const goalies = `
                   ) : null}
                 </div>
               </div>
+              {printingBlocked ? ( 
+                    <div style={{ fontSize: 12, opacity: 0.85, lineHeight: 1.2, textAlign: "right" }}>
+                      ⚠️ Printing isn’t supported on mobile. Use a desktop browser.
+                    </div>
 
+              ) : null}
             </div>
           </div>
     
