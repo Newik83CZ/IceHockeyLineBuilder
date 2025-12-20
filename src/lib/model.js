@@ -23,10 +23,10 @@ export const DEFAULT_THEME_APP = {
   errorBubble: "#dc2626",
 
   // Printing (Lineups print)
-  printTeamColor: "#961f1fff",
-  printText: "#000000ff",
-  printCardText: "#b6a9a9ff",
-  printLeader: "#a88718ff",
+  printTeamColor: "#961f1f",
+  printText: "#000000",
+  printCardText: "#a3b2b8ff",
+  printLeader: "#a88718",
 };
 
 export const DEFAULT_POSITION_COLORS = {
