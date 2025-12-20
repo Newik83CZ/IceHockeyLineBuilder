@@ -18,146 +18,173 @@ export default function Rosters({ data, setData }) {
   const importRef = useRef(null);
   const formRef = useRef(null);
 
+  // ✅ NEW: team print background image picker
+  const bgRef = useRef(null);
+
   const activeTeam = data.teams.find((t) => t.id === data.activeTeamId) || null;
 
-/* HELPERS FOR ROSTER DISPLAY / IMPORT/EXPORT */
+  /* Helper: resize image before saving*/
+  async function fileToResizedDataUrl(file, maxW = 1600, quality = 0.85) {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = URL.createObjectURL(file);
+    });
 
-function yyyymmdd(d = new Date()) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}${m}${day}`;
-}
+    const scale = Math.min(1, maxW / img.width);
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
 
-function safeFileBase(name) {
-  return String(name || "team").replace(/[^a-z0-9-_]+/gi, "_");
-}
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, w, h);
 
-function csvEscape(value) {
-  const s = String(value ?? "");
-  // Quote if it contains comma, quote, or newline
-  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
+    // JPEG is much smaller than PNG usually
+    return canvas.toDataURL("image/jpeg", quality);
+  }
 
-// Simple CSV parser that supports quoted fields + commas + newlines
-function parseCSV(text) {
-  const rows = [];
-  let row = [];
-  let cell = "";
-  let inQuotes = false;
+  /* HELPERS FOR ROSTER DISPLAY / IMPORT/EXPORT */
 
-  const s = String(text ?? "");
-  for (let i = 0; i < s.length; i++) {
-    const ch = s[i];
+  function yyyymmdd(d = new Date()) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}${m}${day}`;
+  }
 
-    if (inQuotes) {
-      if (ch === '"') {
-        const next = s[i + 1];
-        if (next === '"') {
-          cell += '"';
-          i++;
+  function safeFileBase(name) {
+    return String(name || "team").replace(/[^a-z0-9-_]+/gi, "_");
+  }
+
+  function csvEscape(value) {
+    const s = String(value ?? "");
+    // Quote if it contains comma, quote, or newline
+    if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  }
+
+  // Simple CSV parser that supports quoted fields + commas + newlines
+  function parseCSV(text) {
+    const rows = [];
+    let row = [];
+    let cell = "";
+    let inQuotes = false;
+
+    const s = String(text ?? "");
+    for (let i = 0; i < s.length; i++) {
+      const ch = s[i];
+
+      if (inQuotes) {
+        if (ch === '"') {
+          const next = s[i + 1];
+          if (next === '"') {
+            cell += '"';
+            i++;
+          } else {
+            inQuotes = false;
+          }
         } else {
-          inQuotes = false;
+          cell += ch;
         }
-      } else {
-        cell += ch;
+        continue;
       }
-      continue;
+
+      if (ch === '"') {
+        inQuotes = true;
+        continue;
+      }
+
+      if (ch === ",") {
+        row.push(cell);
+        cell = "";
+        continue;
+      }
+
+      if (ch === "\n") {
+        row.push(cell);
+        rows.push(row);
+        row = [];
+        cell = "";
+        continue;
+      }
+
+      if (ch === "\r") {
+        // ignore CR (handles Windows CRLF)
+        continue;
+      }
+
+      cell += ch;
     }
 
-    if (ch === '"') {
-      inQuotes = true;
-      continue;
+    // flush last cell
+    row.push(cell);
+    rows.push(row);
+
+    // Trim trailing completely-empty rows
+    while (
+      rows.length &&
+      rows[rows.length - 1].every((c) => String(c || "").trim() === "")
+    ) {
+      rows.pop();
     }
 
-    if (ch === ",") {
-      row.push(cell);
-      cell = "";
-      continue;
-    }
-
-    if (ch === "\n") {
-      row.push(cell);
-      rows.push(row);
-      row = [];
-      cell = "";
-      continue;
-    }
-
-    if (ch === "\r") {
-      // ignore CR (handles Windows CRLF)
-      continue;
-    }
-
-    cell += ch;
+    return rows;
   }
 
-  // flush last cell
-  row.push(cell);
-  rows.push(row);
+  function normalizePosition(raw) {
+    const v = String(raw || "").trim();
+    if (POSITIONS.includes(v)) return v;
 
-  // Trim trailing completely-empty rows
-  while (rows.length && rows[rows.length - 1].every((c) => String(c || "").trim() === "")) {
-    rows.pop();
+    const up = v.toUpperCase();
+    if (up === "C") return "Centre";
+    if (up === "W") return "Wing";
+    if (up === "D") return "Defender";
+    if (up === "G") return "Goalie";
+
+    return "Wing"; // default if invalid
   }
 
-  return rows;
-}
+  function normalizeLeadership(raw) {
+    const up = String(raw || "").trim().toUpperCase();
+    return up === "C" || up === "A" ? up : "";
+  }
 
-function normalizePosition(raw) {
-  const v = String(raw || "").trim();
-  if (POSITIONS.includes(v)) return v;
+  function normalizeStick(raw) {
+    const v = String(raw || "").trim();
+    if (STICKS.includes(v)) return v;
 
-  const up = v.toUpperCase();
-  if (up === "C") return "Centre";
-  if (up === "W") return "Wing";
-  if (up === "D") return "Defender";
-  if (up === "G") return "Goalie";
+    const up = v.toUpperCase();
+    if (up === "L" || up === "LH") return "Left";
+    if (up === "R" || up === "RH") return "Right";
+    return "";
+  }
 
-  return "Wing"; // default if invalid
-}
+  function parseCanPlayCell(raw) {
+    const s = String(raw || "").trim();
+    if (!s) return [];
 
-function normalizeLeadership(raw) {
-  const up = String(raw || "").trim().toUpperCase();
-  return up === "C" || up === "A" ? up : "";
-}
+    // allow commas, semicolons, or whitespace as separators
+    const tokens = s
+      .split(/[,;\s]+/)
+      .map((t) => t.trim().toUpperCase())
+      .filter(Boolean);
 
-function normalizeStick(raw) {
-  const v = String(raw || "").trim();
-  if (STICKS.includes(v)) return v;
+    const filtered = tokens.filter((t) => CANPLAY.includes(t));
 
-  const up = v.toUpperCase();
-  if (up === "L" || up === "LH") return "Left";
-  if (up === "R" || up === "RH") return "Right";
-  return "";
-}
-
-function parseCanPlayCell(raw) {
-  const s = String(raw || "").trim();
-  if (!s) return [];
-
-  // allow commas, semicolons, or whitespace as separators
-  const tokens = s
-    .split(/[,;\s]+/)
-    .map((t) => t.trim().toUpperCase())
-    .filter(Boolean);
-
-  const filtered = tokens.filter((t) => CANPLAY.includes(t));
-
-  // de-dupe while keeping order
-  const out = [];
-  const seen = new Set();
-  for (const t of filtered) {
-    if (!seen.has(t)) {
-      seen.add(t);
-      out.push(t);
+    // de-dupe while keeping order
+    const out = [];
+    const seen = new Set();
+    for (const t of filtered) {
+      if (!seen.has(t)) {
+        seen.add(t);
+        out.push(t);
+      }
     }
+    return out;
   }
-  return out;
-}
-
-
 
   function updateData(updater) {
     setData((prev) => {
@@ -168,195 +195,260 @@ function parseCanPlayCell(raw) {
   }
 
   function exportActiveTeam() {
-  if (!activeTeam) return;
+    if (!activeTeam) return;
 
-  const date = yyyymmdd(new Date());
-  const safeName = safeFileBase(activeTeam.name);
+    const date = yyyymmdd(new Date());
+    const safeName = safeFileBase(activeTeam.name);
 
-  const header = ["number", "name", "preferredPosition", "leadership", "stick", "canPlay", "notes"];
-
-  const lines = [];
-  lines.push(header.map(csvEscape).join(","));
-
-  for (const p of activeTeam.players) {
-    const row = [
-      String(p.number ?? ""),
-      String(p.name ?? ""),
-      String(p.preferredPosition ?? ""),
-      String(p.leadership ?? ""),
-      String(p.stick ?? ""),
-      (p.canPlay || []).join(","), // will be quoted if needed
-      String(p.notes ?? ""),
+    const header = [
+      "number",
+      "name",
+      "preferredPosition",
+      "leadership",
+      "stick",
+      "canPlay",
+      "notes",
     ];
-    lines.push(row.map(csvEscape).join(","));
+
+    const lines = [];
+    lines.push(header.map(csvEscape).join(","));
+
+    for (const p of activeTeam.players) {
+      const row = [
+        String(p.number ?? ""),
+        String(p.name ?? ""),
+        String(p.preferredPosition ?? ""),
+        String(p.leadership ?? ""),
+        String(p.stick ?? ""),
+        (p.canPlay || []).join(","), // will be quoted if needed
+        String(p.notes ?? ""),
+      ];
+      lines.push(row.map(csvEscape).join(","));
+    }
+
+    const csv = lines.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${safeName || "team"}_roster_${date}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
   }
-
-  const csv = lines.join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${safeName || "team"}_roster_${date}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-
-  URL.revokeObjectURL(url);
-  }
-
 
   function clickImport() {
     importRef.current?.click();
   }
 
-function importFromFile(file) {
-  if (!file) return;
+  function importFromFile(file) {
+    if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const text = String(reader.result || "");
-      const rows = parseCSV(text);
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = String(reader.result || "");
+        const rows = parseCSV(text);
 
-      if (!rows.length) {
-        alert("Import failed: CSV is empty.");
-        return;
-      }
-
-      // Detect header (case-insensitive)
-      const header = rows[0].map((h) => String(h || "").trim().toLowerCase());
-      const hasHeader = header.includes("number") || header.includes("name");
-
-      const startIdx = hasHeader ? 1 : 0;
-
-      // Team name from file name (strip extension, strip _roster_YYYYMMDD if present)
-      let base = file.name.replace(/\.[^/.]+$/, "");
-      base = base.replace(/_roster_\d{8}$/i, "");
-      base = base.replace(/_/g, " ").trim();
-      const teamNameFromFile = base || "Imported Team";
-
-      const report = {
-        imported: 0,
-        skipped: 0,
-        messages: [],
-      };
-
-      updateData((d) => {
-        const team = createTeam(teamNameFromFile);
-
-        const usedNumbers = new Set(); // for uniqueness in imported team
-        let captainUsed = false;
-        let aCount = 0;
-
-        for (let r = startIdx; r < rows.length; r++) {
-          const cols = rows[r] || [];
-
-          // If we have a header, map columns by name; otherwise use fixed order
-          const get = (key, fallbackIndex) => {
-            if (hasHeader) {
-              const idx = header.indexOf(key);
-              return idx >= 0 ? cols[idx] : "";
-            }
-            return cols[fallbackIndex] ?? "";
-          };
-
-          const rawNumber = String(get("number", 0) ?? "").trim();
-          const rawName = String(get("name", 1) ?? "");
-          const rawPos = String(get("preferredposition", 2) ?? "");
-          const rawLead = String(get("leadership", 3) ?? "");
-          const rawStick = String(get("stick", 4) ?? "");
-          const rawCanPlay = String(get("canplay", 5) ?? "");
-          const rawNotes = String(get("notes", 6) ?? "");
-
-          // Skip fully empty rows
-          const allEmpty = [rawNumber, rawName, rawPos, rawLead, rawStick, rawCanPlay, rawNotes]
-            .every((v) => String(v || "").trim() === "");
-          if (allEmpty) continue;
-
-          // Number: required, positive int, 1-2 digits
-          if (!/^\d{1,2}$/.test(rawNumber)) {
-            report.skipped++;
-            report.messages.push(`Row ${r + 1}: invalid number "${rawNumber}" (must be 1–2 digits).`);
-            continue;
-          }
-          const num = Number(rawNumber);
-          if (!Number.isInteger(num) || num <= 0) {
-            report.skipped++;
-            report.messages.push(`Row ${r + 1}: invalid number "${rawNumber}" (must be positive).`);
-            continue;
-          }
-          if (usedNumbers.has(num)) {
-            report.skipped++;
-            report.messages.push(`Row ${r + 1}: number ${num} duplicated in import.`);
-            continue;
-          }
-
-          // Name: required, trim, truncate to 16
-          const trimmedName = String(rawName || "").trim();
-          if (!trimmedName) {
-            report.skipped++;
-            report.messages.push(`Row ${r + 1}: missing name.`);
-            continue;
-          }
-          const name16 = trimmedName.length > 16 ? trimmedName.slice(0, 16) : trimmedName;
-
-          // Position mapping / default
-          const preferredPosition = normalizePosition(rawPos);
-
-          // Leadership: normalize then enforce rules (first valid claims the slots)
-          let leadership = normalizeLeadership(rawLead);
-          if (leadership === "C") {
-            if (captainUsed) leadership = "";
-            else captainUsed = true;
-          } else if (leadership === "A") {
-            if (aCount >= 2) leadership = "";
-            else aCount++;
-          }
-
-          // Stick: normalize
-          const stick = normalizeStick(rawStick);
-
-          // CanPlay: parse and filter to allowed codes
-          const canPlay = parseCanPlayCell(rawCanPlay);
-
-          const playerDraft = {
-            number: String(num),
-            name: name16,
-            preferredPosition,
-            leadership,
-            stick,
-            canPlay,
-            notes: String(rawNotes || ""),
-          };
-
-          team.players.push(createPlayer(playerDraft));
-          usedNumbers.add(num);
-          report.imported++;
+        if (!rows.length) {
+          alert("Import failed: CSV is empty.");
+          return;
         }
 
-        d.teams.push(team);
-        d.activeTeamId = team.id;
+        // Detect header (case-insensitive)
+        const header = rows[0].map((h) => String(h || "").trim().toLowerCase());
+        const hasHeader = header.includes("number") || header.includes("name");
+
+        const startIdx = hasHeader ? 1 : 0;
+
+        // Team name from file name (strip extension, strip _roster_YYYYMMDD if present)
+        let base = file.name.replace(/\.[^/.]+$/, "");
+        base = base.replace(/_roster_\d{8}$/i, "");
+        base = base.replace(/_/g, " ").trim();
+        const teamNameFromFile = base || "Imported Team";
+
+        const report = {
+          imported: 0,
+          skipped: 0,
+          messages: [],
+        };
+
+        updateData((d) => {
+          const team = createTeam(teamNameFromFile);
+
+          const usedNumbers = new Set(); // for uniqueness in imported team
+          let captainUsed = false;
+          let aCount = 0;
+
+          for (let r = startIdx; r < rows.length; r++) {
+            const cols = rows[r] || [];
+
+            // If we have a header, map columns by name; otherwise use fixed order
+            const get = (key, fallbackIndex) => {
+              if (hasHeader) {
+                const idx = header.indexOf(key);
+                return idx >= 0 ? cols[idx] : "";
+              }
+              return cols[fallbackIndex] ?? "";
+            };
+
+            const rawNumber = String(get("number", 0) ?? "").trim();
+            const rawName = String(get("name", 1) ?? "");
+            const rawPos = String(get("preferredposition", 2) ?? "");
+            const rawLead = String(get("leadership", 3) ?? "");
+            const rawStick = String(get("stick", 4) ?? "");
+            const rawCanPlay = String(get("canplay", 5) ?? "");
+            const rawNotes = String(get("notes", 6) ?? "");
+
+            // Skip fully empty rows
+            const allEmpty = [
+              rawNumber,
+              rawName,
+              rawPos,
+              rawLead,
+              rawStick,
+              rawCanPlay,
+              rawNotes,
+            ].every((v) => String(v || "").trim() === "");
+            if (allEmpty) continue;
+
+            // Number: required, positive int, 1-2 digits
+            if (!/^\d{1,2}$/.test(rawNumber)) {
+              report.skipped++;
+              report.messages.push(
+                `Row ${r + 1}: invalid number "${rawNumber}" (must be 1–2 digits).`
+              );
+              continue;
+            }
+            const num = Number(rawNumber);
+            if (!Number.isInteger(num) || num <= 0) {
+              report.skipped++;
+              report.messages.push(
+                `Row ${r + 1}: invalid number "${rawNumber}" (must be positive).`
+              );
+              continue;
+            }
+            if (usedNumbers.has(num)) {
+              report.skipped++;
+              report.messages.push(
+                `Row ${r + 1}: number ${num} duplicated in import.`
+              );
+              continue;
+            }
+
+            // Name: required, trim, truncate to 16
+            const trimmedName = String(rawName || "").trim();
+            if (!trimmedName) {
+              report.skipped++;
+              report.messages.push(`Row ${r + 1}: missing name.`);
+              continue;
+            }
+            const name16 =
+              trimmedName.length > 16 ? trimmedName.slice(0, 16) : trimmedName;
+
+            // Position mapping / default
+            const preferredPosition = normalizePosition(rawPos);
+
+            // Leadership: normalize then enforce rules (first valid claims the slots)
+            let leadership = normalizeLeadership(rawLead);
+            if (leadership === "C") {
+              if (captainUsed) leadership = "";
+              else captainUsed = true;
+            } else if (leadership === "A") {
+              if (aCount >= 2) leadership = "";
+              else aCount++;
+            }
+
+            // Stick: normalize
+            const stick = normalizeStick(rawStick);
+
+            // CanPlay: parse and filter to allowed codes
+            const canPlay = parseCanPlayCell(rawCanPlay);
+
+            const playerDraft = {
+              number: String(num),
+              name: name16,
+              preferredPosition,
+              leadership,
+              stick,
+              canPlay,
+              notes: String(rawNotes || ""),
+            };
+
+            team.players.push(createPlayer(playerDraft));
+            usedNumbers.add(num);
+            report.imported++;
+          }
+
+          d.teams.push(team);
+          d.activeTeamId = team.id;
+          return d;
+        });
+
+        // Summary alert
+        const topIssues = report.messages.slice(0, 8).join("\n");
+        const more =
+          report.messages.length > 8
+            ? `\n...and ${report.messages.length - 8} more.`
+            : "";
+        alert(
+          `Import complete.\n\nImported: ${report.imported}\nSkipped: ${report.skipped}` +
+            (report.messages.length
+              ? `\n\nIssues:\n${topIssues}${more}`
+              : "")
+        );
+      } catch (e) {
+        alert("Import failed: invalid CSV file.");
+      } finally {
+        if (importRef.current) importRef.current.value = "";
+      }
+    };
+
+    reader.readAsText(file);
+  }
+
+  // ✅ NEW: background image handlers (stored on ACTIVE TEAM)
+  function clickPickBackground() {
+    if (!activeTeam) return;
+    bgRef.current?.click();
+  }
+
+  async function onPickBackgroundFile(file) {
+    if (!activeTeam || !file) return;
+
+    if (!file.type?.startsWith("image/")) {
+      alert("Please select an image file (JPG/PNG/WebP).");
+      return;
+    }
+
+    try {
+      const dataUrl = await fileToResizedDataUrl(file, 1800, 0.85);
+
+      updateData((d) => {
+        const team = d.teams.find((t) => t.id === d.activeTeamId);
+        if (!team) return d;
+        team.printBackgroundImage = dataUrl; // ✅ Data URL (base64)
         return d;
       });
-
-      // Summary alert
-      const topIssues = report.messages.slice(0, 8).join("\n");
-      const more = report.messages.length > 8 ? `\n...and ${report.messages.length - 8} more.` : "";
-      alert(
-        `Import complete.\n\nImported: ${report.imported}\nSkipped: ${report.skipped}` +
-          (report.messages.length ? `\n\nIssues:\n${topIssues}${more}` : "")
-      );
-
     } catch (e) {
-      alert("Import failed: invalid CSV file.");
+      alert("Could not load that image. Please try a different file.");
     } finally {
-      if (importRef.current) importRef.current.value = "";
+      if (bgRef.current) bgRef.current.value = "";
     }
-  };
+  }
 
-  reader.readAsText(file);
-}
+  function clearBackground() {
+    if (!activeTeam) return;
+    updateData((d) => {
+      const team = d.teams.find((t) => t.id === d.activeTeamId);
+      if (!team) return d;
+      team.printBackgroundImage = "";
+      return d;
+    });
+  }
 
   const sortedPlayers = useMemo(() => {
     if (!activeTeam) return [];
@@ -428,7 +520,6 @@ function importFromFile(file) {
     });
   }
 
-
   function resetDraft() {
     setEditingId(null);
     setDraft({
@@ -458,7 +549,11 @@ function importFromFile(file) {
       if (editingId) {
         const idx = team.players.findIndex((p) => p.id === editingId);
         if (idx >= 0) {
-          const updated = { ...team.players[idx], ...createPlayer(draft), id: editingId };
+          const updated = {
+            ...team.players[idx],
+            ...createPlayer(draft),
+            id: editingId,
+          };
           team.players[idx] = updated;
         }
       } else {
@@ -484,11 +579,12 @@ function importFromFile(file) {
       const has = prev.canPlay.includes(code);
       return {
         ...prev,
-        canPlay: has ? prev.canPlay.filter((c) => c !== code) : [...prev.canPlay, code],
+        canPlay: has
+          ? prev.canPlay.filter((c) => c !== code)
+          : [...prev.canPlay, code],
       };
     });
   }
-
 
   return (
     <div
@@ -525,7 +621,9 @@ function importFromFile(file) {
         </div>
 
         <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
-          {data.teams.length === 0 && <div style={{ opacity: 0.7 }}>No teams yet. Add one above.</div>}
+          {data.teams.length === 0 && (
+            <div style={{ opacity: 0.7 }}>No teams yet. Add one above.</div>
+          )}
           {data.teams.map((t) => (
             <div
               key={t.id}
@@ -566,6 +664,58 @@ function importFromFile(file) {
             </div>
           ))}
         </div>
+
+        {/* ✅ NEW: Print background image for active team */}
+        {activeTeam ? (
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(0,0,0,0.12)" }}>
+            <div style={{ fontWeight: 900, marginBottom: 8 }}>Print background</div>
+
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ fontSize: 12, opacity: 0.8, lineHeight: 1.3 }}>
+                Optional image used as the PDF background for this team’s Lineups print.
+              </div>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button onClick={clickPickBackground}>Choose image</button>
+                <button onClick={clearBackground} disabled={!activeTeam.printBackgroundImage}>
+                  Clear
+                </button>
+
+                <input
+                  ref={bgRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={(e) => onPickBackgroundFile(e.target.files?.[0])}
+                />
+              </div>
+
+              {activeTeam.printBackgroundImage ? (
+                <div
+                  style={{
+                    borderRadius: 12,
+                    border: "1px solid rgba(0,0,0,0.12)",
+                    overflow: "hidden",
+                    background: "var(--surface)",
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 800, padding: 8, borderBottom: "1px solid rgba(0,0,0,0.12)" }}>
+                    Preview
+                  </div>
+                  <img
+                    src={activeTeam.printBackgroundImage}
+                    alt="Print background preview"
+                    style={{ display: "block", width: "100%", height: 120, objectFit: "cover" }}
+                  />
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, opacity: 0.7 }}>
+                  No background set.
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
       </aside>
 
       {/* Players */}
@@ -594,7 +744,6 @@ function importFromFile(file) {
                   style={{ display: "none" }}
                   onChange={(e) => importFromFile(e.target.files?.[0])}
                 />
-
               </>
             ) : null}
 
@@ -629,7 +778,6 @@ function importFromFile(file) {
                 scrollMarginTop: 90, // helps if you have sticky nav / top spacing
               }}
             >
-
               <h3 style={{ marginTop: 0 }}>{editingId ? "Edit player" : "Add player"}</h3>
 
               {error && (
@@ -740,48 +888,8 @@ function importFromFile(file) {
 
             <div style={{ marginTop: 14 }}>
               <h3 style={{ marginBottom: 8 }}>Players</h3>
-           
-              {/*<div
-                style={{
-                  opacity: 0.85,
-                  display: "grid",
-                  gridTemplateColumns:
-                    "210px 90px 70px 50px 100px",
-                  gap: 2,
-                  alignItems: "center",
-                  padding: "6px 10px",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.04em",
-                  borderBottom: "1px solid rgba(0,0,0,0.15)",
-                }}
-              >
-                <div>
-                      #
-                      <span style={{ marginLeft: 10 }}>
-                      Name
-                      </span>
-                      <span style={{ marginLeft: 10 }}>
-                      Leadership
-                      </span>
-                </div>
-
-                <div>
-                      Position
-                </div>
-
-                <div>Stick</div>
-
-                <div>Can play</div>
-
-                <div>Actions</div>
-              </div>
-              */}
-
 
               <div className="playersList">
-
                 {sortedPlayers.map((p) => (
                   <div key={p.id} className="playerRow">
                     <div className="playerNum">#{p.number}</div>
@@ -792,7 +900,6 @@ function importFromFile(file) {
 
                     <div className="playerLeader">{p.leadership || ""}</div>
 
-                    
                     <div className="playerPos">
                       <span
                         style={{
@@ -827,7 +934,6 @@ function importFromFile(file) {
                       <button onClick={() => deletePlayer(p.id)}>Del</button>
                     </div>
                   </div>
-
                 ))}
 
                 {sortedPlayers.length === 0 && <div style={{ opacity: 0.7 }}>No players match your search.</div>}

@@ -31,6 +31,12 @@ export default function App() {
     normalizeAppData(loadAppData() ?? createEmptyAppData())
   );
 
+  // ✅ Step 2: one-time migration/backfill (runs once on mount)
+  // This ensures any older saved data is upgraded safely.
+  useEffect(() => {
+    setData((prev) => normalizeAppData(prev));
+  }, []);
+
   // Persist all app data
   useEffect(() => {
     saveAppData(data);
@@ -64,6 +70,7 @@ export default function App() {
         "--pos-defender": activeTheme.positions.Defender,
         "--pos-goalie": activeTheme.positions.Goalie,
 
+        // error bubble for mismatch slots
         "--errorBubble": activeTheme.app.errorBubble ?? "#dc2626",
 
         background: "var(--background)",

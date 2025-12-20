@@ -885,22 +885,24 @@ function printLineupToPDF() {
     return;
   }
 
+  // ✅ NEW: team-linked background image (Data URL). Empty = no background.
+  // Replace ' to avoid breaking the CSS url('...')
+  const bgImg = String(activeTeam.printBackgroundImage || "").replaceAll("'", "%27");
+
   // Pull active theme colors from CSS variables (already set by your Theme page)
-  const activeTheme =
-  data.themes?.find((t) => t.id === data.activeThemeId) || null;
+  const activeTheme = data.themes?.find((t) => t.id === data.activeThemeId) || null;
 
   const teamC = activeTheme?.app?.printTeamColor ?? activeTheme?.app?.primary ?? "#d32f2f";
   const labelsC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
   const lineupTitleC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
   const numberBackgroundC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
 
-  const text = labelsC; // ✅ add this back
+  const text = labelsC;
 
   const numberC = activeTheme?.app?.printCardText ?? activeTheme?.app?.surface ?? "#ffffff";
   const playerNameC = activeTheme?.app?.printCardText ?? activeTheme?.app?.surface ?? "#ffffff";
   const leadershipBackgroundC = activeTheme?.app?.printLeader ?? activeTheme?.app?.accent ?? "#ffd54a";
 
-  
   const teamName = escapeHtml(activeTeam.name);
   const lineupName = escapeHtml(activeLineup.name);
 
@@ -910,69 +912,62 @@ function printLineupToPDF() {
   };
 
   // Forward lines HTML (NO labels)
-let forwards = "";
-for (let i = 1; i <= activeLineup.forwardLines; i++) {
-  const lw = getPlayerForSlot(`F${i}_LW`);
-  const c = getPlayerForSlot(`F${i}_C`);
-  const rw = getPlayerForSlot(`F${i}_RW`);
+  let forwards = "";
+  for (let i = 1; i <= activeLineup.forwardLines; i++) {
+    const lw = getPlayerForSlot(`F${i}_LW`);
+    const c = getPlayerForSlot(`F${i}_C`);
+    const rw = getPlayerForSlot(`F${i}_RW`);
 
-  forwards += `
-    <div class="pillRow pillRow--3">
-      <div class="edgePad"></div>
-      ${pillHtml(lw)}
-      ${pillHtml(c)}
-      ${pillHtml(rw)}
-      <div class="edgePad"></div>
-    </div>
-  `;
-}
+    forwards += `
+      <div class="pillRow pillRow--3">
+        <div class="edgePad"></div>
+        ${pillHtml(lw)}
+        ${pillHtml(c)}
+        ${pillHtml(rw)}
+        <div class="edgePad"></div>
+      </div>
+    `;
+  }
 
+  // Defence pairs HTML (NO labels) + edge pads
+  let defence = "";
+  for (let i = 1; i <= activeLineup.defencePairs; i++) {
+    const ld = getPlayerForSlot(`D${i}_LD`);
+    const rd = getPlayerForSlot(`D${i}_RD`);
 
-// Defence pairs HTML (NO labels) + edge pads
-let defence = "";
-for (let i = 1; i <= activeLineup.defencePairs; i++) {
-  const ld = getPlayerForSlot(`D${i}_LD`);
-  const rd = getPlayerForSlot(`D${i}_RD`);
-
-  defence += `
-    <div class="pillRow pillRow--2">
-      <div class="edgePad"></div>
-      ${pillHtml(ld)}
-      ${pillHtml(rd)}
-      <div class="edgePad"></div>
-    </div>
-  `;
-}
-
+    defence += `
+      <div class="pillRow pillRow--2">
+        <div class="edgePad"></div>
+        ${pillHtml(ld)}
+        ${pillHtml(rd)}
+        <div class="edgePad"></div>
+      </div>
+    `;
+  }
 
   // Goalies (1 or 2 depending on backup enabled)
-const gs = getPlayerForSlot("G_START");
-const gb = activeLineup.backupGoalieEnabled ? getPlayerForSlot("G_BACKUP") : null;
+  const gs = getPlayerForSlot("G_START");
+  const gb = activeLineup.backupGoalieEnabled ? getPlayerForSlot("G_BACKUP") : null;
 
-const goalies = `
-  <div class="goaliesStack">
-    <div class="pillRow pillRow--1">
-      <div class="edgePad"></div>
-      ${pillHtml(gs)}
-      <div class="edgePad"></div>
+  const goalies = `
+    <div class="goaliesStack">
+      <div class="pillRow pillRow--1">
+        <div class="edgePad"></div>
+        ${pillHtml(gs)}
+        <div class="edgePad"></div>
+      </div>
+
+      ${
+        activeLineup.backupGoalieEnabled
+          ? `
+            <div class="pillRow pillRow--1">
+              ${pillHtml(gb)}
+            </div>
+          `
+          : ""
+      }
     </div>
-
-    ${
-      activeLineup.backupGoalieEnabled
-        ? `
-          <div class="pillRow pillRow--1">
-            /*<div class="edgePad"></div>*/
-            ${pillHtml(gb)}
-            /*<div class="edgePad"></div>*/
-          </div>
-        `
-        : ""
-    }
-  </div>
-`;
-
-
-
+  `;
 
   w.document.write(`
     <!doctype html>
@@ -990,7 +985,20 @@ const goalies = `
             font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
             color: ${text};
           }
-          
+
+          /* ✅ NEW: background layer (prints behind) */
+          .bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            ${bgImg ? `background-image: url('${bgImg}');` : ""}
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0.90;          /* tweak if needed */
+            pointer-events: none;
+          }
+
           :root{
             --pillW: 245px;
             --pillGap: 10px;
@@ -999,6 +1007,8 @@ const goalies = `
           }
 
           .sheet {
+            position: relative;
+            z-index: 1; /* ✅ ensure content is above background */
             padding: 4mm 4mm;
           }
 
@@ -1026,19 +1036,16 @@ const goalies = `
             margin-top: 14px;
           }
 
-          .posHeaderSpacer { height: 1px; }
-
           /* Pills */
           .pillRow {
             display: grid;
             gap: var(--pillGap);
-            justify-self: center;     /* centers the pills-area within the row (right side) */
+            justify-self: center;
           }
 
           .pillRow--3 { grid-template-columns: repeat(3, var(--pillW)); }
           .pillRow--2 { grid-template-columns: repeat(2, var(--pillW)); }
-          .pillRow--1 { grid-template-columns: repeat(1, var(--pillW)); } /* NEW: for 1 goalie */
-
+          .pillRow--1 { grid-template-columns: repeat(1, var(--pillW)); }
 
           .pill {
             position: relative;
@@ -1057,7 +1064,7 @@ const goalies = `
 
           .numCircle {
             position: absolute;
-            left: 1px;
+            left: 0px;
             width: var(--circle);
             height: var(--circle);
             border-radius: 999px;
@@ -1073,26 +1080,22 @@ const goalies = `
           .pillName {
             color: ${playerNameC};
             font-weight: 900;
-            font-size: 14px;      /* smaller so names fit */
+            font-size: 14px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             padding: 0 8px 0 6px;
           }
-          
+
           .edgePad { width: 50px; height: 1px; } /* invisible */
 
-          .pillRow--3 {
-            grid-template-columns: 2px repeat(3, var(--pillW)) 2px;
-          }
-          
+          .pillRow--3 { grid-template-columns: 2px repeat(3, var(--pillW)) 2px; }
           .pillRow--2 { grid-template-columns: 2px repeat(2, var(--pillW)) 2px; }
           .pillRow--1 { grid-template-columns: 2px repeat(1, var(--pillW)) 2px; }
 
-
           .leadCircle {
             position: absolute;
-            right: 1px;
+            right: 0px;
             width: var(--circle);
             height: var(--circle);
             border-radius: 999px;
@@ -1105,33 +1108,25 @@ const goalies = `
             font-size: 14px;
           }
 
-          /* goalies stacked vertically */
-          .goalieBlock {
-            display: grid;
-            gap: var(--pillGap);
-            justify-content: center;
-            justify-self: center;
-          }
-
           .goaliesStack {
             display: grid;
             gap: var(--pillGap);
           }
 
-
-          /* Separate Defence spacing similar to mock */
           .spacer { height: 100px; }
 
-          /* Hide any accidental links */
           a { color: inherit; text-decoration: none; }
-
         </style>
       </head>
       <body>
+        ${bgImg ? `<div class="bg"></div>` : ""}
+
         <div class="sheet">
+          <div class="spacer"></div>
           <h1 class="teamTitle">${teamName}</h1>
           <div class="lineupTitle">${lineupName}</div>
 
+          <div class="spacer"></div>
           <div class="section">
             ${forwards}
           </div>
@@ -1157,10 +1152,11 @@ const goalies = `
 
   w.onload = () => {
     w.focus();
-    w.print();     // user chooses “Save as PDF”
+    w.print();
     w.close();
   };
 }
+
 
 
 

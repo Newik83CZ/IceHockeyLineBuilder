@@ -77,10 +77,6 @@ export function normalizeTheme(theme) {
     theme.positions[pos] ??= color;
   }
 
-  // Keep old keys if you want (harmless), but optional cleanup:
-  // delete theme.app.primary;
-  // delete theme.app.accent;
-
   theme.createdAt ??= Date.now();
   theme.updatedAt ??= Date.now();
 
@@ -92,6 +88,12 @@ export function normalizeAppData(data) {
 
   data.teams ??= [];
   data.themes ??= [];
+
+  // ✅ NEW: ensure teams have printBackgroundImage
+  for (const t of data.teams) {
+    t.printBackgroundImage ??= ""; // Data URL (base64). Empty = no background
+    t.players ??= [];
+  }
 
   // Ensure at least 1 team
   if (data.teams.length === 0) {
@@ -129,7 +131,7 @@ export function createEmptyAppData() {
   defaultTeam.players.push(
     createPlayer({
       number: "2",
-      name: "E. Buley",
+      name: "E.Buley",
       preferredPosition: "Centre",
       stick: "Right",
       canPlay: ["C", "LW", "RW"],
@@ -149,7 +151,7 @@ export function createEmptyAppData() {
     }),
     createPlayer({
       number: "73",
-      name: "S. Buley",
+      name: "S.Buley",
       preferredPosition: "Wing",
       stick: "Right",
       canPlay: ["LW", "RW"],
@@ -237,7 +239,12 @@ export function createEmptyAppData() {
 }
 
 export function createTeam(name) {
-  return { id: newId(), name, players: [] };
+  return {
+    id: newId(),
+    name,
+    players: [],
+    printBackgroundImage: "", // ✅ Data URL (base64). Empty = no background
+  };
 }
 
 export function createTheme(name = "Default") {
