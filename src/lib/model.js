@@ -17,7 +17,7 @@ export const DEFAULT_THEME_APP = {
   buttons: "#2563eb",
 
   // NEW leadership color (replaces old accent for this purpose)
-  leader: "#a88718",
+  leader: "#0d1847",
 
   // ✅ NEW: error bubble color
   errorBubble: "#dc2626",
@@ -30,10 +30,10 @@ export const DEFAULT_THEME_APP = {
 };
 
 export const DEFAULT_POSITION_COLORS = {
-  Centre: "#4f46e5",
-  Wing: "#16a34a",
-  Defender: "#000999",
-  Goalie: "#a926dc",
+  Centre: "#b3e2cd",
+  Wing: "#f4cae4",
+  Defender: "#c8d6e8",
+  Goalie: "#f4cae4",
 };
 
 /**
