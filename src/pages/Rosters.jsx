@@ -772,7 +772,7 @@ function importFromFile(file) {
                     style={{
                       display: "grid",
                       gridTemplateColumns:
-                        "270px 90px 70px 140px 100px",
+                        "40px 1fr 40px 1fr 1fr",
                       gap: 2,
                       alignItems: "center",
                       padding: 5,
@@ -784,7 +784,11 @@ function importFromFile(file) {
 
                     <div style={{ fontWeight: 600, minWidth: 0 /*, whiteSpace: "normal", overflowWrap: "anywhere" */}}>
                       <span style={{ textAlign: "right", display: "inline-block", width: 30 }}>#{p.number}</span>
-                      <span style={{ marginLeft: 10 }}>
+
+                    </div>
+                    <div style={{ fontWeight: 600, minWidth: 0 /*, whiteSpace: "normal", overflowWrap: "anywhere" */}}>
+
+                      <span style={{ marginLeft: 0 }}>
                       {p.name}
                       </span>
 
@@ -804,36 +808,35 @@ function importFromFile(file) {
                         >
                           {p.leadership}
                         </span>
+
+                        
+                        
                       )}
-
-                    </div>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                      
                       <span
-                        style={{
-                          display: "inline-block",
-                          padding: "4px 10px",
-                          border: `1px solid var(--primary)`,
-                          borderRadius: 999,
-                          fontWeight: 800,
-                          fontSize: 12,
-                          color: "var(--surface)",
-                          background: `var(--pos-${p.preferredPosition.toLowerCase()})`,
-                          maxWidth: "100%",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {p.preferredPosition}
-                      </span>
+                          style={{
+                            display: "inline-block",
+                            padding: "4px 10px",
+                            border: `1px solid var(--primary)`,
+                            borderRadius: 999,
+                            fontWeight: 800,
+                            fontSize: 12,
+                            marginLeft: 10,
+                            color: "var(--surface)",
+                            background: `var(--pos-${p.preferredPosition.toLowerCase()})`,
+                            maxWidth: "100%",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {p.preferredPosition}
+                        </span>
                     </div>
 
                     <div>
                       <span
                         style={{
-                          marginLeft: 37,
+                          marginLeft: 20,
                           fontSize: 12,
                         }}
                       >
@@ -842,11 +845,11 @@ function importFromFile(file) {
                     </div>
               
 
-                    <div style={{ opacity: 0.85, minWidth: 0,}}>
+                    <div style={{ marginLeft: 20,opacity: 0.85, minWidth: 0,}}>
                       {(p.canPlay || []).length ? p.canPlay.join(", ") : " "}
                     </div>
 
-                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", minWidth: 0, marginLeft: 37 }}>
+                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", minWidth: 0, marginLeft: 20, marginRight: 10, }}>
                       <button onClick={() => startEditPlayer(p)}>Edit</button>
                       <button onClick={() => deletePlayer(p.id)}>Del</button>
                     </div>

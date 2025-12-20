@@ -135,7 +135,7 @@ export default function ThemePage({ data, setData }) {
         <select
           value={data.activeThemeId || ""}
           onChange={(e) => setActiveThemeId(e.target.value)}
-          style={{ padding: 10, borderRadius: 12, border: "1px solid var(--border)" }}
+          style={{ padding: 8, borderRadius: 12, border: "1px solid var(--border)" }}
         >
           {data.themes.map(t => (
             <option key={t.id} value={t.id}>{t.name}</option>

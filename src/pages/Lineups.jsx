@@ -61,7 +61,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition }) {
 
 
   const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 800px)").matches;
-
+  
   const lastNameFixed =
     labelObj.lastName && labelObj.lastName.length <= 8
       ? (isMobile ? 14 : 18)
@@ -454,7 +454,9 @@ export default function Lineups({ data, setData }) {
   const activeTeam = data.teams.find((t) => t.id === data.activeTeamId) || null;
 
   const isMobile =
-  typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+   typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  const printingBlocked = isMobile;
 
 
   const sensors = useSensors(
@@ -1305,14 +1307,19 @@ const goalies = `
               <div className="lineupActions" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
                 <button onClick={autoFillLines}>Auto-fill lines</button>
                 <button onClick={clearAllAssignments}>Clear all assignments</button>
-                <button
-                  onClick={printLineupToPDF}
-                  disabled={isMobile}
-                  title={isMobile ? "Printing is available on desktop or tablet" : ""}
-                >
-                  Print current lines
-                </button>
 
+                <div style={{ display: "grid", gap: 6 }}>
+                  <button onClick={printLineupToPDF} disabled={printingBlocked}>
+                    Print current lines
+                  </button>
+
+                  {printingBlocked ? (
+                    <div style={{ fontSize: 12, opacity: 0.85, lineHeight: 1.2 }}>
+                      ⚠️ Printing isn’t supported on mobile. Use a desktop browser.
+                    </div>
+
+                  ) : null}
+                </div>
               </div>
 
             </div>
