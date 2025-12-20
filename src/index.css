@@ -117,6 +117,166 @@ textarea:focus {
   min-width: 0;
 }
 
+/*Rosters Players list layout*/
+
+
+  /* =========================
+   Players list "table-like" row
+   ========================= */
+
+.playersList {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.playerRow {
+  display: grid;
+  grid-template-columns: 44px minmax(160px, 1fr) 44px 120px 60px 1fr 150px;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(0,0,0,0.12);
+  min-width: 0;
+}
+
+.playerNum {
+  grid-column: 1;
+  justify-self: end;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Make sure the name column is allowed to shrink inside the grid */
+.playerNameCell {
+  min-width: 0;              /* critical for ellipsis + shrink */
+}
+
+/* Shrink name on small screens, keep it readable on desktop */
+.playerNameText {
+  font-weight: 800;
+  line-height: 1.1;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  /* auto scale: phone -> smaller, desktop -> bigger */
+  font-size: clamp(10px, 3.2vw, 14px);
+}
+
+.playerLeader {
+  grid-column: 3;
+  justify-self: start;
+  font-weight: 900;
+  font-size: 14px;
+  padding: 0px 5px;
+  border-radius: 14px;
+  color: var(--leader, var(--accent));
+  border-right: 2px solid var(--leader, var(--accent));
+  border-left: 2px solid var(--leader, var(--accent));
+  white-space: nowrap;
+}
+
+.playerPos {
+  grid-column: 4;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.playerStick {
+  grid-column: 5;
+  justify-self: start;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+.playerCanPlay {
+  grid-column: 6;
+  min-width: 0;
+  font-size: 12px;
+  opacity: 0.85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playerActions {
+  grid-column: 7;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  font-size: 12px;
+  min-width: 0;
+}
+
+/* =========================
+   Breakpoint A: “doesn’t fit” (small desktop / landscape tablets)
+   Details move to line 2, aligned under the NAME column
+   ========================= */
+@media (max-width: 980px) {
+  .playerRow {
+    grid-template-columns: 44px 1fr 44px;
+    grid-template-rows: auto auto;
+    align-items: start;
+  }
+
+  /* row 1: # | name | leadership */
+  .playerNum { grid-column: 1; grid-row: 1; }
+  .playerNameCell { grid-column: 2; grid-row: 1; }
+  .playerLeader { grid-column: 3; grid-row: 1; }
+
+  /* row 2: details start under NAME (column 2) and span to the right */
+  .playerPos {
+    grid-column: 2 / 4;
+    grid-row: 2;
+  }
+  .playerStick {
+    grid-column: 2 / 4;
+    grid-row: 2;
+    justify-self: start;
+    margin-left: 150px; /* aligns stick after the position pill visually */
+  }
+  .playerCanPlay {
+    grid-column: 2 / 4;
+    grid-row: 2;
+    margin-left: 220px; /* aligns canPlay after stick visually */
+  }
+
+  .playerActions {
+    grid-column: 2 / 4;
+    grid-row: 3;          /* actions can drop if needed */
+    justify-content: flex-start;
+    margin-top: 6px;
+  }
+}
+
+/* =========================
+   Breakpoint B: Phone portrait
+   Make details clean on their own line, actions on 3rd line
+   Still aligned under NAME column
+   ========================= */
+@media (max-width: 800px) and (orientation: portrait) {
+  .playerRow {
+    grid-template-columns: 44px 1fr 44px;
+    grid-template-rows: auto auto auto;
+    gap: 6px;
+  }
+
+  .playerPos { grid-column: 2 / 4; grid-row: 2; margin-left: 0; }
+  .playerStick { grid-column: 2 / 4; grid-row: 2; margin-left: 150px; }
+  .playerCanPlay { grid-column: 2 / 4; grid-row: 2; margin-left: 220px; }
+
+  .playerActions {
+    grid-column: 2 / 4;
+    grid-row: 3;
+    justify-content: flex-start;
+  }
+}
+
 
 /* ---------- Mobile overrides ---------- */
 @media (max-width: 800px) {
@@ -201,6 +361,8 @@ textarea:focus {
   .rostersSearch {
     width: 100% !important;
   }
+
+
 
   /* Line-ups: tighten spacing so bubbles get more room */
   .lineRow,

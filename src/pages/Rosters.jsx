@@ -16,6 +16,7 @@ export default function Rosters({ data, setData }) {
   const [search, setSearch] = useState("");
 
   const importRef = useRef(null);
+  const formRef = useRef(null);
 
   const activeTeam = data.teams.find((t) => t.id === data.activeTeamId) || null;
 
@@ -421,7 +422,12 @@ function importFromFile(file) {
       notes: p.notes || "",
     });
     setError("");
+
+    requestAnimationFrame(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
+
 
   function resetDraft() {
     setEditingId(null);
@@ -613,7 +619,17 @@ function importFromFile(file) {
           <div style={{ marginTop: 14, opacity: 0.8 }}>Create a team on the left to start adding players.</div>
         ) : (
           <>
-            <div style={{ marginTop: 14, padding: 12, borderRadius: 14, border: "1px solid rgba(0,0,0,0.12)" }}>
+            <div
+              ref={formRef}
+              style={{
+                marginTop: 14,
+                padding: 12,
+                borderRadius: 14,
+                border: "1px solid rgba(0,0,0,0.12)",
+                scrollMarginTop: 90, // helps if you have sticky nav / top spacing
+              }}
+            >
+
               <h3 style={{ marginTop: 0 }}>{editingId ? "Edit player" : "Add player"}</h3>
 
               {error && (
@@ -764,96 +780,53 @@ function importFromFile(file) {
               */}
 
 
-              <div style={{ display: "grid", gap: 0, minWidth: 0, borderRadius: 10, background: "var(--surface)" }}>
+              <div className="playersList">
+
                 {sortedPlayers.map((p) => (
-                  <div
-                    key={p.id}
-                    className="playerRow"
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns:
-                        "40px 1fr 40px 1fr 1fr",
-                      gap: 2,
-                      alignItems: "center",
-                      padding: 5,
-                      marginTop: 5,
-                      borderBottom: "1px solid rgba(0,0,0,0.12)",
-                      minWidth: 0,
-                    }}
-                  >
+                  <div key={p.id} className="playerRow">
+                    <div className="playerNum">#{p.number}</div>
 
-                    <div style={{ fontWeight: 600, minWidth: 0 /*, whiteSpace: "normal", overflowWrap: "anywhere" */}}>
-                      <span style={{ textAlign: "right", display: "inline-block", width: 30 }}>#{p.number}</span>
-
-                    </div>
-                    <div style={{ fontWeight: 600, minWidth: 0 /*, whiteSpace: "normal", overflowWrap: "anywhere" */}}>
-
-                      <span style={{ marginLeft: 0 }}>
-                      {p.name}
-                      </span>
-
-                      {p.leadership && (
-                        <span
-                          style={{
-                            color: "var(--leader, var(--accent))",
-                            borderRadius: 14,
-                            padding: "0px 5px",
-                            borderRight: "2px solid var(--leader, var(--accent))",
-                            borderLeft: "2px solid var(--leader, var(--accent))",
-                            marginLeft: 10,
-                            fontSize: 16,
-                            fontWeight: 900,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {p.leadership}
-                        </span>
-
-                        
-                        
-                      )}
-                      <span
-                          style={{
-                            display: "inline-block",
-                            padding: "4px 10px",
-                            border: `1px solid var(--primary)`,
-                            borderRadius: 999,
-                            fontWeight: 800,
-                            fontSize: 12,
-                            marginLeft: 10,
-                            color: "var(--surface)",
-                            background: `var(--pos-${p.preferredPosition.toLowerCase()})`,
-                            maxWidth: "100%",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {p.preferredPosition}
-                        </span>
+                    <div className="playerNameCell">
+                      <div className="playerNameText">{p.name}</div>
                     </div>
 
-                    <div>
+                    <div className="playerLeader">{p.leadership || ""}</div>
+
+                    <div className="playerPos">
                       <span
                         style={{
-                          marginLeft: 20,
+                          display: "inline-block",
+                          padding: "4px 10px",
+                          border: `1px solid var(--primary)`,
+                          borderRadius: 999,
+                          fontWeight: 800,
                           fontSize: 12,
+                          color: "var(--surface)",
+                          background: `var(--pos-${p.preferredPosition.toLowerCase()})`,
+                          maxWidth: "100%",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
                         }}
                       >
-                        {p.stick === "Left" ? "LH" : p.stick === "Right" ? "RH" : " "}
+                        {p.preferredPosition}
                       </span>
                     </div>
-              
 
-                    <div style={{ marginLeft: 20,opacity: 0.85, minWidth: 0,}}>
-                      {(p.canPlay || []).length ? p.canPlay.join(", ") : " "}
+                    <div className="playerStick">
+                      {p.stick === "Left" ? "LH" : p.stick === "Right" ? "RH" : ""}
                     </div>
 
-                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", minWidth: 0, marginLeft: 20, marginRight: 10, }}>
+                    <div className="playerCanPlay">
+                      {(p.canPlay || []).length ? p.canPlay.join(", ") : ""}
+                    </div>
+
+                    <div className="playerActions">
                       <button onClick={() => startEditPlayer(p)}>Edit</button>
                       <button onClick={() => deletePlayer(p.id)}>Del</button>
                     </div>
                   </div>
+
                 ))}
 
                 {sortedPlayers.length === 0 && <div style={{ opacity: 0.7 }}>No players match your search.</div>}
