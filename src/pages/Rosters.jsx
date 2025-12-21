@@ -672,7 +672,7 @@ export default function Rosters({ data, setData }) {
 
             <div style={{ display: "grid", gap: 8 }}>
               <div style={{ fontSize: 12, opacity: 0.8, lineHeight: 1.3 }}>
-                Optional image used as the PDF background for this team’s Lineups print.
+                Optional image used when exporting team lineups.
               </div>
 
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

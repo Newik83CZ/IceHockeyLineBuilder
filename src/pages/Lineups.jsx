@@ -10,21 +10,20 @@ import {
 } from "@dnd-kit/core";
 
 import { newId } from "../lib/model";
+import html2canvas from "html2canvas";
 
 const MAX_FORWARD_LINES = 4;
 const MAX_DEF_PAIRS = 4;
+const DEFAULT_PRINT_BG = "/print-default-bg.png"; // public/print-default-bg.png
+
 
 /* ===================== UI: Draggable Player ===================== */
 
 function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = false }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
 
-  // Normalize label:
-  // - string => { mode:"text", text:"..." }
-  // - object parts => { mode:"parts", firstName, lastName, number, leadership }
   const labelObj = (() => {
     if (label && typeof label === "object") {
-      // parts-mode
       if ("firstName" in label || "lastName" in label || "number" in label) {
         return {
           mode: "parts",
@@ -34,7 +33,6 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
           number: label.number ?? "",
         };
       }
-      // fallback object-mode (text)
       return {
         mode: "text",
         leadership: label.leadership || "",
@@ -51,62 +49,44 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
 
   const rowRef = useRef(null);
   const badgeRef = useRef(null);
-  const textRef = useRef(null);
-
-  const [textSize, setTextSize] = useState(18);
 
   const metaRef = useRef(null);
   const nameRef = useRef(null);
   const [nameSize, setNameSize] = useState(18);
 
-
   const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 800px)").matches;
-  
-  const lastNameFixed =
-    labelObj.lastName && labelObj.lastName.length <= 8
-      ? (isMobile ? 14 : 18)
-      : null;
 
+  const lastNameFixed =
+    labelObj.lastName && labelObj.lastName.length <= 8 ? (isMobile ? 14 : 18) : null;
 
   useLayoutEffect(() => {
-  const rowEl = rowRef.current;
-  const metaEl = metaRef.current;
-  const nameEl = nameRef.current;
-  if (!rowEl || !nameEl) return;
+    const rowEl = rowRef.current;
+    const nameEl = nameRef.current;
+    if (!rowEl || !nameEl) return;
 
-  const compute = () => {
-    // Reset to max first
-    let size = 18;
-    nameEl.style.fontSize = `${size}px`;
-
-    const available = Math.max(0, rowEl.clientWidth);
-
-    const MIN = 10;
-    let guard = 0;
-
-    // Shrink ONLY the name block until it fits
-    while (size > MIN && nameEl.scrollWidth > available && guard < 60) {
-      size -= 1;
+    const compute = () => {
+      let size = 18;
       nameEl.style.fontSize = `${size}px`;
-      guard += 1;
-    }
 
-    setNameSize(size);
-  };
+      const available = Math.max(0, rowEl.clientWidth);
+      const MIN = 10;
+      let guard = 0;
 
-  compute();
+      while (size > MIN && nameEl.scrollWidth > available && guard < 60) {
+        size -= 1;
+        nameEl.style.fontSize = `${size}px`;
+        guard += 1;
+      }
 
-  const ro = new ResizeObserver(() => compute());
-  ro.observe(rowEl);
+      setNameSize(size);
+    };
 
-  return () => ro.disconnect();
-}, [
-  labelObj.firstName,
-  labelObj.lastName,
-  labelObj.number,
-  labelObj.leadership,
-]);
+    compute();
+    const ro = new ResizeObserver(() => compute());
+    ro.observe(rowEl);
 
+    return () => ro.disconnect();
+  }, [labelObj.firstName, labelObj.lastName, labelObj.number, labelObj.leadership]);
 
   const style = {
     width: "100%",
@@ -134,7 +114,6 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      {/* ONE-LINE header row with auto-shrink */}
       <div
         ref={rowRef}
         style={{
@@ -145,7 +124,6 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
           overflow: "hidden",
         }}
       >
-        {/* Row 1: leadership + number */}
         <div
           ref={metaRef}
           style={{
@@ -182,7 +160,6 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
           ) : null}
         </div>
 
-        {/* Rows 2–3: name (shrinkable) */}
         <div
           ref={nameRef}
           style={{
@@ -228,8 +205,6 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
           ) : null}
         </div>
       </div>
-
-
 
       {sublabel ? <div style={{ fontSize: 10, opacity: 0.75 }}>{sublabel}</div> : null}
     </div>
@@ -328,7 +303,6 @@ function Slot({ id, title, assignments, byId }) {
     sublabel = (
       <>
         <div style={{ color: "black" }}>{warningText}</div>
-        {/* <div style={{ fontSize: 12, opacity: 0.8 }}>{stick}</div> */}
       </>
     );
   } else if (warningText) {
@@ -337,7 +311,6 @@ function Slot({ id, title, assignments, byId }) {
     sublabel = stick;
   }
 
-  // SAFE name split: trims and collapses whitespace
   let firstName = "";
   let lastName = "";
   if (player && typeof player.name === "string") {
@@ -361,7 +334,6 @@ function Slot({ id, title, assignments, byId }) {
           }}
           sublabel={sublabel}
         />
-
       ) : null}
     </DroppableSlot>
   );
@@ -456,10 +428,9 @@ export default function Lineups({ data, setData }) {
   const activeTeam = data.teams.find((t) => t.id === data.activeTeamId) || null;
 
   const isMobile =
-   typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   const printingBlocked = isMobile;
-
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -508,8 +479,7 @@ export default function Lineups({ data, setData }) {
   const teamId = data.activeTeamId;
   const bucket = data.lineupsByTeam?.[teamId] || { activeLineupId: null, lineups: [] };
   const lineups = bucket.lineups || [];
-  const activeLineup =
-    lineups.find((l) => l.id === bucket.activeLineupId) || lineups[0] || null;
+  const activeLineup = lineups.find((l) => l.id === bucket.activeLineupId) || lineups[0] || null;
 
   const players = activeTeam?.players ?? [];
   const byId = useMemo(() => {
@@ -519,7 +489,10 @@ export default function Lineups({ data, setData }) {
   }, [players]);
 
   const assignments = activeLineup?.assignments || {};
-  const assignedIds = useMemo(() => new Set(Object.values(assignments).filter(Boolean)), [assignments]);
+  const assignedIds = useMemo(
+    () => new Set(Object.values(assignments).filter(Boolean)),
+    [assignments]
+  );
 
   const available = useMemo(() => {
     return players.filter((p) => !assignedIds.has(p.id)).sort((a, b) => a.number - b.number);
@@ -680,61 +653,25 @@ export default function Lineups({ data, setData }) {
 
   function buildFillOrder(lineup) {
     const order = [];
-
-    // 1) Starter goalie
     order.push("G_START");
 
-    // 2) Defence pairs
     for (let i = 1; i <= lineup.defencePairs; i++) {
       order.push(`D${i}_LD`, `D${i}_RD`);
     }
 
-    // 3) Line 1
     order.push("F1_LW", "F1_C", "F1_RW");
 
-    // 4) Remaining lines
     for (let i = 2; i <= lineup.forwardLines; i++) {
       order.push(`F${i}_LW`, `F${i}_C`, `F${i}_RW`);
     }
 
-    // 5) Backup goalie last (only if enabled)
     if (lineup.backupGoalieEnabled) order.push("G_BACKUP");
-
     return order;
-  }
-
-
-  function autoAssignLineup(lineup, playersList) {
-    const used = new Set();
-    const next = {};
-
-    function pick(filterFn) {
-      const p = playersList.find((pl) => !used.has(pl.id) && filterFn(pl));
-      if (p) used.add(p.id);
-      return p?.id || null;
-    }
-
-    for (let i = 1; i <= lineup.forwardLines; i++) {
-      next[`F${i}_LW`] = pick((p) => p.canPlay?.includes("LW")) ?? pick((p) => p.preferredPosition === "Wing");
-      next[`F${i}_C`] = pick((p) => p.canPlay?.includes("C")) ?? pick((p) => p.preferredPosition === "Centre");
-      next[`F${i}_RW`] = pick((p) => p.canPlay?.includes("RW")) ?? pick((p) => p.preferredPosition === "Wing");
-    }
-
-    for (let i = 1; i <= lineup.defencePairs; i++) {
-      next[`D${i}_LD`] = pick((p) => p.canPlay?.includes("LD")) ?? pick((p) => p.preferredPosition === "Defender");
-      next[`D${i}_RD`] = pick((p) => p.canPlay?.includes("RD")) ?? pick((p) => p.preferredPosition === "Defender");
-    }
-
-    next["G_START"] = pick((p) => p.preferredPosition === "Goalie");
-    if (lineup.backupGoalieEnabled) next["G_BACKUP"] = pick((p) => p.preferredPosition === "Goalie");
-
-    lineup.assignments = next;
   }
 
   function autoFillLines() {
     if (!activeLineup) return;
 
-    // Build available pool (not currently assigned anywhere)
     const assigned = new Set(Object.values(activeLineup.assignments || {}).filter(Boolean));
     const pool = players.filter((p) => !assigned.has(p.id));
 
@@ -747,31 +684,25 @@ export default function Lineups({ data, setData }) {
       const order = buildFillOrder(lu);
 
       for (const slotId of order) {
-        // only fill empty slots (never overwrite)
         if (lu.assignments?.[slotId]) continue;
 
-        const code = slotToPosCode(slotId); // LW/C/RW/LD/RD/G
+        const code = slotToPosCode(slotId);
         const canPlayMatches = pool.filter((p) => (p.canPlay || []).includes(code));
 
-        // pick randomly: from matches first, otherwise from the whole pool
         const pickFrom = canPlayMatches.length ? canPlayMatches : pool;
         const chosen = pickRandomFrom(pickFrom);
         if (!chosen) break;
 
         lu.assignments[slotId] = chosen.id;
 
-        // remove chosen from pool so they can't be placed twice
         const poolIdx = pool.findIndex((p) => p.id === chosen.id);
         if (poolIdx >= 0) pool.splice(poolIdx, 1);
-
-        // optional early stop if pool is empty
         if (pool.length === 0) break;
       }
 
       normalizeAssignments(lu);
     });
   }
-
 
   function addForwardLine() {
     if (!activeLineup) return;
@@ -845,173 +776,168 @@ export default function Lineups({ data, setData }) {
     });
   }
 
-///PRINTING FUNCTIONALITY BELOW///
-function escapeHtml(s) {
-  return String(s ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function getCssVar(name) {
-  // reads current theme-applied CSS variables
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-}
-
-function pillHtml(player) {
-  if (!player) return `<div class="pill pill--empty"></div>`;
-
-  const num = escapeHtml(player.number);
-  const name = escapeHtml(player.name);
-  const lead = (player.leadership || "").trim();
-
-  return `
-    <div class="pill">
-      <div class="numCircle">#${num}</div>
-      <div class="pillName">${name}</div>
-      ${lead ? `<div class="leadCircle">${escapeHtml(lead)}</div>` : ``}
-    </div>
-  `;
-}
-
-function printLineupToPDF() {
-  if (!activeTeam || !activeLineup) return;
-
-  const w = window.open("", "_blank");
-  if (!w) {
-    alert("Popup blocked. Please allow popups.");
-    return;
+  /// PRINT HELPERS ///
+  function escapeHtml(s) {
+    return String(s ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
   }
 
-  // ✅ NEW: team-linked background image (Data URL). Empty = no background.
-  // Replace ' to avoid breaking the CSS url('...')
-  const bgImg = String(activeTeam.printBackgroundImage || "").replaceAll("'", "%27");
+  function pillHtml(player) {
+    if (!player) return `<div class="pill pill--empty"></div>`;
 
-  // Pull active theme colors from CSS variables (already set by your Theme page)
-  const activeTheme = data.themes?.find((t) => t.id === data.activeThemeId) || null;
+    const num = escapeHtml(player.number);
+    const name = escapeHtml(player.name);
+    const lead = (player.leadership || "").trim();
 
-  const teamC = activeTheme?.app?.printTeamColor ?? activeTheme?.app?.primary ?? "#d32f2f";
-  const labelsC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
-  const lineupTitleC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
-  const numberBackgroundC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
-
-  const text = labelsC;
-
-  const numberC = activeTheme?.app?.printCardText ?? activeTheme?.app?.surface ?? "#ffffff";
-  const playerNameC = activeTheme?.app?.printCardText ?? activeTheme?.app?.surface ?? "#ffffff";
-  const leadershipBackgroundC = activeTheme?.app?.printLeader ?? activeTheme?.app?.accent ?? "#ffd54a";
-
-  const teamName = escapeHtml(activeTeam.name);
-  const lineupName = escapeHtml(activeLineup.name);
-
-  const getPlayerForSlot = (slotId) => {
-    const pid = activeLineup.assignments?.[slotId];
-    return pid ? byId.get(pid) : null;
-  };
-
-  // Forward lines HTML (NO labels)
-  let forwards = "";
-  for (let i = 1; i <= activeLineup.forwardLines; i++) {
-    const lw = getPlayerForSlot(`F${i}_LW`);
-    const c = getPlayerForSlot(`F${i}_C`);
-    const rw = getPlayerForSlot(`F${i}_RW`);
-
-    forwards += `
-      <div class="pillRow pillRow--3">
-        <div class="edgePad"></div>
-        ${pillHtml(lw)}
-        ${pillHtml(c)}
-        ${pillHtml(rw)}
-        <div class="edgePad"></div>
+    return `
+      <div class="pill">
+        <div class="numCircle">#${num}</div>
+        <div class="pillName">${name}</div>
+        ${lead ? `<div class="leadCircle">${escapeHtml(lead)}</div>` : ``}
       </div>
     `;
   }
 
-  // Defence pairs HTML (NO labels) + edge pads
-  let defence = "";
-  for (let i = 1; i <= activeLineup.defencePairs; i++) {
-    const ld = getPlayerForSlot(`D${i}_LD`);
-    const rd = getPlayerForSlot(`D${i}_RD`);
+  async function exportLineupToImage() {
+    try {
+      if (!activeTeam || !activeLineup) return;
 
-    defence += `
-      <div class="pillRow pillRow--2">
-        <div class="edgePad"></div>
-        ${pillHtml(ld)}
-        ${pillHtml(rd)}
-        <div class="edgePad"></div>
-      </div>
-    `;
-  }
+      const activeTheme = data.themes?.find((t) => t.id === data.activeThemeId) || null;
 
-  // Goalies (1 or 2 depending on backup enabled)
-  const gs = getPlayerForSlot("G_START");
-  const gb = activeLineup.backupGoalieEnabled ? getPlayerForSlot("G_BACKUP") : null;
+      const teamC = activeTheme?.app?.printTeamColor ?? "#d32f2f";
+      const labelsC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
+      const lineupTitleC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
+      const numberBackgroundC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
+      const numberC = activeTheme?.app?.printCardText ?? activeTheme?.app?.surface ?? "#ffffff";
+      const playerNameC = activeTheme?.app?.printCardText ?? activeTheme?.app?.surface ?? "#ffffff";
+      const leadershipBackgroundC = activeTheme?.app?.printLeader ?? activeTheme?.app?.leader ?? "#ffd54a";
 
-  const goalies = `
-    <div class="goaliesStack">
-      <div class="pillRow pillRow--1">
-        <div class="edgePad"></div>
-        ${pillHtml(gs)}
-        <div class="edgePad"></div>
-      </div>
+      const bgImg = String(
+        activeTeam.printBackgroundImage || DEFAULT_PRINT_BG || ""
+      ).replaceAll("'", "%27");
 
-      ${
-        activeLineup.backupGoalieEnabled
-          ? `
-            <div class="pillRow pillRow--1">
-              ${pillHtml(gb)}
-            </div>
-          `
-          : ""
+
+
+      const teamName = escapeHtml(activeTeam.name);
+      const lineupName = escapeHtml(activeLineup.name);
+
+      // === Fixed 4:5 export size ===
+        const EXPORT_W = 1200;               // pick any width you like
+        const EXPORT_H = Math.round(EXPORT_W * 5 / 4); // 4:5 ratio
+
+      const getPlayerForSlot = (slotId) => {
+        const pid = activeLineup.assignments?.[slotId];
+        return pid ? byId.get(pid) : null;       
+      };
+
+      let forwards = "";
+      for (let i = 1; i <= activeLineup.forwardLines; i++) {
+        const lw = getPlayerForSlot(`F${i}_LW`);
+        const c = getPlayerForSlot(`F${i}_C`);
+        const rw = getPlayerForSlot(`F${i}_RW`);
+
+        forwards += `
+          <div class="pillRow pillRow--3">
+            <div class="edgePad"></div>
+            ${pillHtml(lw)}
+            ${pillHtml(c)}
+            ${pillHtml(rw)}
+            <div class="edgePad"></div>
+          </div>
+        `;
       }
-    </div>
-  `;
 
-  w.document.write(`
-    <!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <title>${teamName} - ${lineupName}</title>
+      let defence = "";
+      for (let i = 1; i <= activeLineup.defencePairs; i++) {
+        const ld = getPlayerForSlot(`D${i}_LD`);
+        const rd = getPlayerForSlot(`D${i}_RD`);
+
+        defence += `
+          <div class="pillRow pillRow--2">
+            <div class="edgePad"></div>
+            ${pillHtml(ld)}
+            ${pillHtml(rd)}
+            <div class="edgePad"></div>
+          </div>
+        `;
+      }
+
+      const gs = getPlayerForSlot("G_START");
+      const gb = activeLineup.backupGoalieEnabled ? getPlayerForSlot("G_BACKUP") : null;
+
+      const goalies = `
+        <div class="goaliesStack">
+          <div class="pillRow pillRow--1">
+            <div class="edgePad"></div>
+            ${pillHtml(gs)}
+            <div class="edgePad"></div>
+          </div>
+          ${
+            activeLineup.backupGoalieEnabled
+              ? `
+                <div class="pillRow pillRow--1">
+                  <div class="edgePad"></div>
+                  ${pillHtml(gb)}
+                  <div class="edgePad"></div>
+                </div>
+              `
+              : ""
+          }
+        </div>
+      `;
+
+      let host;
+
+      try {
+        host = document.createElement("div");
+        host.style.position = "fixed";
+        host.style.left = "-99999px";
+        host.style.top = "0";
+        host.style.width = `${EXPORT_W}px`;
+        host.style.height = `${EXPORT_H}px`;
+        host.style.background = "white";
+        host.style.zIndex = "-1";
+        document.body.appendChild(host);
+
+
+      host.innerHTML = `
         <style>
-          * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          @page { size: A4 portrait; margin: 18mm; }
-
-          body {
-            margin: 0;
+          * { box-sizing: border-box; }
+          .wrap {
+            position: relative;
+            width: ${EXPORT_W}px;
+            height: ${EXPORT_H}px;   /* ✅ fixed height */
+            overflow: hidden;        /* ✅ crops anything outside 4:5 frame */
             background: white;
             font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-            color: ${text};
+            color: ${labelsC};
           }
 
-          /* ✅ NEW: background layer (prints behind) */
           .bg {
-            position: fixed;
+            position: absolute;
             inset: 0;
-            z-index: 0;
             ${bgImg ? `background-image: url('${bgImg}');` : ""}
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            opacity: 0.90;          /* tweak if needed */
+            opacity: 0.90;
             pointer-events: none;
           }
-
           :root{
             --pillW: 272px;
             --pillGap: 10px;
             --pillH: 50px;
             --circle: 50px;
           }
-
           .sheet {
             position: relative;
-            z-index: 1; /* ✅ ensure content is above background */
-            padding: 4mm 4mm;
+            z-index: 1;
+            padding: 24px 24px;
           }
-
           .teamTitle {
             text-align: center;
             font-weight: 900;
@@ -1020,7 +946,6 @@ function printLineupToPDF() {
             color: ${teamC};
             margin: 0;
           }
-
           .lineupTitle {
             text-align: center;
             font-weight: 900;
@@ -1028,25 +953,15 @@ function printLineupToPDF() {
             margin: 16px 0 30px;
             color: ${lineupTitleC};
           }
-
-          /* sections become simple stacks */
-          .section {
-            display: grid;
-            gap: 14px;
-            margin-top: 14px;
-          }
-
-          /* Pills */
+          .section { display: grid; gap: 14px; margin-top: 14px; }
           .pillRow {
             display: grid;
             gap: var(--pillGap);
             justify-self: center;
           }
-
-          .pillRow--3 { grid-template-columns: repeat(3, var(--pillW)); }
-          .pillRow--2 { grid-template-columns: repeat(2, var(--pillW)); }
-          .pillRow--1 { grid-template-columns: repeat(1, var(--pillW)); }
-
+          .pillRow--3 { grid-template-columns: 2px repeat(3, var(--pillW)) 2px; }
+          .pillRow--2 { grid-template-columns: 2px repeat(2, var(--pillW)) 2px; }
+          .pillRow--1 { grid-template-columns: 2px repeat(1, var(--pillW)) 2px; }
           .pill {
             position: relative;
             height: var(--pillH);
@@ -1059,9 +974,7 @@ function printLineupToPDF() {
             padding-right: var(--circle);
             overflow: hidden;
           }
-
           .pill--empty { background: transparent; }
-
           .numCircle {
             position: absolute;
             left: 0px;
@@ -1076,7 +989,6 @@ function printLineupToPDF() {
             font-weight: 900;
             font-size: 16px;
           }
-
           .pillName {
             color: ${playerNameC};
             font-weight: 900;
@@ -1086,13 +998,7 @@ function printLineupToPDF() {
             text-overflow: ellipsis;
             padding: 0 10px 0 10px;
           }
-
-          .edgePad { width: 50px; height: 1px; } /* invisible */
-
-          .pillRow--3 { grid-template-columns: 2px repeat(3, var(--pillW)) 2px; }
-          .pillRow--2 { grid-template-columns: 2px repeat(2, var(--pillW)) 2px; }
-          .pillRow--1 { grid-template-columns: 2px repeat(1, var(--pillW)) 2px; }
-
+          .edgePad { width: 50px; height: 1px; }
           .leadCircle {
             position: absolute;
             right: 0px;
@@ -1107,62 +1013,318 @@ function printLineupToPDF() {
             font-weight: 900;
             font-size: 16px;
           }
-
-          .goaliesStack {
-            display: grid;
-            gap: var(--pillGap);
-          }
-
-          .spacer { height: 110px; }
-
-          a { color: inherit; text-decoration: none; }
+          .goaliesStack { display: grid; gap: var(--pillGap); }
+          .spacer { height: 123px; }
         </style>
-      </head>
-      <body>
-        ${bgImg ? `<div class="bg"></div>` : ""}
 
-        <div class="sheet">
-          <div class="spacer"></div>
-          <h1 class="teamTitle">${teamName}</h1>
-          <div class="lineupTitle">${lineupName}</div>
+        <div class="wrap" id="printSheet">
+          ${bgImg ? `<div class="bg"></div>` : ""}
+          <div class="sheet">
+            <div class="spacer"></div>
+            <h1 class="teamTitle">${teamName}</h1>
+            <div class="lineupTitle">${lineupName}</div>
 
-          <div class="spacer"></div>
-          <div class="section">
-            ${forwards}
+            <div class="spacer"></div>
+            <div class="section">${forwards}</div>
+
+            <div class="spacer"></div>
+            <div class="section">${defence}</div>
+
+            <div class="spacer"></div>
+            <div class="section">${goalies}</div>
           </div>
-
-          <div class="spacer"></div>
-
-          <div class="section">
-            ${defence}
-          </div>
-
-          <div class="spacer"></div>
-
-          <div class="section">
-            ${goalies}
-          </div>
-
         </div>
-      </body>
-    </html>
-  `);
+      `;
 
-  w.document.close();
+      const node = host.querySelector("#printSheet");
+      if (!node) throw new Error("printSheet node not found");
 
-  w.onload = () => {
-    w.focus();
-    w.print();
-    w.close();
-  };
-}
+      const canvas = await html2canvas(node, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+      });
 
+      const a = document.createElement("a");
+      a.href = canvas.toDataURL("image/png");
+      a.download = `${activeTeam.name} - ${activeLineup.name}.png`.replace(/[\\/:*?"<>|]/g, "_");
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } finally {
+      if (host) host.remove();
+    }
+    } catch (err) {
+      console.error("Export as image failed:", err);
+      alert("Export as image failed. Open DevTools console to see the error.");
+    }
+  }
 
+  function printLineupToPDF() {
+    if (!activeTeam || !activeLineup) return;
 
+    const w = window.open("", "_blank");
+    if (!w) {
+      alert("Popup blocked. Please allow popups.");
+      return;
+    }
 
-///PRINTING FUNCTIONALITY ABOVE///
+    const bgImg = String(activeTeam.printBackgroundImage || "").replaceAll("'", "%27");
+    const activeTheme = data.themes?.find((t) => t.id === data.activeThemeId) || null;
 
+    const teamC = activeTheme?.app?.printTeamColor ?? activeTheme?.app?.primary ?? "#d32f2f";
+    const labelsC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
+    const lineupTitleC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
+    const numberBackgroundC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
 
+    const text = labelsC;
+
+    const numberC = activeTheme?.app?.printCardText ?? activeTheme?.app?.surface ?? "#ffffff";
+    const playerNameC = activeTheme?.app?.printCardText ?? activeTheme?.app?.surface ?? "#ffffff";
+    const leadershipBackgroundC = activeTheme?.app?.printLeader ?? activeTheme?.app?.accent ?? "#ffd54a";
+
+    const teamName = escapeHtml(activeTeam.name);
+    const lineupName = escapeHtml(activeLineup.name);
+
+    const getPlayerForSlot = (slotId) => {
+      const pid = activeLineup.assignments?.[slotId];
+      return pid ? byId.get(pid) : null;
+    };
+
+    let forwards = "";
+    for (let i = 1; i <= activeLineup.forwardLines; i++) {
+      const lw = getPlayerForSlot(`F${i}_LW`);
+      const c = getPlayerForSlot(`F${i}_C`);
+      const rw = getPlayerForSlot(`F${i}_RW`);
+
+      forwards += `
+        <div class="pillRow pillRow--3">
+          <div class="edgePad"></div>
+          ${pillHtml(lw)}
+          ${pillHtml(c)}
+          ${pillHtml(rw)}
+          <div class="edgePad"></div>
+        </div>
+      `;
+    }
+
+    let defence = "";
+    for (let i = 1; i <= activeLineup.defencePairs; i++) {
+      const ld = getPlayerForSlot(`D${i}_LD`);
+      const rd = getPlayerForSlot(`D${i}_RD`);
+
+      defence += `
+        <div class="pillRow pillRow--2">
+          <div class="edgePad"></div>
+          ${pillHtml(ld)}
+          ${pillHtml(rd)}
+          <div class="edgePad"></div>
+        </div>
+      `;
+    }
+
+    const gs = getPlayerForSlot("G_START");
+    const gb = activeLineup.backupGoalieEnabled ? getPlayerForSlot("G_BACKUP") : null;
+
+    const goalies = `
+      <div class="goaliesStack">
+        <div class="pillRow pillRow--1">
+          <div class="edgePad"></div>
+          ${pillHtml(gs)}
+          <div class="edgePad"></div>
+        </div>
+        ${
+          activeLineup.backupGoalieEnabled
+            ? `
+              <div class="pillRow pillRow--1">
+                ${pillHtml(gb)}
+              </div>
+            `
+            : ""
+        }
+      </div>
+    `;
+
+    w.document.write(`
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${teamName} - ${lineupName}</title>
+          <style>
+            * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            @page { size: A4 portrait; margin: 18mm; }
+
+            body {
+              margin: 0;
+              background: white;
+              font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+              color: ${text};
+            }
+
+            .bg {
+              position: fixed;
+              inset: 0;
+              z-index: 0;
+              ${bgImg ? `background-image: url('${bgImg}');` : ""}
+              background-size: cover;
+              background-position: center;
+              background-repeat: no-repeat;
+              opacity: 0.90;
+              pointer-events: none;
+            }
+
+            :root{
+              --pillW: 272px;
+              --pillGap: 10px;
+              --pillH: 50px;
+              --circle: 50px;
+            }
+
+            .sheet {
+              position: relative;
+              z-index: 1;
+              padding: 24mm 24mm;
+            }
+
+            .teamTitle {
+              text-align: center;
+              font-weight: 900;
+              font-size: 56px;
+              letter-spacing: 0.5px;
+              color: ${teamC};
+              margin: 0;
+            }
+
+            .lineupTitle {
+              text-align: center;
+              font-weight: 900;
+              font-size: 28px;
+              margin: 16px 0 30px;
+              color: ${lineupTitleC};
+            }
+
+            .section {
+              display: grid;
+              gap: 14px;
+              margin-top: 14px;
+            }
+
+            .pillRow {
+              display: grid;
+              gap: var(--pillGap);
+              justify-self: center;
+            }
+
+            .pillRow--3 { grid-template-columns: 2px repeat(3, var(--pillW)) 2px; }
+            .pillRow--2 { grid-template-columns: 2px repeat(2, var(--pillW)) 2px; }
+            .pillRow--1 { grid-template-columns: 2px repeat(1, var(--pillW)) 2px; }
+
+            .pill {
+              position: relative;
+              height: var(--pillH);
+              width: var(--pillW);
+              border-radius: 999px;
+              background: ${teamC};
+              display: flex;
+              align-items: center;
+              padding-left: var(--circle);
+              padding-right: var(--circle);
+              overflow: hidden;
+            }
+
+            .pill--empty { background: transparent; }
+
+            .numCircle {
+              position: absolute;
+              left: 0px;
+              width: var(--circle);
+              height: var(--circle);
+              border-radius: 999px;
+              background: ${numberBackgroundC};
+              color: ${numberC};
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-weight: 900;
+              font-size: 16px;
+            }
+
+            .pillName {
+              color: ${playerNameC};
+              font-weight: 900;
+              font-size: 16px;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              padding: 0 10px 0 10px;
+            }
+
+            .edgePad { width: 50px; height: 1px; }
+
+            .leadCircle {
+              position: absolute;
+              right: 0px;
+              width: var(--circle);
+              height: var(--circle);
+              border-radius: 999px;
+              background: ${leadershipBackgroundC};
+              color: ${playerNameC};
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-weight: 900;
+              font-size: 16px;
+            }
+
+            .goaliesStack {
+              display: grid;
+              gap: var(--pillGap);
+            }
+
+            .spacer { height: 110px; }
+
+            a { color: inherit; text-decoration: none; }
+          </style>
+        </head>
+        <body>
+          ${bgImg ? `<div class="bg"></div>` : ""}
+
+          <div class="sheet">
+            <div class="spacer"></div>
+            <h1 class="teamTitle">${teamName}</h1>
+            <div class="lineupTitle">${lineupName}</div>
+
+            <div class="spacer"></div>
+            <div class="section">
+              ${forwards}
+            </div>
+
+            <div class="spacer"></div>
+
+            <div class="section">
+              ${defence}
+            </div>
+
+            <div class="spacer"></div>
+
+            <div class="section">
+              ${goalies}
+            </div>
+
+          </div>
+        </body>
+      </html>
+    `);
+
+    w.document.close();
+
+    w.onload = () => {
+      w.focus();
+      w.print();
+      w.close();
+    };
+  }
 
   if (!activeTeam) return <div>Please create/select a team in Rosters first.</div>;
   if (!activeLineup) return <div>Creating lineup…</div>;
@@ -1203,158 +1365,144 @@ function printLineupToPDF() {
   }
 
   return (
-  <div className="lineupsLayout" style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
-       
-    {/*<h2 style={{ margin: "0 0 6px", fontWeight: 900 }}>{activeTeam.name}</h2>*/}
-    <div style={{ marginTop: 0, padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
-            <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ fontWeight: 800 }}><h2 style={{ margin: "0 0 10px", fontWeight: 900 }}>{activeTeam.name}</h2> Line-ups</div>
-
-              <select
-                value={bucket.activeLineupId || ""}
-                onChange={(e) => setActiveLineupId(e.target.value)}
-                style={{ padding: "8px 10px", borderRadius: 12, border: "1px solid var(--border)" }}
-              >
-                {lineups.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                  </option>
-                ))}
-              </select>
-
-              <div className="lineupActions" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8 }}>
-                <button onClick={createNewLineup}>New</button>
-                <button onClick={renameLineup}>Rename</button>
-                <button onClick={duplicateLineup}>Duplicate</button>
-                <button onClick={deleteLineup}>Delete</button>
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
-              <div style={{ fontWeight: 900 }}>Structure</div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div>
-                  Forward lines: <b>{activeLineup.forwardLines}</b>
-                </div>
-                <div style={{ display: "flex", gap: 8, marginLeft: 8 }}>
-                  <button style={{ padding: "4px 8px", borderRadius: 8 }} onClick={removeForwardLine} disabled={activeLineup.forwardLines <= 1}>
-                    -
-                  </button>
-                  <button style={{ padding: "4px 7px", borderRadius: 8 }} onClick={addForwardLine} disabled={activeLineup.forwardLines >= MAX_FORWARD_LINES}>
-                    +
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div>
-                  Defence pairs: <b>{activeLineup.defencePairs}</b>
-                </div>
-                <div style={{ display: "flex", gap: 8, marginLeft: 8 }}>
-                  <button style={{ padding: "4px 8px", borderRadius: 8 }}onClick={removeDefPair} disabled={activeLineup.defencePairs <= 1}>
-                    -
-                  </button>
-                  <button style={{ padding: "4px 7px", borderRadius: 8 }} onClick={addDefPair} disabled={activeLineup.defencePairs >= MAX_DEF_PAIRS}>
-                    +
-                  </button>
-                </div>
-              </div>
-
-              <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <input type="checkbox" checked={!!activeLineup.backupGoalieEnabled} onChange={toggleBackupGoalie} />
-                Backup goalie enabled
-              </label>
-            
-              <div className="lineupActions" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
-                <button onClick={autoFillLines}>Auto-fill lines</button>
-                <button onClick={clearAllAssignments}>Clear all assignments</button>
-
-                <div style={{ display: "grid", gap: 6 }}>
-                  <button onClick={printLineupToPDF} disabled={printingBlocked}>
-                    Print current lines
-                  </button>
-                  
-                </div>
-              </div>
-              {printingBlocked ? ( 
-                    <div style={{ fontSize: 12, opacity: 0.85, lineHeight: 1.2, textAlign: "right" }}>
-                      ⚠️ Printing isn’t supported on mobile. Use a desktop browser.
-                    </div>
-
-              ) : null}
-            </div>
+    <div className="lineupsLayout" style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
+      <div style={{ marginTop: 0, padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
+        <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ fontWeight: 800 }}>
+            <h2 style={{ margin: "0 0 10px", fontWeight: 900 }}>{activeTeam.name}</h2> Line-ups
           </div>
-    
-    <div className="lineupsLayout" style={{ display: "grid", gridTemplateColumns: "310px 1fr", gap: 16 }}>
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        {/* LEFT PANEL */}
-        <div className="lineupsLeft" style={{ display: "grid", gap: 8 }}>
-          
 
-          <div style={{ padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
-            <AvailableDropZone>
-              <div style={{ fontWeight: 800, marginBottom: 10 }}>Available Players</div>
-              <div style={{ display: "grid", gap: 10 }}>
-                {available.map((p) => {
-                  const parts = String(p.name || "").trim().split(/\s+/).filter(Boolean);
-                  const firstName = parts[0] || "";
-                  const lastName = parts.slice(1).join(" ");
+          <select
+            value={bucket.activeLineupId || ""}
+            onChange={(e) => setActiveLineupId(e.target.value)}
+            style={{ padding: "8px 10px", borderRadius: 12, border: "1px solid var(--border)" }}
+          >
+            {lineups.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
 
-                  return (
-                    <DraggablePlayer
-                      key={p.id}
-                      id={p.id}
-                      preferredPosition={p.preferredPosition}
-                      label={{
-                        number: p.number,
-                        leadership: p.leadership || "",
-                        firstName,
-                        lastName,
-                      }}
-                      sublabel={(p.canPlay || []).length ? `Can play: ${p.canPlay.join(", ")}` : ""}
-                    />
-                  );
-                })}
-
-                {available.length === 0 && <div style={{ fontSize: 12, opacity: 0.65 }}>No available players (everyone assigned).</div>}
-              </div>
-            </AvailableDropZone>
+          <div className="lineupActions" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8 }}>
+            <button onClick={createNewLineup}>New</button>
+            <button onClick={renameLineup}>Rename</button>
+            <button onClick={duplicateLineup}>Duplicate</button>
+            <button onClick={deleteLineup}>Delete</button>
           </div>
         </div>
 
-        {/* RIGHT PANEL */}
-        <div style={{ display: "grid", gap: 12 }}>
-          <BoardSection title="Forward Lines">{forwardRows}</BoardSection>
-          <BoardSection title="Defence Pairs">{defRows}</BoardSection>
+        <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+          <div style={{ fontWeight: 900 }}>Structure</div>
 
-          <BoardSection title="Goalies">
-            <div className="goalieRow">
-              <RowLabel>.</RowLabel>
-
-              <div className="goalieGrid">
-                <Slot
-                  id="G_START"
-                  title="Starter (G)"
-                  assignments={activeLineup.assignments}
-                  byId={byId}
-                />
-
-                {activeLineup.backupGoalieEnabled ? (
-                  <Slot
-                    id="G_BACKUP"
-                    title="Backup (G)"
-                    assignments={activeLineup.assignments}
-                    byId={byId}
-                  />
-                ) : null}
-              </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div>
+              Forward lines: <b>{activeLineup.forwardLines}</b>
             </div>
-          </BoardSection>
+            <div style={{ display: "flex", gap: 8, marginLeft: 8 }}>
+              <button style={{ padding: "4px 8px", borderRadius: 8 }} onClick={removeForwardLine} disabled={activeLineup.forwardLines <= 1}>
+                -
+              </button>
+              <button style={{ padding: "4px 7px", borderRadius: 8 }} onClick={addForwardLine} disabled={activeLineup.forwardLines >= MAX_FORWARD_LINES}>
+                +
+              </button>
+            </div>
+          </div>
 
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div>
+              Defence pairs: <b>{activeLineup.defencePairs}</b>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginLeft: 8 }}>
+              <button style={{ padding: "4px 8px", borderRadius: 8 }} onClick={removeDefPair} disabled={activeLineup.defencePairs <= 1}>
+                -
+              </button>
+              <button style={{ padding: "4px 7px", borderRadius: 8 }} onClick={addDefPair} disabled={activeLineup.defencePairs >= MAX_DEF_PAIRS}>
+                +
+              </button>
+            </div>
+          </div>
+
+          <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <input type="checkbox" checked={!!activeLineup.backupGoalieEnabled} onChange={toggleBackupGoalie} />
+            Backup goalie enabled
+          </label>
+
+          <div className="lineupActions" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+            <button onClick={autoFillLines}>Auto-fill lines</button>
+            <button onClick={clearAllAssignments}>Clear all assignments</button>
+            <button onClick={exportLineupToImage}>Export lines (PNG)</button>
+            {/*
+            <div style={{ display: "grid", gap: 6 }}>
+              <button onClick={printLineupToPDF} disabled={printingBlocked}>
+                Print current lines
+              </button>
+            </div>
+            */}
+          </div>
+
+          {printingBlocked ? (
+            <div style={{ fontSize: 12, opacity: 0.85, lineHeight: 1.2, textAlign: "right" }}>
+              ⚠️ Printing isn’t supported on mobile. Use a desktop browser.
+            </div>
+          ) : null}
         </div>
-      </DndContext>
+      </div>
+
+      <div className="lineupsLayout" style={{ display: "grid", gridTemplateColumns: "310px 1fr", gap: 16 }}>
+        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+          <div className="lineupsLeft" style={{ display: "grid", gap: 8 }}>
+            <div style={{ padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
+              <AvailableDropZone>
+                <div style={{ fontWeight: 800, marginBottom: 10 }}>Available Players</div>
+                <div style={{ display: "grid", gap: 10 }}>
+                  {available.map((p) => {
+                    const parts = String(p.name || "").trim().split(/\s+/).filter(Boolean);
+                    const firstName = parts[0] || "";
+                    const lastName = parts.slice(1).join(" ");
+
+                    return (
+                      <DraggablePlayer
+                        key={p.id}
+                        id={p.id}
+                        preferredPosition={p.preferredPosition}
+                        label={{
+                          number: p.number,
+                          leadership: p.leadership || "",
+                          firstName,
+                          lastName,
+                        }}
+                        sublabel={(p.canPlay || []).length ? `Can play: ${p.canPlay.join(", ")}` : ""}
+                      />
+                    );
+                  })}
+
+                  {available.length === 0 && <div style={{ fontSize: 12, opacity: 0.65 }}>No available players (everyone assigned).</div>}
+                </div>
+              </AvailableDropZone>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gap: 12 }}>
+            <BoardSection title="Forward Lines">{forwardRows}</BoardSection>
+            <BoardSection title="Defence Pairs">{defRows}</BoardSection>
+
+            <BoardSection title="Goalies">
+              <div className="goalieRow">
+                <RowLabel>.</RowLabel>
+
+                <div className="goalieGrid">
+                  <Slot id="G_START" title="Starter (G)" assignments={activeLineup.assignments} byId={byId} />
+
+                  {activeLineup.backupGoalieEnabled ? (
+                    <Slot id="G_BACKUP" title="Backup (G)" assignments={activeLineup.assignments} byId={byId} />
+                  ) : null}
+                </div>
+              </div>
+            </BoardSection>
+          </div>
+        </DndContext>
+      </div>
     </div>
-  </div>
   );
 }
