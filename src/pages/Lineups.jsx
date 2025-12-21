@@ -986,13 +986,13 @@ export default function Lineups({ data, setData }) {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 900;
-            font-size: 16px;
+            font-weight: 700;
+            font-size: 20px;
           }
           .pillName {
             color: ${playerNameC};
             font-weight: 900;
-            font-size: 16px;
+            font-size: 17px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -1010,8 +1010,8 @@ export default function Lineups({ data, setData }) {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 900;
-            font-size: 16px;
+            font-weight: 700;
+            font-size: 20px;
           }
           .goaliesStack { display: grid; gap: var(--pillGap); }
           .spacer { height: 123px; }
