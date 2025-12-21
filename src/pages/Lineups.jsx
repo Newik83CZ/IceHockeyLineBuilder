@@ -347,7 +347,7 @@ function createLineup(name = "New lineup") {
     name,
     forwardLines: 3,
     defencePairs: 2,
-    backupGoalieEnabled: true,
+    backupGoalieEnabled: false,
     assignments: {},
     createdAt: Date.now(),
     updatedAt: Date.now(),
