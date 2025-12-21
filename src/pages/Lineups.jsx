@@ -156,6 +156,12 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
             whiteSpace: "nowrap",
           }}
         >
+          {labelObj.number !== "" && labelObj.number !== null ? (
+            <span style={{ flexShrink: 0, fontSize: `22px`, fontWeight: 700, opacity: 1 }}>
+              #{labelObj.number}
+            </span>
+          ) : null}
+
           {labelObj.leadership ? (
             <span
               ref={badgeRef}
@@ -172,12 +178,6 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
               title={labelObj.leadership === "C" ? "Captain" : "Alternate"}
             >
               {labelObj.leadership}
-            </span>
-          ) : null}
-
-          {labelObj.number !== "" && labelObj.number !== null ? (
-            <span style={{ flexShrink: 0, fontSize: `18px`, opacity: 0.85 }}>
-              #{labelObj.number}
             </span>
           ) : null}
         </div>
@@ -201,7 +201,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                fontSize: `${nameSize * 0.85}px`,
+                fontSize: `${nameSize * 0.95}px`,
                 fontWeight: 700,
                 opacity: 0.9,
               }}
@@ -1000,10 +1000,10 @@ function printLineupToPDF() {
           }
 
           :root{
-            --pillW: 245px;
+            --pillW: 272px;
             --pillGap: 10px;
-            --pillH: 40px;
-            --circle: 40px;
+            --pillH: 50px;
+            --circle: 50px;
           }
 
           .sheet {
@@ -1074,17 +1074,17 @@ function printLineupToPDF() {
             align-items: center;
             justify-content: center;
             font-weight: 900;
-            font-size: 12px;
+            font-size: 16px;
           }
 
           .pillName {
             color: ${playerNameC};
             font-weight: 900;
-            font-size: 14px;
+            font-size: 16px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            padding: 0 8px 0 6px;
+            padding: 0 10px 0 10px;
           }
 
           .edgePad { width: 50px; height: 1px; } /* invisible */
@@ -1105,7 +1105,7 @@ function printLineupToPDF() {
             align-items: center;
             justify-content: center;
             font-weight: 900;
-            font-size: 14px;
+            font-size: 16px;
           }
 
           .goaliesStack {
@@ -1113,7 +1113,7 @@ function printLineupToPDF() {
             gap: var(--pillGap);
           }
 
-          .spacer { height: 100px; }
+          .spacer { height: 110px; }
 
           a { color: inherit; text-decoration: none; }
         </style>
@@ -1274,13 +1274,7 @@ function printLineupToPDF() {
                   <button onClick={printLineupToPDF} disabled={printingBlocked}>
                     Print current lines
                   </button>
-
-                  {printingBlocked ? (
-                    <div style={{ fontSize: 12, opacity: 0.85, lineHeight: 1.2 }}>
-                      ⚠️ Printing isn’t supported on mobile. Use a desktop browser.
-                    </div>
-
-                  ) : null}
+                  
                 </div>
               </div>
               {printingBlocked ? ( 
