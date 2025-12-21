@@ -251,6 +251,10 @@ export default function ThemePage({ data, setData }) {
             />
           </div>
         </Card>
+
+        {/* ...existing Theme tab content... */}
+        <ResetFactoryCard />
+
       </div>
     </div>
   );
@@ -306,3 +310,142 @@ function ColorRow({ label, value, onChange }) {
 function Badge({ text, style }) {
   return <div style={{ padding: "8px 10px", borderRadius: 999, fontWeight: 800, ...style }}>{text}</div>;
 }
+
+// --- RESET CARD (place near bottom of Theme tab render) ---
+function ResetFactoryCard() {
+  const [open, setOpen] = React.useState(false);
+  const [checked, setChecked] = React.useState(false);
+
+  function close() {
+    setOpen(false);
+    setChecked(false);
+  }
+
+  function doFactoryReset() {
+    // Wipe ONLY this app's persisted state
+    localStorage.removeItem("ihlbuilder_v1");
+
+    // Ask app to open Rosters after reload
+    sessionStorage.setItem("ihlbuilder_postreset_tab", "rosters");
+
+    // Hard reset = safest (clears in-memory state too)
+    window.location.reload();
+  }
+
+  return (
+    <div
+      style={{
+        marginTop: 16,
+        padding: 12,
+        borderRadius: 14,
+        border: "1px solid var(--border)",
+        background: "var(--surface)",
+      }}
+    >
+      <div style={{ fontWeight: 900, marginBottom: 10 }}>RESET</div>
+
+      <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.35, marginBottom: 10 }}>
+        This will permanently delete all saved data on this device/browser (teams, rosters, lineups,
+        themes, and settings). This cannot be undone.
+      </div>
+
+      <button
+        onClick={() => setOpen(true)}
+        style={{
+          width: "100%",
+          padding: "10px 12px",
+          borderRadius: 12,
+          border: "1px solid var(--border)",
+          fontWeight: 900,
+          background: "var(--errorBubble, #ff4d4d)",
+          color: "white",
+        }}
+      >
+        Factory reset
+      </button>
+
+      {open ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            background: "rgba(0,0,0,0.45)",
+            display: "grid",
+            placeItems: "center",
+            padding: 16,
+          }}
+          onMouseDown={(e) => {
+            // click outside to close
+            if (e.target === e.currentTarget) close();
+          }}
+        >
+          <div
+            style={{
+              width: "min(520px, 100%)",
+              borderRadius: 16,
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
+              padding: 14,
+              boxShadow: "0 18px 50px rgba(0,0,0,0.25)",
+            }}
+          >
+            <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 8 }}>
+              Confirm factory reset
+            </div>
+
+            <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.35, marginBottom: 12 }}>
+              You are about to delete <b>everything</b> saved by this app on this device/browser.
+              This cannot be undone.
+            </div>
+
+            <label style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={(e) => setChecked(e.target.checked)}
+              />
+              <span style={{ fontSize: 13 }}>
+                I understand this will delete all my saved data.
+              </span>
+            </label>
+
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button
+                onClick={close}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid var(--border)",
+                  background: "transparent",
+                  fontWeight: 800,
+                }}
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={doFactoryReset}
+                disabled={!checked}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid var(--border)",
+                  fontWeight: 900,
+                  background: !checked ? "rgba(0,0,0,0.12)" : "var(--errorBubble, #ff4d4d)",
+                  color: !checked ? "rgba(0,0,0,0.55)" : "white",
+                  cursor: !checked ? "not-allowed" : "pointer",
+                }}
+              >
+                Reset app
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
