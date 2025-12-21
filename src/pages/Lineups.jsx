@@ -462,7 +462,7 @@ export default function Lineups({ data, setData }) {
       const legacyKey = `lineup_${teamId}`;
       const legacy = d[legacyKey];
 
-      const first = createLineup("Lineup 1");
+      const first = createLineup("Variant 1");
       ensureAssignmentsShape(first);
 
       if (legacy?.assignments) first.assignments = legacy.assignments;
