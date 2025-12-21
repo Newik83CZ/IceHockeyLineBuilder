@@ -16,7 +16,6 @@ const MAX_FORWARD_LINES = 4;
 const MAX_DEF_PAIRS = 4;
 const DEFAULT_PRINT_BG = "/print-default-bg.png"; // public/print-default-bg.png
 
-
 /* ===================== UI: Draggable Player ===================== */
 
 function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = false }) {
@@ -432,6 +431,10 @@ export default function Lineups({ data, setData }) {
 
   const printingBlocked = isMobile;
 
+  const [exportPreviewOpen, setExportPreviewOpen] = useState(false);
+  const [exportPreviewUrl, setExportPreviewUrl] = useState("");
+  const [exportBusy, setExportBusy] = useState(false);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { distance: 10 } })
@@ -802,108 +805,105 @@ export default function Lineups({ data, setData }) {
     `;
   }
 
-  async function exportLineupToImage() {
-    try {
-      if (!activeTeam || !activeLineup) return;
+  // =========================
+  // NEW: shared canvas renderer (keeps your export layout EXACTLY the same)
+  // =========================
+  async function renderExportCanvas({ scale = 2 } = {}) {
+    if (!activeTeam || !activeLineup) return null;
 
-      const activeTheme = data.themes?.find((t) => t.id === data.activeThemeId) || null;
+    const activeTheme = data.themes?.find((t) => t.id === data.activeThemeId) || null;
 
-      const teamC = activeTheme?.app?.printTeamColor ?? "#d32f2f";
-      const labelsC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
-      const lineupTitleC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
-      const numberBackgroundC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
-      const numberC = activeTheme?.app?.printCardText ?? activeTheme?.app?.surface ?? "#ffffff";
-      const playerNameC = activeTheme?.app?.printCardText ?? activeTheme?.app?.surface ?? "#ffffff";
-      const leadershipBackgroundC = activeTheme?.app?.printLeader ?? activeTheme?.app?.leader ?? "#ffd54a";
+    const teamC = activeTheme?.app?.printTeamColor ?? "#d32f2f";
+    const labelsC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
+    const lineupTitleC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
+    const numberBackgroundC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
+    const numberC = activeTheme?.app?.printCardText ?? activeTheme?.app?.surface ?? "#ffffff";
+    const playerNameC = activeTheme?.app?.printCardText ?? activeTheme?.app?.surface ?? "#ffffff";
+    const leadershipBackgroundC = activeTheme?.app?.printLeader ?? activeTheme?.app?.leader ?? "#ffd54a";
 
-      const bgImg = String(
-        activeTeam.printBackgroundImage || DEFAULT_PRINT_BG || ""
-      ).replaceAll("'", "%27");
+    const bgImg = String(activeTeam.printBackgroundImage || DEFAULT_PRINT_BG || "").replaceAll("'", "%27");
 
+    const teamName = escapeHtml(activeTeam.name);
+    const lineupName = escapeHtml(activeLineup.name);
 
+    // === Fixed 4:5 export size ===
+    const EXPORT_W = 1200;
+    const EXPORT_H = Math.round((EXPORT_W * 5) / 4);
 
-      const teamName = escapeHtml(activeTeam.name);
-      const lineupName = escapeHtml(activeLineup.name);
+    const getPlayerForSlot = (slotId) => {
+      const pid = activeLineup.assignments?.[slotId];
+      return pid ? byId.get(pid) : null;
+    };
 
-      // === Fixed 4:5 export size ===
-        const EXPORT_W = 1200;               // pick any width you like
-        const EXPORT_H = Math.round(EXPORT_W * 5 / 4); // 4:5 ratio
+    let forwards = "";
+    for (let i = 1; i <= activeLineup.forwardLines; i++) {
+      const lw = getPlayerForSlot(`F${i}_LW`);
+      const c = getPlayerForSlot(`F${i}_C`);
+      const rw = getPlayerForSlot(`F${i}_RW`);
 
-      const getPlayerForSlot = (slotId) => {
-        const pid = activeLineup.assignments?.[slotId];
-        return pid ? byId.get(pid) : null;       
-      };
-
-      let forwards = "";
-      for (let i = 1; i <= activeLineup.forwardLines; i++) {
-        const lw = getPlayerForSlot(`F${i}_LW`);
-        const c = getPlayerForSlot(`F${i}_C`);
-        const rw = getPlayerForSlot(`F${i}_RW`);
-
-        forwards += `
-          <div class="pillRow pillRow--3">
-            <div class="edgePad"></div>
-            ${pillHtml(lw)}
-            ${pillHtml(c)}
-            ${pillHtml(rw)}
-            <div class="edgePad"></div>
-          </div>
-        `;
-      }
-
-      let defence = "";
-      for (let i = 1; i <= activeLineup.defencePairs; i++) {
-        const ld = getPlayerForSlot(`D${i}_LD`);
-        const rd = getPlayerForSlot(`D${i}_RD`);
-
-        defence += `
-          <div class="pillRow pillRow--2">
-            <div class="edgePad"></div>
-            ${pillHtml(ld)}
-            ${pillHtml(rd)}
-            <div class="edgePad"></div>
-          </div>
-        `;
-      }
-
-      const gs = getPlayerForSlot("G_START");
-      const gb = activeLineup.backupGoalieEnabled ? getPlayerForSlot("G_BACKUP") : null;
-
-      const goalies = `
-        <div class="goaliesStack">
-          <div class="pillRow pillRow--1">
-            <div class="edgePad"></div>
-            ${pillHtml(gs)}
-            <div class="edgePad"></div>
-          </div>
-          ${
-            activeLineup.backupGoalieEnabled
-              ? `
-                <div class="pillRow pillRow--1">
-                  <div class="edgePad"></div>
-                  ${pillHtml(gb)}
-                  <div class="edgePad"></div>
-                </div>
-              `
-              : ""
-          }
+      forwards += `
+        <div class="pillRow pillRow--3">
+          <div class="edgePad"></div>
+          ${pillHtml(lw)}
+          ${pillHtml(c)}
+          ${pillHtml(rw)}
+          <div class="edgePad"></div>
         </div>
       `;
+    }
 
-      let host;
+    let defence = "";
+    for (let i = 1; i <= activeLineup.defencePairs; i++) {
+      const ld = getPlayerForSlot(`D${i}_LD`);
+      const rd = getPlayerForSlot(`D${i}_RD`);
 
-      try {
-        host = document.createElement("div");
-        host.style.position = "fixed";
-        host.style.left = "-99999px";
-        host.style.top = "0";
-        host.style.width = `${EXPORT_W}px`;
-        host.style.height = `${EXPORT_H}px`;
-        host.style.background = "white";
-        host.style.zIndex = "-1";
-        document.body.appendChild(host);
+      defence += `
+        <div class="pillRow pillRow--2">
+          <div class="edgePad"></div>
+          ${pillHtml(ld)}
+          ${pillHtml(rd)}
+          <div class="edgePad"></div>
+        </div>
+      `;
+    }
 
+    const gs = getPlayerForSlot("G_START");
+    const gb = activeLineup.backupGoalieEnabled ? getPlayerForSlot("G_BACKUP") : null;
 
+    const goalies = `
+      <div class="goaliesStack">
+        <div class="pillRow pillRow--1">
+          <div class="edgePad"></div>
+          ${pillHtml(gs)}
+          <div class="edgePad"></div>
+        </div>
+        ${
+          activeLineup.backupGoalieEnabled
+            ? `
+              <div class="pillRow pillRow--1">
+                <div class="edgePad"></div>
+                ${pillHtml(gb)}
+                <div class="edgePad"></div>
+              </div>
+            `
+            : ""
+        }
+      </div>
+    `;
+
+    let host;
+    try {
+      host = document.createElement("div");
+      host.style.position = "fixed";
+      host.style.left = "-99999px";
+      host.style.top = "0";
+      host.style.width = `${EXPORT_W}px`;
+      host.style.height = `${EXPORT_H}px`;
+      host.style.background = "white";
+      host.style.zIndex = "-1";
+      document.body.appendChild(host);
+
+      // IMPORTANT: this is your SAME export HTML/CSS (unchanged layout)
       host.innerHTML = `
         <style>
           * { box-sizing: border-box; }
@@ -1040,10 +1040,54 @@ export default function Lineups({ data, setData }) {
       if (!node) throw new Error("printSheet node not found");
 
       const canvas = await html2canvas(node, {
-        scale: 2,
+        scale,
         backgroundColor: "#ffffff",
         useCORS: true,
       });
+
+      return canvas;
+    } finally {
+      if (host) host.remove();
+    }
+  }
+
+  // =========================
+  // NEW: preview handler
+  // =========================
+  async function previewExportImage() {
+    try {
+      if (exportBusy) return;
+      setExportBusy(true);
+      setExportPreviewUrl("");
+      setExportPreviewOpen(true);
+
+      const canvas = await renderExportCanvas({ scale: 1 }); // faster preview
+      if (!canvas) {
+        setExportPreviewOpen(false);
+        return;
+      }
+      setExportPreviewUrl(canvas.toDataURL("image/png"));
+    } catch (err) {
+      console.error("Preview export failed:", err);
+      alert("Preview export failed. Open DevTools console to see the error.");
+      setExportPreviewOpen(false);
+    } finally {
+      setExportBusy(false);
+    }
+  }
+
+  // =========================
+  // CHANGED: export uses the shared renderer (layout unchanged)
+  // =========================
+  async function exportLineupToImage() {
+    try {
+      if (!activeTeam || !activeLineup) return;
+      if (exportBusy) return;
+
+      setExportBusy(true);
+
+      const canvas = await renderExportCanvas({ scale: 2 }); // same as your current export
+      if (!canvas) return;
 
       const a = document.createElement("a");
       a.href = canvas.toDataURL("image/png");
@@ -1051,12 +1095,11 @@ export default function Lineups({ data, setData }) {
       document.body.appendChild(a);
       a.click();
       a.remove();
-    } finally {
-      if (host) host.remove();
-    }
     } catch (err) {
       console.error("Export as image failed:", err);
       alert("Export as image failed. Open DevTools console to see the error.");
+    } finally {
+      setExportBusy(false);
     }
   }
 
@@ -1428,10 +1471,11 @@ export default function Lineups({ data, setData }) {
             Backup goalie enabled
           </label>
 
-          <div className="lineupActions" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+          <div className="lineupActions" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8 }}>
             <button onClick={autoFillLines}>Auto-fill lines</button>
             <button onClick={clearAllAssignments}>Clear all assignments</button>
-            <button onClick={exportLineupToImage}>Export lines (PNG)</button>
+            <button onClick={previewExportImage} disabled={exportBusy}>Preview export</button>
+            <button onClick={exportLineupToImage} disabled={exportBusy}>Export lines (PNG)</button>
             {/*
             <div style={{ display: "grid", gap: 6 }}>
               <button onClick={printLineupToPDF} disabled={printingBlocked}>
@@ -1440,12 +1484,13 @@ export default function Lineups({ data, setData }) {
             </div>
             */}
           </div>
-
+          {/*
           {printingBlocked ? (
             <div style={{ fontSize: 12, opacity: 0.85, lineHeight: 1.2, textAlign: "right" }}>
               ⚠️ Printing isn’t supported on mobile. Use a desktop browser.
             </div>
           ) : null}
+          */}
         </div>
       </div>
 
@@ -1503,6 +1548,67 @@ export default function Lineups({ data, setData }) {
           </div>
         </DndContext>
       </div>
+
+      {/* ===================== Preview Modal ===================== */}
+      {exportPreviewOpen ? (
+        <div
+          onClick={() => setExportPreviewOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.55)",
+            display: "grid",
+            placeItems: "center",
+            zIndex: 9999,
+            padding: 16,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "min(560px, 95vw)",
+              background: "var(--surface)",
+              borderRadius: 16,
+              border: "1px solid var(--border)",
+              padding: 12,
+              display: "grid",
+              gap: 10,
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontWeight: 900 }}>Export Preview (4:5)</div>
+              <button onClick={() => setExportPreviewOpen(false)}>Close</button>
+            </div>
+
+            {exportPreviewUrl ? (
+              <img
+                src={exportPreviewUrl}
+                alt="Export Preview"
+                style={{
+                  width: "100%",
+                  aspectRatio: "4 / 5",
+                  objectFit: "contain",
+                  borderRadius: 12,
+                  border: "1px solid var(--border)",
+                  background: "#fff",
+                }}
+              />
+            ) : (
+              <div style={{ padding: 20, opacity: 0.8 }}>Generating preview…</div>
+            )}
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <button
+                onClick={exportLineupToImage}
+                disabled={exportBusy}
+              >
+                Download PNG
+              </button>
+              <button onClick={() => setExportPreviewOpen(false)}>Back</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
