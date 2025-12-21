@@ -56,7 +56,8 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
   const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 800px)").matches;
 
   const lastNameFixed =
-    labelObj.lastName && labelObj.lastName.length <= 7 ? (isMobile ? 14 : 18) : null;
+    //labelObj.lastName && labelObj.lastName.length <= 7 ? (isMobile ? 14 : 18) : null;
+    labelObj.firstName && labelObj.firstName.length <= 7 ? (isMobile ? 14 : 18) : null;
 
   useLayoutEffect(() => {
     const rowEl = rowRef.current;
