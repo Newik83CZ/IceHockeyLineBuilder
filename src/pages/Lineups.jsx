@@ -57,7 +57,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
 
   const NameFixed =
     //labelObj.lastName && labelObj.lastName.length <= 7 ? (isMobile ? 14 : 18) : null;
-    labelObj.firstName && labelObj.firstName.length <= 7 ? (isMobile ? 16 : 18) : null;
+    labelObj.firstName && labelObj.firstName.length <= 5 ? (isMobile ? 16 : 18) : null;
 
   useLayoutEffect(() => {
     const rowEl = rowRef.current;
