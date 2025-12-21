@@ -55,7 +55,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
 
   const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 800px)").matches;
 
-  const lastNameFixed =
+  const NameFixed =
     //labelObj.lastName && labelObj.lastName.length <= 7 ? (isMobile ? 14 : 18) : null;
     labelObj.firstName && labelObj.firstName.length <= 7 ? (isMobile ? 12 : 18) : null;
 
@@ -178,7 +178,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                fontSize: `${nameSize * 0.95}px`,
+                fontSize: NameFixed ?? `${nameSize * 1.01}px`,
                 fontWeight: 700,
                 opacity: 0.9,
               }}
@@ -194,7 +194,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                fontSize: lastNameFixed ?? `${nameSize * 1.01}px`,
+                fontSize: NameFixed ?? `${nameSize * 1.01}px`,
                 fontWeight: 900,
                 opacity: 0.95,
                 lineHeight: 1.05,
