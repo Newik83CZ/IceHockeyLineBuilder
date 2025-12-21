@@ -216,7 +216,7 @@ export function createEmptyAppData() {
     }),
     createPlayer({
       number: "93",
-      name: "PRACTNY",
+      name: "PRACNY",
       preferredPosition: "Defender",
       leadership: "A",
       stick: "Left",
