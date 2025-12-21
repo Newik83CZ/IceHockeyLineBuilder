@@ -178,9 +178,9 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                fontSize: NameFixed ?? `${nameSize * 1.01}px`,
+                fontSize: NameFixed ?? `${nameSize * 1.1}px`,
                 fontWeight: 700,
-                opacity: 0.9,
+                opacity: 1,
               }}
             >
               {labelObj.firstName}
@@ -194,7 +194,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                fontSize: NameFixed ?? `${nameSize * 1.01}px`,
+                fontSize: NameFixed ?? `${nameSize * 1.1}px`,
                 fontWeight: 900,
                 opacity: 0.95,
                 lineHeight: 1.05,
