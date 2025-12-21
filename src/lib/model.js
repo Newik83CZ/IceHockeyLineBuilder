@@ -8,16 +8,16 @@ export function newId() {
  */
 export const DEFAULT_THEME_APP = {
   // UI
-  background: "#ffffff",
-  surface: "#f8fafc",
-  text: "#0f172a",
+  background: "#d7c4b4",
+  surface: "#fcfaf8",
+  text: "#1d1d1d",
   border: "rgba(0,0,0,0.12)",
 
   // NEW names (buttons replaces old primary)
-  buttons: "#2563eb",
+  buttons: "#961f1f",
 
   // NEW leadership color (replaces old accent for this purpose)
-  leader: "#ffc061",
+  leader: "#f2a900",
 
   // ✅ NEW: error bubble color
   errorBubble: "#dc2626",
@@ -30,10 +30,10 @@ export const DEFAULT_THEME_APP = {
 };
 
 export const DEFAULT_POSITION_COLORS = {
-  Centre: "#ad724b",
-  Wing: "#654321",
-  Defender: "#1e1f1b",
-  Goalie: "#3b3c35",
+  Centre: "#5a3e00",
+  Wing: "#865c00",
+  Defender: "#3b2a00",
+  Goalie: "#b77c00",
 };
 
 /**
