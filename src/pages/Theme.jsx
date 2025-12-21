@@ -356,7 +356,7 @@ function ResetFactoryCard() {
       <button
         onClick={() => setOpen(true)}
         style={{
-          width: "100%",
+          width: 290,
           padding: "10px 12px",
           borderRadius: 12,
           border: "1px solid var(--border)",
@@ -414,7 +414,7 @@ function ResetFactoryCard() {
                   padding: "10px 12px",
                   borderRadius: 12,
                   border: "1px solid var(--border)",
-                  background: "transparent",
+                  background: "var(--buttons)",
                   fontWeight: 800,
                 }}
               >
