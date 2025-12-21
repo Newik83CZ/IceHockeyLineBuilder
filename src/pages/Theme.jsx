@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { createTheme } from "../lib/model";
 
 const POSITIONS = ["Centre", "Wing", "Defender", "Goalie"];
@@ -165,12 +165,13 @@ export default function ThemePage({ data, setData }) {
 
         <Card title="Preferred Position Colors">
           {POSITIONS.map((pos) => (
-            <ColorRow key={pos} label={pos} value={activeTheme.positions?.[pos] || "#999999"} onChange={(v) => setPosColor(pos, v)} />
+            <ColorRow
+              key={pos}
+              label={pos}
+              value={activeTheme.positions?.[pos] || "#999999"}
+              onChange={(v) => setPosColor(pos, v)}
+            />
           ))}
-
-          
-
-          {/* ✅ NEW */}
           <ColorRow label="Error bubble" value={uiErrorBubble} onChange={(v) => setAppColor("errorBubble", v)} />
         </Card>
 
@@ -185,15 +186,25 @@ export default function ThemePage({ data, setData }) {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, fontSize: 14 }}>
             <Badge text="Background" style={{ background: "var(--background)", color: "var(--text)" }} />
             <Badge text="Buttons" style={{ background: "var(--buttons)", color: "var(--surface)" }} />
-            <Badge text="Surface" style={{ background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)" }} />
-            <Badge text="C" style={{ 
-              background: "transparent",
-              color: "var(--leader)",
-              borderRight: "2px solid var(--leader)",
-              borderLeft: "2px solid var(--leader)", 
-              paddingLeft: 14,
-              paddingRight: 14
-              }} />
+            <Badge
+              text="Surface"
+              style={{
+                background: "var(--surface)",
+                color: "var(--text)",
+                border: "1px solid var(--border)",
+              }}
+            />
+            <Badge
+              text="C"
+              style={{
+                background: "transparent",
+                color: "var(--leader)",
+                borderRight: "2px solid var(--leader)",
+                borderLeft: "2px solid var(--leader)",
+                paddingLeft: 14,
+                paddingRight: 14,
+              }}
+            />
           </div>
 
           <hr />
@@ -203,10 +214,13 @@ export default function ThemePage({ data, setData }) {
               <Badge
                 key={p}
                 text={p}
-                style={{ background: `var(--pos-${p.toLowerCase()})`, color: "var(--surface)", border: `1px solid var(--buttons)` }}
+                style={{
+                  background: `var(--pos-${p.toLowerCase()})`,
+                  color: "var(--surface)",
+                  border: `1px solid var(--buttons)`,
+                }}
               />
             ))}
-            
             <Badge text="Error" style={{ background: "var(--errorBubble)", color: "white" }} />
           </div>
 
@@ -214,7 +228,7 @@ export default function ThemePage({ data, setData }) {
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 5, marginBottom: 10, fontSize: 14 }}>
             <Badge text="Team" style={{ background: "white", color: "var(--printTeamColor)" }} />
-            
+
             <Badge
               text="#99"
               style={{
@@ -252,9 +266,8 @@ export default function ThemePage({ data, setData }) {
           </div>
         </Card>
 
-        {/* ...existing Theme tab content... */}
+        {/* ✅ NEW: Factory reset card (bottom) */}
         <ResetFactoryCard />
-
       </div>
     </div>
   );
@@ -311,10 +324,11 @@ function Badge({ text, style }) {
   return <div style={{ padding: "8px 10px", borderRadius: 999, fontWeight: 800, ...style }}>{text}</div>;
 }
 
-// --- RESET CARD (place near bottom of Theme tab render) ---
+/* ===================== RESET CARD ===================== */
+
 function ResetFactoryCard() {
-  const [open, setOpen] = React.useState(false);
-  const [checked, setChecked] = React.useState(false);
+  const [open, setOpen] = useState(false);
+  const [checked, setChecked] = useState(false);
 
   function close() {
     setOpen(false);
@@ -325,28 +339,18 @@ function ResetFactoryCard() {
     // Wipe ONLY this app's persisted state
     localStorage.removeItem("ihlbuilder_v1");
 
-    // Ask app to open Rosters after reload
+    // Ask App.jsx to land on Rosters after reload
     sessionStorage.setItem("ihlbuilder_postreset_tab", "rosters");
 
-    // Hard reset = safest (clears in-memory state too)
+    // Hard reset clears in-memory state too
     window.location.reload();
   }
 
   return (
-    <div
-      style={{
-        marginTop: 16,
-        padding: 12,
-        borderRadius: 14,
-        border: "1px solid var(--border)",
-        background: "var(--surface)",
-      }}
-    >
-      <div style={{ fontWeight: 900, marginBottom: 10 }}>RESET</div>
-
-      <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.35, marginBottom: 10 }}>
-        This will permanently delete all saved data on this device/browser (teams, rosters, lineups,
-        themes, and settings). This cannot be undone.
+    <Card title="RESET">
+      <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.35 }}>
+        This will permanently delete all saved data on this device/browser (teams, rosters, lineups, themes, and
+        settings). This cannot be undone.
       </div>
 
       <button
@@ -357,7 +361,7 @@ function ResetFactoryCard() {
           borderRadius: 12,
           border: "1px solid var(--border)",
           fontWeight: 900,
-          background: "var(--errorBubble, #ff4d4d)",
+          background: "var(--errorBubble, #dc2626)",
           color: "white",
         }}
       >
@@ -392,24 +396,15 @@ function ResetFactoryCard() {
               boxShadow: "0 18px 50px rgba(0,0,0,0.25)",
             }}
           >
-            <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 8 }}>
-              Confirm factory reset
-            </div>
+            <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 8 }}>Confirm factory reset</div>
 
             <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.35, marginBottom: 12 }}>
-              You are about to delete <b>everything</b> saved by this app on this device/browser.
-              This cannot be undone.
+              You are about to delete <b>everything</b> saved by this app on this device/browser. This cannot be undone.
             </div>
 
             <label style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={(e) => setChecked(e.target.checked)}
-              />
-              <span style={{ fontSize: 13 }}>
-                I understand this will delete all my saved data.
-              </span>
+              <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} />
+              <span style={{ fontSize: 13 }}>I understand this will delete all my saved data.</span>
             </label>
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
@@ -434,7 +429,7 @@ function ResetFactoryCard() {
                   borderRadius: 12,
                   border: "1px solid var(--border)",
                   fontWeight: 900,
-                  background: !checked ? "rgba(0,0,0,0.12)" : "var(--errorBubble, #ff4d4d)",
+                  background: !checked ? "rgba(0,0,0,0.12)" : "var(--errorBubble, #dc2626)",
                   color: !checked ? "rgba(0,0,0,0.55)" : "white",
                   cursor: !checked ? "not-allowed" : "pointer",
                 }}
@@ -445,7 +440,6 @@ function ResetFactoryCard() {
           </div>
         </div>
       ) : null}
-    </div>
+    </Card>
   );
 }
-

@@ -178,7 +178,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                fontSize: NameFixed ?? `${nameSize}px`,
+                fontSize: (isMobile ? `${nameSize * 0.8}px` : `${nameSize * 0.95}px`),
                 fontWeight: 700,
                 opacity: 1,
               }}
