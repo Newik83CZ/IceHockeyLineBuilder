@@ -57,7 +57,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
 
   const NameFixed =
     //labelObj.lastName && labelObj.lastName.length <= 7 ? (isMobile ? 14 : 18) : null;
-    labelObj.firstName && labelObj.firstName.length <= 10 ? (isMobile ? 14 : 18) : null;
+    labelObj.firstName && labelObj.firstName.length <= 4 ? (isMobile ? 18 : 18) : null;
 
   useLayoutEffect(() => {
     const rowEl = rowRef.current;
@@ -178,8 +178,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                //fontSize: NameFixed ?? `${nameSize}px`,
-                fontSize: `${nameSize}px`,
+                fontSize: NameFixed ?? `${nameSize}px`,
                 fontWeight: 700,
                 opacity: 1,
               }}

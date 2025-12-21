@@ -1,4 +1,4 @@
-import { NavLink, Route, Routes } from "react-router-dom";
+import { NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 import { loadAppData, saveAppData } from "./lib/storage";
@@ -27,11 +27,34 @@ function TabLink({ to, children }) {
 }
 
 export default function App() {
+  const navigate = useNavigate();
+
   const [data, setData] = useState(() =>
     normalizeAppData(loadAppData() ?? createEmptyAppData())
   );
 
-  // ✅ Step 2: one-time migration/backfill (runs once on mount)
+  // ✅ After factory reset, force landing on Rosters tab ("/")
+  // The reset flow sets: sessionStorage.setItem("ihlbuilder_postreset_tab", "rosters")
+  useEffect(() => {
+    const tab = sessionStorage.getItem("ihlbuilder_postreset_tab");
+    if (!tab) return;
+
+    sessionStorage.removeItem("ihlbuilder_postreset_tab");
+
+    // Today you only need Rosters. If you later add others, map them here.
+    if (tab === "rosters") {
+      navigate("/", { replace: true });
+    } else if (tab === "lineups") {
+      navigate("/lineups", { replace: true });
+    } else if (tab === "theme") {
+      navigate("/theme", { replace: true });
+    } else {
+      // fallback safety
+      navigate("/", { replace: true });
+    }
+  }, [navigate]);
+
+  // ✅ One-time migration/backfill (runs once on mount)
   // This ensures any older saved data is upgraded safely.
   useEffect(() => {
     setData((prev) => normalizeAppData(prev));
