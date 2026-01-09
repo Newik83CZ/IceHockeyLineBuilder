@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import {
   createPlayer,
   createTeam,
+  createTheme,
   positionSortKey,
   validatePlayer,
 } from "../lib/model";
@@ -438,7 +439,15 @@ export default function Rosters({ data, setData }) {
 
     updateData((d) => {
       const t = d.teams.find((x) => x.id === id);
-      if (t) t.name = nextName;
+      if (t) {
+        t.name = nextName;
+
+        // ✅ Keep bound theme name in sync with team name
+        if (t.themeId) {
+          const th = d.themes?.find((y) => y.id === t.themeId);
+          if (th) th.name = nextName;
+        }
+      }
       return d;
     });
 
@@ -528,6 +537,8 @@ export default function Rosters({ data, setData }) {
 
         // Build the team FIRST (so report counts are correct before updateData)
         const team = createTeam(teamNameFromFile);
+        const theme = createTheme(teamNameFromFile);
+        team.themeId = theme.id;
 
         const usedNumbers = new Set(); // for uniqueness in imported team
         let captainUsed = false;
@@ -638,7 +649,10 @@ export default function Rosters({ data, setData }) {
         // Now update state ONCE with the fully built team
         updateData((d) => {
           d.teams.push(team);
+          d.themes ??= [];
+          d.themes.push(theme);
           d.activeTeamId = team.id;
+          d.activeThemeId = theme.id;
           return d;
         });
 
@@ -829,12 +843,21 @@ export default function Rosters({ data, setData }) {
   function createNewTeam() {
     const name = teamName.trim();
     if (!name) return;
+
     updateData((d) => {
       const t = createTeam(name);
+      const th = createTheme(name);
+      t.themeId = th.id;
+
       d.teams.push(t);
+      d.themes ??= [];
+      d.themes.push(th);
+
       d.activeTeamId = t.id;
+      d.activeThemeId = th.id;
       return d;
     });
+
     setTeamName("");
   }
 
@@ -843,8 +866,24 @@ export default function Rosters({ data, setData }) {
     if (renamingTeamId === id) cancelRenameTeam();
 
     updateData((d) => {
+      const teamToDelete = d.teams.find((t) => t.id === id);
+      const themeIdToDelete = teamToDelete?.themeId || null;
+
       d.teams = d.teams.filter((t) => t.id !== id);
-      if (d.activeTeamId === id) d.activeTeamId = d.teams[0]?.id ?? null;
+
+      // Also delete the bound theme (keeps data clean)
+      if (themeIdToDelete && Array.isArray(d.themes)) {
+        d.themes = d.themes.filter((th) => th.id !== themeIdToDelete);
+      }
+
+      // Fix active team/theme
+      if (d.activeTeamId === id) {
+        d.activeTeamId = d.teams[0]?.id ?? null;
+      }
+
+      const activeTeam = d.teams.find((t) => t.id === d.activeTeamId) || d.teams[0] || null;
+      d.activeThemeId = activeTeam?.themeId ?? d.themes?.[0]?.id ?? null;
+
       return d;
     });
   }
@@ -1002,7 +1041,11 @@ export default function Rosters({ data, setData }) {
               >
                 <button
                   onClick={() => {
-                    updateData((d) => ((d.activeTeamId = t.id), d));
+                    updateData((d) => {
+                      d.activeTeamId = t.id;
+                      d.activeThemeId = t.themeId ?? d.activeThemeId;
+                      return d;
+                    });
                     // If switching teams while renaming something else, cancel rename UI
                     if (renamingTeamId && renamingTeamId !== t.id)
                       cancelRenameTeam();

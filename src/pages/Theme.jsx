@@ -4,9 +4,14 @@ import { createTheme } from "../lib/model";
 const POSITIONS = ["Centre", "Wing", "Defender", "Goalie"];
 
 export default function ThemePage({ data, setData }) {
+  const activeTeam = useMemo(() => {
+    return data.teams?.find((t) => t.id === data.activeTeamId) || null;
+  }, [data.teams, data.activeTeamId]);
+
   const activeTheme = useMemo(() => {
-    return data.themes?.find((t) => t.id === data.activeThemeId) || null;
-  }, [data.themes, data.activeThemeId]);
+    if (!activeTeam) return null;
+    return data.themes?.find((t) => t.id === activeTeam.themeId) || null;
+  }, [data.themes, activeTeam]);
 
   function updateData(updater) {
     setData((prev) => {
@@ -16,74 +21,36 @@ export default function ThemePage({ data, setData }) {
     });
   }
 
-  function ensureThemeBasics() {
+  function ensureBoundTheme() {
+    // Create (or repair) the theme bound to the ACTIVE team
+    if (!activeTeam) return;
+
     updateData((d) => {
       d.themes ??= [];
-      if (d.themes.length === 0) {
-        const t = createTheme("Default");
-        d.themes.push(t);
-        d.activeThemeId = t.id;
-      } else if (!d.activeThemeId) {
-        d.activeThemeId = d.themes[0].id;
+
+      const team = d.teams.find((t) => t.id === d.activeTeamId);
+      if (!team) return d;
+
+      const existing = d.themes.find((th) => th.id === team.themeId);
+      if (existing) {
+        // keep name aligned with team for clarity
+        existing.name = team.name;
+        return d;
       }
+
+      const th = createTheme(team.name || "Theme");
+      th.name = team.name || th.name;
+      d.themes.push(th);
+      team.themeId = th.id;
+
+      d.activeThemeId = th.id;
       return d;
     });
-  }
-
-  function setActiveThemeId(id) {
-    updateData((d) => {
-      d.activeThemeId = id;
-      return d;
-    });
-  }
-
-  function saveNewThemeCopy() {
-    const base = activeTheme || createTheme("Default");
-    const name = prompt("Theme name?", `${base.name} (copy)`);
-    if (!name) return;
-
-    updateData((d) => {
-      const copy = structuredClone(base);
-      copy.id = crypto.randomUUID();
-      copy.name = name.trim();
-      copy.createdAt = Date.now();
-      copy.updatedAt = Date.now();
-      d.themes.push(copy);
-      d.activeThemeId = copy.id;
-      return d;
-    });
-  }
-
-  function renameTheme() {
-    if (!activeTheme) return;
-    const name = prompt("New theme name?", activeTheme.name);
-    if (!name) return;
-
-    updateData((d) => {
-      const t = d.themes.find((x) => x.id === d.activeThemeId);
-      if (!t) return d;
-      t.name = name.trim();
-      t.updatedAt = Date.now();
-      return d;
-    });
-  }
-
-  function deleteTheme() {
-    if (!activeTheme) return;
-    if (!confirm(`Delete theme "${activeTheme.name}"?`)) return;
-
-    updateData((d) => {
-      d.themes = d.themes.filter((t) => t.id !== d.activeThemeId);
-      d.activeThemeId = d.themes[0]?.id ?? null;
-      return d;
-    });
-
-    setTimeout(ensureThemeBasics, 0);
   }
 
   function setAppColor(key, value) {
     updateData((d) => {
-      const t = d.themes.find((x) => x.id === d.activeThemeId);
+      const t = d.themes.find((x) => x.id === (d.teams.find((tm) => tm.id === d.activeTeamId)?.themeId));
       if (!t) return d;
       t.app ??= {};
       t.app[key] = value;
@@ -94,7 +61,7 @@ export default function ThemePage({ data, setData }) {
 
   function setPosColor(pos, value) {
     updateData((d) => {
-      const t = d.themes.find((x) => x.id === d.activeThemeId);
+      const t = d.themes.find((x) => x.id === (d.teams.find((tm) => tm.id === d.activeTeamId)?.themeId));
       if (!t) return d;
       t.positions ??= {};
       t.positions[pos] = value;
@@ -103,11 +70,25 @@ export default function ThemePage({ data, setData }) {
     });
   }
 
-  if (!activeTheme) {
+  if (!activeTeam) {
     return (
       <div>
         <h2>Theme</h2>
-        <button onClick={ensureThemeBasics}>Create default theme</button>
+        <div style={{ opacity: 0.8 }}>Create a team first.</div>
+      </div>
+    );
+  }
+
+  if (!activeTheme) {
+    return (
+      <div>
+        <h2>Theme — {activeTeam.name}</h2>
+        <div style={{ marginTop: 8, opacity: 0.8 }}>
+          This team does not have a theme yet (or it was missing). Click below to create/repair it.
+        </div>
+        <button onClick={ensureBoundTheme} style={{ marginTop: 10 }}>
+          Create / repair theme for this team
+        </button>
       </div>
     );
   }
@@ -133,25 +114,11 @@ export default function ThemePage({ data, setData }) {
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <h2 style={{ margin: 0 }}>Theme</h2>
-
-        <select
-          value={data.activeThemeId || ""}
-          onChange={(e) => setActiveThemeId(e.target.value)}
-          style={{ padding: 8, borderRadius: 12, border: "1px solid var(--border)" }}
-        >
-          {data.themes.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
+        <h2 style={{ margin: 0 }}>Theme — {activeTeam.name}</h2>
       </div>
 
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <button onClick={saveNewThemeCopy}>Save as new</button>
-        <button onClick={renameTheme}>Rename</button>
-        <button onClick={deleteTheme}>Delete</button>
+      <div style={{ fontSize: 13, opacity: 0.8, lineHeight: 1.35 }}>
+        This theme is <b>bound</b> to the active team. To rename it, rename the team in the Rosters tab.
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "minmax(300px, 1fr)", gap: 10 }}>

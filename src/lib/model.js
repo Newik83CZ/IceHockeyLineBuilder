@@ -89,14 +89,20 @@ export function normalizeAppData(data) {
   data.teams ??= [];
   data.themes ??= [];
 
-  // ✅ NEW: ensure teams have printBackgroundImage
-  for (const t of data.teams) {
-    t.printBackgroundImage ??= ""; // Data URL (base64). Empty = no background
-    t.players ??= [];
+  // Normalize all themes (back-compat)
+  data.themes = data.themes.map((t) => normalizeTheme(t));
 
-    // ✅ Opposition + league (for printing/opponent dropdowns)
+  // ✅ Ensure team fields exist (back-compat)
+  for (const t of data.teams) {
+    t.players ??= [];
+    t.printBackgroundImage ??= ""; // Data URL (base64). Empty = no background
+
+    // Opposition + league (for printing/opponent dropdowns)
     t.opposition ??= [];
     t.leagueName ??= "";
+
+    // NEW: bound theme (Team ↔ Theme)
+    t.themeId ??= null;
   }
 
   // Ensure at least 1 team
@@ -105,23 +111,65 @@ export function normalizeAppData(data) {
     data.teams.push(t);
     data.activeTeamId = t.id;
   } else {
-    data.activeTeamId ??= data.teams[0]?.id ?? null;
+    // If activeTeamId missing or invalid, fix it
+    const activeExists = data.teams.some((t) => t.id === data.activeTeamId);
+    if (!activeExists) data.activeTeamId = data.teams[0]?.id ?? null;
   }
 
-  // Ensure at least 1 theme
-  if (data.themes.length === 0) {
-    const th = createTheme("Default");
+  // Build theme lookup
+  const themeById = new Map(data.themes.map((t) => [t.id, t]));
+  const usedThemeIds = new Set();
+
+  // Helper: attach a theme to a team (create if needed)
+  const ensureTeamTheme = (team, preferThemeId = null) => {
+    // Keep existing theme if valid + not already claimed
+    if (
+      team.themeId &&
+      themeById.has(team.themeId) &&
+      !usedThemeIds.has(team.themeId)
+    ) {
+      usedThemeIds.add(team.themeId);
+      // Keep theme name aligned with team name for sanity
+      const th = themeById.get(team.themeId);
+      if (th && th.name !== team.name) th.name = team.name;
+      return;
+    }
+
+    // Prefer legacy activeThemeId for the active team (migration)
+    if (
+      preferThemeId &&
+      themeById.has(preferThemeId) &&
+      !usedThemeIds.has(preferThemeId)
+    ) {
+      team.themeId = preferThemeId;
+      usedThemeIds.add(preferThemeId);
+      const th = themeById.get(preferThemeId);
+      if (th) th.name = team.name;
+      return;
+    }
+
+    // Otherwise create a fresh theme for this team
+    const th = createTheme(team.name || "Theme");
+    th.name = team.name || th.name;
     data.themes.push(th);
-    data.activeThemeId = th.id;
-  } else {
-    // normalize all themes (back-compat)
-    data.themes = data.themes.map((t) => normalizeTheme(t));
-    data.activeThemeId ??= data.themes[0]?.id ?? null;
+    themeById.set(th.id, th);
+    team.themeId = th.id;
+    usedThemeIds.add(th.id);
+  };
 
-    // if activeThemeId points to missing theme, fix it
-    const exists = data.themes.some((t) => t.id === data.activeThemeId);
-    if (!exists) data.activeThemeId = data.themes[0]?.id ?? null;
+  const activeTeam =
+    data.teams.find((t) => t.id === data.activeTeamId) || data.teams[0] || null;
+
+  // Ensure a theme exists for every team
+  for (const team of data.teams) {
+    const prefer = activeTeam && team.id === activeTeam.id ? data.activeThemeId : null;
+    ensureTeamTheme(team, prefer);
   }
+
+  // ✅ Active theme is always the active team's theme
+  const activeTeam2 =
+    data.teams.find((t) => t.id === data.activeTeamId) || data.teams[0] || null;
+  data.activeThemeId = activeTeam2?.themeId ?? data.themes[0]?.id ?? null;
 
   data.createdAt ??= Date.now();
   data.updatedAt ??= Date.now();
@@ -234,6 +282,9 @@ export function createEmptyAppData() {
 
   const defaultTheme = createTheme("Default");
 
+  // ✅ Bind default theme to default team
+  defaultTeam.themeId = defaultTheme.id;
+
   return normalizeAppData({
     teams: [defaultTeam],
     activeTeamId: defaultTeam.id,
@@ -250,6 +301,7 @@ export function createTeam(name) {
   return {
     id: newId(),
     name,
+    themeId: null, // ✅ bound theme for this team
     players: [],
     printBackgroundImage: "", // ✅ Data URL (base64). Empty = no background
 
@@ -319,3 +371,4 @@ export function positionSortKey(pos) {
   const order = { Goalie: 0, Defender: 1, Centre: 2, Wing: 3 };
   return order[pos] ?? 99;
 }
+

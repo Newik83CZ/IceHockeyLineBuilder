@@ -1019,7 +1019,7 @@ export default function Lineups({ data, setData }) {
   async function renderExportCanvas({ scale = 2 } = {}) {
     if (!activeTeam || !activeLineup) return null;
 
-    const activeTheme = data.themes?.find((t) => t.id === data.activeThemeId) || null;
+    const activeTheme = activeTeam ? (data.themes?.find((t) => t.id === activeTeam.themeId) || null) : null;
 
     const teamC = activeTheme?.app?.printTeamColor ?? "#d32f2f";
     const labelsC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
@@ -1396,7 +1396,7 @@ export default function Lineups({ data, setData }) {
     }
 
     const bgImg = String(activeTeam.printBackgroundImage || "").replaceAll("'", "%27");
-    const activeTheme = data.themes?.find((t) => t.id === data.activeThemeId) || null;
+    const activeTheme = activeTeam ? (data.themes?.find((t) => t.id === activeTeam.themeId) || null) : null;
 
     const teamC = activeTheme?.app?.printTeamColor ?? activeTheme?.app?.primary ?? "#d32f2f";
     const labelsC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
@@ -1824,7 +1824,7 @@ export default function Lineups({ data, setData }) {
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "70px 90px max-content",
+                    gridTemplateColumns: "70px max-content max-content",
                     gap: 10,
                     alignItems: "center",
                     justifyItems: "start",

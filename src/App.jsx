@@ -71,30 +71,30 @@ export default function App() {
   const themeStyle = activeTheme
     ? {
         // legacy aliases (avoid undefined)
-        "--primary": activeTheme.app.buttons,
-        "--accent": activeTheme.app.leader,
+        "--primary": activeTheme?.app?.buttons,
+        "--accent": activeTheme?.app?.leader,
 
         // NEW vars
-        "--buttons": activeTheme.app.buttons,
-        "--leader": activeTheme.app.leader,
+        "--buttons": activeTheme?.app?.buttons,
+        "--leader": activeTheme?.app?.leader,
 
-        "--printTeamColor": activeTheme.app.printTeamColor,
-        "--printText": activeTheme.app.printText,
-        "--printCardText": activeTheme.app.printCardText,
-        "--printLeader": activeTheme.app.printLeader,
+        "--printTeamColor": activeTheme?.app?.printTeamColor,
+        "--printText": activeTheme?.app?.printText,
+        "--printCardText": activeTheme?.app?.printCardText,
+        "--printLeader": activeTheme?.app?.printLeader,
 
-        "--background": activeTheme.app.background,
-        "--surface": activeTheme.app.surface,
-        "--text": activeTheme.app.text,
-        "--border": activeTheme.app.border ?? "rgba(0,0,0,0.12)",
+        "--background": activeTheme?.app?.background,
+        "--surface": activeTheme?.app?.surface,
+        "--text": activeTheme?.app?.text,
+        "--border": activeTheme?.app?.border ?? "rgba(0,0,0,0.12)",
 
-        "--pos-centre": activeTheme.positions.Centre,
-        "--pos-wing": activeTheme.positions.Wing,
-        "--pos-defender": activeTheme.positions.Defender,
-        "--pos-goalie": activeTheme.positions.Goalie,
+        "--pos-centre": activeTheme?.positions?.Centre,
+        "--pos-wing": activeTheme?.positions?.Wing,
+        "--pos-defender": activeTheme?.positions?.Defender,
+        "--pos-goalie": activeTheme?.positions?.Goalie,
 
         // error bubble for mismatch slots
-        "--errorBubble": activeTheme.app.errorBubble ?? "#dc2626",
+        "--errorBubble": activeTheme?.app?.errorBubble ?? "#dc2626",
 
         background: "var(--background)",
         color: "var(--text)",
