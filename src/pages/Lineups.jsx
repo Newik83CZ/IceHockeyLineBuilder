@@ -351,6 +351,18 @@ function createLineup(name = "New lineup") {
     assignments: {},
     createdAt: Date.now(),
     updatedAt: Date.now(),
+
+    // ✅ NEW: extra match metadata for PNG export
+    printExtraEnabled: true,
+    printMeta: {
+      homeAway: "home", // "home" => vs, "away" => @
+      opponentName: "",
+      date: "", // YYYY-MM-DD
+      time: "", // HH:MM
+      league: "",
+      leagueLogoDataUrl: "",
+      version: "",
+    },
   };
 }
 
@@ -436,10 +448,38 @@ export default function Lineups({ data, setData }) {
   const [exportPreviewUrl, setExportPreviewUrl] = useState("");
   const [exportBusy, setExportBusy] = useState(false);
 
+  // ✅ Team print background (moved from Rosters tab)
+  const bgRef = useRef(null);
+
+  // ✅ Lineup league logo picker
+  const leagueLogoRef = useRef(null);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { distance: 10 } })
   );
+
+  /* Helper: resize image before saving (base64 data URL) */
+  async function fileToResizedDataUrl(file, maxW = 1600, quality = 0.85) {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = URL.createObjectURL(file);
+    });
+
+    const scale = Math.min(1, maxW / img.width);
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, w, h);
+
+    return canvas.toDataURL("image/jpeg", quality);
+  }
 
   function updateData(updater) {
     setData((prev) => {
@@ -447,6 +487,100 @@ export default function Lineups({ data, setData }) {
       next.updatedAt = Date.now();
       return next;
     });
+  }
+
+  // =========================
+  // Team print background handlers
+  // =========================
+  function clickPickBackground() {
+    if (!activeTeam) return;
+    bgRef.current?.click();
+  }
+
+  async function onPickBackgroundFile(file) {
+    if (!activeTeam || !file) return;
+    if (!file.type?.startsWith("image/")) {
+      alert("Please select an image file (JPG/PNG/WebP).");
+      return;
+    }
+
+    try {
+      const dataUrl = await fileToResizedDataUrl(file, 1800, 0.85);
+      updateData((d) => {
+        const team = d.teams.find((t) => t.id === d.activeTeamId);
+        if (!team) return d;
+        team.printBackgroundImage = dataUrl;
+        return d;
+      });
+    } catch (e) {
+      alert("Could not load that image. Please try a different file.");
+    } finally {
+      if (bgRef.current) bgRef.current.value = "";
+    }
+  }
+
+  function clearBackground() {
+    if (!activeTeam) return;
+    updateData((d) => {
+      const team = d.teams.find((t) => t.id === d.activeTeamId);
+      if (!team) return d;
+      team.printBackgroundImage = "";
+      return d;
+    });
+  }
+
+  // =========================
+  // Lineup printing meta handlers
+  // =========================
+  function setPrintMeta(patch) {
+    if (!activeLineup) return;
+    saveActiveLineup((lu) => {
+      lu.printMeta ??= {};
+      lu.printMeta = { ...lu.printMeta, ...patch };
+    });
+  }
+
+  function togglePrintExtraEnabled() {
+    if (!activeLineup) return;
+    saveActiveLineup((lu) => {
+      const next = (lu.printExtraEnabled ?? true) === true ? false : true;
+      lu.printExtraEnabled = next;
+
+      // Prefill league name when enabling
+      if (next) {
+        lu.printMeta ??= {};
+        if (!lu.printMeta.league) {
+          lu.printMeta.league = activeTeam?.leagueName || "";
+        }
+      }
+    });
+  }
+
+  function clickPickLeagueLogo() {
+    if (!activeLineup) return;
+    leagueLogoRef.current?.click();
+  }
+
+  async function onPickLeagueLogoFile(file) {
+    if (!activeLineup || !file) return;
+    if (!file.type?.startsWith("image/")) {
+      alert("Please select an image file (JPG/PNG/WebP).");
+      if (leagueLogoRef.current) leagueLogoRef.current.value = "";
+      return;
+    }
+
+    try {
+      const dataUrl = await fileToResizedDataUrl(file, 800, 0.90);
+      setPrintMeta({ leagueLogoDataUrl: dataUrl });
+    } catch (e) {
+      alert("Could not load that image. Please try a different file.");
+    } finally {
+      if (leagueLogoRef.current) leagueLogoRef.current.value = "";
+    }
+  }
+
+  function clearLeagueLogo() {
+    setPrintMeta({ leagueLogoDataUrl: "" });
   }
 
   useEffect(() => {
@@ -511,12 +645,60 @@ export default function Lineups({ data, setData }) {
 
       const lu = b.lineups[idx];
       mutator(lu);
+
+      // ✅ Ensure new printing fields exist
+      lu.printExtraEnabled = (lu.printExtraEnabled ?? true) === true;
+      lu.printMeta ??= {};
+      lu.printMeta.homeAway ??= "home";
+      lu.printMeta.opponentName ??= "";
+      lu.printMeta.date ??= "";
+      lu.printMeta.time ??= "";
+      if (!lu.printMeta.league) {
+        lu.printMeta.league = d.teams.find((t) => t.id === d.activeTeamId)?.leagueName || "";
+      }
+      lu.printMeta.leagueLogoDataUrl ??= "";
+      lu.printMeta.version ??= "";
+
       lu.updatedAt = Date.now();
       normalizeAssignments(lu);
       b.lineups[idx] = lu;
       return d;
     });
   }
+
+  // ✅ Ensure printing fields exist / prefill league when switching lineups
+  useEffect(() => {
+    if (!activeLineup) return;
+    // Only patch if something is missing
+    const needs =
+      activeLineup.printExtraEnabled == null ||
+      !activeLineup.printMeta ||
+      activeLineup.printMeta.homeAway == null ||
+      activeLineup.printMeta.opponentName == null ||
+      activeLineup.printMeta.date == null ||
+      activeLineup.printMeta.time == null ||
+      activeLineup.printMeta.league == null ||
+      activeLineup.printMeta.leagueLogoDataUrl == null ||
+      activeLineup.printMeta.version == null ||
+      (!activeLineup.printMeta.league && !!activeTeam?.leagueName);
+
+    if (!needs) return;
+
+    saveActiveLineup((lu) => {
+      lu.printExtraEnabled = (lu.printExtraEnabled ?? true) === true;
+      lu.printMeta ??= {};
+      lu.printMeta.homeAway ??= "home";
+      lu.printMeta.opponentName ??= "";
+      lu.printMeta.date ??= "";
+      lu.printMeta.time ??= "";
+      lu.printMeta.leagueLogoDataUrl ??= "";
+      lu.printMeta.version ??= "";
+      if (!lu.printMeta.league) {
+        lu.printMeta.league = activeTeam?.leagueName || "";
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bucket.activeLineupId, data.activeTeamId]);
 
   function setActiveLineupId(id) {
     updateData((d) => {
@@ -790,6 +972,31 @@ export default function Lineups({ data, setData }) {
       .replaceAll("'", "&#039;");
   }
 
+  function formatTimeAmPmDot(hhmm) {
+    // "HH:MM" => "8am" or "8.30pm"
+    if (!hhmm) return "";
+    const [hhStr, mmStr] = String(hhmm).split(":");
+    const hh = Number(hhStr);
+    const mm = Number(mmStr);
+    if (!Number.isFinite(hh) || !Number.isFinite(mm)) return "";
+
+    const isPm = hh >= 12;
+    let h12 = hh % 12;
+    if (h12 === 0) h12 = 12;
+
+    const suffix = isPm ? "pm" : "am";
+    if (mm === 0) return `${h12}${suffix}`;
+    return `${h12}.${String(mm).padStart(2, "0")}${suffix}`;
+  }
+
+  function formatDateDDMMYYYY(yyyy_mm_dd) {
+    // "YYYY-MM-DD" => "DD/MM/YYYY"
+    if (!yyyy_mm_dd) return "";
+    const [y, m, d] = String(yyyy_mm_dd).split("-");
+    if (!y || !m || !d) return "";
+    return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`;
+  }
+
   function pillHtml(player) {
     if (!player) return `<div class="pill pill--empty"></div>`;
 
@@ -826,6 +1033,20 @@ export default function Lineups({ data, setData }) {
 
     const teamName = escapeHtml(activeTeam.name);
     const lineupName = escapeHtml(activeLineup.name);
+
+    const extraOn = (activeLineup.printExtraEnabled ?? true) === true;
+    const meta = activeLineup.printMeta || {};
+
+    const vsOrAt = meta.homeAway === "away" ? "@" : "vs";
+    const opponentName = String(meta.opponentName || "").trim();
+    const timeStr = formatTimeAmPmDot(meta.time);
+    const dateStr = formatDateDDMMYYYY(meta.date);
+    const matchTitleRaw = [vsOrAt, opponentName, timeStr, dateStr].filter(Boolean).join(" ");
+    const matchTitle = escapeHtml(matchTitleRaw);
+
+    const leagueText = escapeHtml(String(meta.league || "").trim());
+    const versionText = escapeHtml(String(meta.version || "").trim());
+    const leagueLogo = String(meta.leagueLogoDataUrl || "");
 
     // === Fixed 4:5 export size ===
     const EXPORT_W = 1200;
@@ -937,7 +1158,7 @@ export default function Lineups({ data, setData }) {
           .sheet {
             position: relative;
             z-index: 1;
-            padding: 24px 24px;
+            padding: 24px 24px 48px; /* reserve space for footer */
           }
           .teamTitle {
             text-align: center;
@@ -1016,6 +1237,46 @@ export default function Lineups({ data, setData }) {
           }
           .goaliesStack { display: grid; gap: var(--pillGap); }
           .spacer { height: 123px; }
+
+          .footer{
+            position: absolute;
+            left: 24px;
+            right: 24px;
+            bottom: 18px;
+            z-index: 2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            pointer-events: none;
+          }
+          .footerLeft, .footerRight{
+            display: flex;
+            align-items: center;
+            min-width: 0;
+          }
+          .leagueLogo{
+            height: 44px;
+            width: auto;
+            object-fit: contain;
+            border-radius: 8px;
+          }
+          .leagueName{
+            font-weight: 900;
+            font-size: 16px;
+            color: ${labelsC};
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 520px;
+          }
+          .versionText{
+            font-weight: 900;
+            font-size: 14px;
+            color: ${labelsC};
+            opacity: 0.9;
+            white-space: nowrap;
+          }
         </style>
 
         <div class="wrap" id="printSheet">
@@ -1023,7 +1284,7 @@ export default function Lineups({ data, setData }) {
           <div class="sheet">
             <div class="spacer"></div>
             <h1 class="teamTitle">${teamName}</h1>
-            <div class="lineupTitle">${lineupName}</div>
+            <div class="lineupTitle">${extraOn ? matchTitle : lineupName}</div>
 
             <div class="spacer"></div>
             <div class="section">${forwards}</div>
@@ -1033,7 +1294,28 @@ export default function Lineups({ data, setData }) {
 
             <div class="spacer"></div>
             <div class="section">${goalies}</div>
+            
           </div>
+          ${
+              extraOn
+                ? `
+                  <div class="footer">
+                    <div class="footerLeft">
+                      ${
+                        leagueLogo
+                          ? `<img class="leagueLogo" src="${leagueLogo.replaceAll('"', '%22')}" alt="League logo" />`
+                          : leagueText
+                          ? `<div class="leagueName">${leagueText}</div>`
+                          : ``
+                      }
+                    </div>
+                    <div class="footerRight">
+                      ${versionText ? `<div class="versionText">${versionText}</div>` : ``}
+                    </div>
+                  </div>
+                `
+                : ``
+            }
         </div>
       `;
 
@@ -1436,7 +1718,217 @@ export default function Lineups({ data, setData }) {
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+        <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
+          {/* ===================== Printing: Background (team) ===================== */}
+          <div style={{ padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
+            <div style={{ fontWeight: 900, marginBottom: 8 }}>Print background</div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <button onClick={clickPickBackground}>Choose image</button>
+              <button onClick={clearBackground} disabled={!activeTeam.printBackgroundImage}>
+                Clear
+              </button>
+              <input
+                ref={bgRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(e) => onPickBackgroundFile(e.target.files?.[0] || null)}
+              />
+            </div>
+
+            {activeTeam.printBackgroundImage ? (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Preview</div>
+                <img
+                  src={activeTeam.printBackgroundImage}
+                  alt="Print background preview"
+                  style={{ width: "100%", maxHeight: 140, objectFit: "cover", borderRadius: 12, border: "1px solid var(--border)" }}
+                />
+              </div>
+            ) : (
+              <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
+                No background selected (using default).
+              </div>
+            )}
+          </div>
+
+          {/* ===================== Printing: Match info (lineup) ===================== */}
+          <div style={{ padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+              <div style={{ fontWeight: 900 }}>Printing setup</div>
+              <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, fontWeight: 800 }}>
+                <input
+                  type="checkbox"
+                  checked={(activeLineup.printExtraEnabled ?? true) === true}
+                  onChange={togglePrintExtraEnabled}
+                />
+                Use additional info for printing
+              </label>
+            </div>
+
+            {(activeLineup.printExtraEnabled ?? true) === true ? (
+              <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "120px max-content",
+                    gap: 10,
+                    alignItems: "center",
+                    justifyItems: "start",
+                  }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: 12 }}>Home/Away</div>
+                  <select
+                    value={activeLineup.printMeta?.homeAway || "home"}
+                    onChange={(e) => setPrintMeta({ homeAway: e.target.value })}
+                    style={{ padding: "8px 10px", borderRadius: 12, border: "1px solid var(--border)" }}
+                  >
+                    <option value="home">vs (home)</option>
+                    <option value="away">@ (away)</option>
+                  </select>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "120px max-content",
+                    gap: 10,
+                    alignItems: "center",
+                    justifyItems: "start",
+                  }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: 12 }}>Opponent</div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <select
+                      value={activeLineup.printMeta?.opponentName || ""}
+                      onChange={(e) => setPrintMeta({ opponentName: e.target.value })}
+                      style={{
+                        width: "auto",
+                        minWidth: 240,
+                        maxWidth: 520,
+                        padding: "8px 10px",
+                        borderRadius: 12,
+                        border: "1px solid var(--border)",
+                      }}
+                    >
+                      <option value="">Select opponent…</option>
+                      {(activeTeam.opposition || []).map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "120px max-content max-content",
+                    gap: 10,
+                    alignItems: "center",
+                    justifyItems: "start",
+                  }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: 12 }}>When</div>
+                  <input
+                    type="time"
+                    value={activeLineup.printMeta?.time || ""}
+                    onChange={(e) => setPrintMeta({ time: e.target.value })}
+                    style={{ padding: "8px 10px", borderRadius: 12, border: "1px solid var(--border)" }}
+                  />
+                  <input
+                    type="date"
+                    value={activeLineup.printMeta?.date || ""}
+                    onChange={(e) => setPrintMeta({ date: e.target.value })}
+                    style={{ padding: "8px 10px", borderRadius: 12, border: "1px solid var(--border)" }}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "120px max-content",
+                    gap: 10,
+                    alignItems: "center",
+                    justifyItems: "start",
+                  }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: 12 }}>League</div>
+                  <input
+                    type="text"
+                    value={activeLineup.printMeta?.league || ""}
+                    onChange={(e) => setPrintMeta({ league: e.target.value })}
+                    placeholder={activeTeam.leagueName ? `e.g. ${activeTeam.leagueName}` : "League name"}
+                    style={{ padding: "8px 10px", borderRadius: 12, border: "1px solid var(--border)" }}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "120px max-content",
+                    gap: 10,
+                    alignItems: "center",
+                    justifyItems: "start",
+                  }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: 12 }}>League logo</div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <button onClick={clickPickLeagueLogo}>Choose image</button>
+                    <button onClick={clearLeagueLogo} disabled={!activeLineup.printMeta?.leagueLogoDataUrl}>
+                      Clear
+                    </button>
+                    <input
+                      ref={leagueLogoRef}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={(e) => onPickLeagueLogoFile(e.target.files?.[0] || null)}
+                    />
+                  </div>
+                </div>
+
+                {activeLineup.printMeta?.leagueLogoDataUrl ? (
+                  <div style={{ marginTop: -4 }}>
+                    <img
+                      src={activeLineup.printMeta.leagueLogoDataUrl}
+                      alt="League logo preview"
+                      style={{ height: 44, width: "auto", borderRadius: 10, border: "1px solid var(--border)" }}
+                    />
+                  </div>
+                ) : null}
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "120px max-content",
+                    gap: 10,
+                    alignItems: "center",
+                    justifyItems: "start",
+                  }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: 12 }}>Version</div>
+                  <input
+                    type="text"
+                    value={activeLineup.printMeta?.version || ""}
+                    onChange={(e) => setPrintMeta({ version: e.target.value })}
+                    placeholder="e.g. v1"
+                    style={{ padding: "8px 10px", borderRadius: 12, border: "1px solid var(--border)" }}
+                  />
+                </div>
+
+                <div style={{ fontSize: 12, opacity: 0.75, lineHeight: 1.3 }}>
+                  PNG title will use: <b>{activeLineup.printMeta?.homeAway === "away" ? "@" : "vs"}</b> {activeLineup.printMeta?.opponentName || "(opponent)"} {formatTimeAmPmDot(activeLineup.printMeta?.time) || "(time)"} {formatDateDDMMYYYY(activeLineup.printMeta?.date) || "(date)"}
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
+                Additional printing info is turned off. PNG title will use the lineup name.
+              </div>
+            )}
+          </div>
+
           <div style={{ fontWeight: 900 }}>Structure</div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

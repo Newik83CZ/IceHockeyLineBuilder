@@ -11,40 +11,235 @@ const CANPLAY = ["LW", "C", "RW", "LD", "RD", "G"];
 const STICKS = ["", "Left", "Right"];
 const LEADERSHIP = ["", "C", "A"];
 
+function normalizeOppName(name) {
+  return String(name || "").trim();
+}
+
+function dedupeOpposition(list) {
+  const out = [];
+  const seen = new Set();
+  for (const raw of list || []) {
+    const n = normalizeOppName(raw);
+    if (!n) continue;
+    const key = n.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(n);
+  }
+  return out;
+}
+
+function OppositionPanel({ activeTeam, updateData, iconBtn, oppImportRef, parseCSV }) {
+  const opposition = Array.isArray(activeTeam.opposition) ? activeTeam.opposition : [];
+
+  function addSingle() {
+    const name = prompt("Opposition team name?");
+    const n = normalizeOppName(name);
+    if (!n) return;
+
+    updateData((d) => {
+      const t = d.teams.find((x) => x.id === d.activeTeamId);
+      if (!t) return d;
+      t.opposition = dedupeOpposition([...(t.opposition || []), n]);
+      return d;
+    });
+  }
+
+  function editAt(idx) {
+    const current = opposition[idx];
+    const name = prompt("Edit opposition team name:", current);
+    const n = normalizeOppName(name);
+    if (!n) return;
+
+    updateData((d) => {
+      const t = d.teams.find((x) => x.id === d.activeTeamId);
+      if (!t) return d;
+      const next = [...(t.opposition || [])];
+      next[idx] = n;
+      t.opposition = dedupeOpposition(next);
+      return d;
+    });
+  }
+
+  function removeAt(idx) {
+    const current = opposition[idx];
+    if (!confirm(`Delete opposition team "${current}"?`)) return;
+    updateData((d) => {
+      const t = d.teams.find((x) => x.id === d.activeTeamId);
+      if (!t) return d;
+      const next = [...(t.opposition || [])];
+      next.splice(idx, 1);
+      t.opposition = next;
+      return d;
+    });
+  }
+
+  function clickImportOpp() {
+    oppImportRef.current?.click();
+  }
+
+  async function onImportFile(file) {
+    if (!file) return;
+    if (!String(file.name || "").toLowerCase().endsWith(".csv")) {
+      alert("Please select a .csv file.");
+      if (oppImportRef.current) oppImportRef.current.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const rows = parseCSV(String(reader.result || ""));
+        const nonEmpty = rows
+          .map((r) => (r || []).map((c) => String(c ?? "").trim()))
+          .filter((r) => r.some((c) => c !== ""));
+
+        if (nonEmpty.length === 0) {
+          alert("CSV is empty.");
+          return;
+        }
+
+        // Header row: league name in first cell
+        const leagueName = normalizeOppName(nonEmpty[0]?.[0] || "");
+
+        // Remaining rows: opposition names in first cell
+        const importedOpp = nonEmpty
+          .slice(1)
+          .map((r) => normalizeOppName(r[0]))
+          .filter(Boolean);
+
+        updateData((d) => {
+          const t = d.teams.find((x) => x.id === d.activeTeamId);
+          if (!t) return d;
+          if (leagueName) t.leagueName = leagueName;
+          t.opposition = dedupeOpposition([...(t.opposition || []), ...importedOpp]);
+          return d;
+        });
+
+        alert(
+          `Opposition imported.\n\nLeague: ${leagueName || "(none)"}\nAdded: ${importedOpp.length}`
+        );
+      } catch (e) {
+        alert("Import failed: invalid CSV file.");
+      } finally {
+        if (oppImportRef.current) oppImportRef.current.value = "";
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  return (
+    <div
+      style={{
+        marginTop: 14,
+        paddingTop: 14,
+        borderTop: "1px solid rgba(0,0,0,0.12)",
+      }}
+    >
+      <div style={{ fontWeight: 900, marginBottom: 8 }}>Opposition</div>
+
+      <div style={{ display: "grid", gap: 8 }}>
+        <div style={{ fontSize: 12, opacity: 0.8, lineHeight: 1.3 }}>
+          Manage opponent teams for this team. CSV import header is the league name.
+        </div>
+
+        {activeTeam.leagueName ? (
+          <div style={{ fontSize: 12 }}>
+            League: <b>{activeTeam.leagueName}</b>
+          </div>
+        ) : null}
+
+        <div style={{ display: "grid", gap: 6 }}>
+          {opposition.length ? (
+            opposition.map((name, idx) => (
+              <div
+                key={`${name}-${idx}`}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr auto auto",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "6px 8px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(0,0,0,0.12)",
+                  background: "var(--surface)",
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {name}
+                </div>
+                <button
+                  onClick={() => editAt(idx)}
+                  title="Edit"
+                  aria-label="Edit opposition"
+                  style={iconBtn}
+                >
+                  ✏️
+                </button>
+                <button
+                  onClick={() => removeAt(idx)}
+                  title="Delete"
+                  aria-label="Delete opposition"
+                  style={iconBtn}
+                >
+                  🗑️
+                </button>
+              </div>
+            ))
+          ) : (
+            <div style={{ fontSize: 12, opacity: 0.7 }}>No opposition teams yet.</div>
+          )}
+        </div>
+
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={addSingle}>+ Add</button>
+          <button onClick={clickImportOpp}>Import (CSV)</button>
+          <input
+            ref={oppImportRef}
+            type="file"
+            accept=".csv,text/csv"
+            style={{ display: "none" }}
+            onChange={(e) => onImportFile(e.target.files?.[0])}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Rosters({ data, setData }) {
   const [teamName, setTeamName] = useState("");
   const [search, setSearch] = useState("");
 
+  // ✅ NEW: rename team inline in list
+  const [renamingTeamId, setRenamingTeamId] = useState(null);
+  const [renameValue, setRenameValue] = useState("");
+
   const importRef = useRef(null);
   const formRef = useRef(null);
 
-  // ✅ NEW: team print background image picker
-  const bgRef = useRef(null);
+  // ✅ NEW: opposition CSV import picker
+  const oppImportRef = useRef(null);
 
   const activeTeam = data.teams.find((t) => t.id === data.activeTeamId) || null;
 
-  /* Helper: resize image before saving*/
-  async function fileToResizedDataUrl(file, maxW = 1600, quality = 0.85) {
-    const img = await new Promise((resolve, reject) => {
-      const i = new Image();
-      i.onload = () => resolve(i);
-      i.onerror = reject;
-      i.src = URL.createObjectURL(file);
-    });
+  // ✅ Shared icon button style (mobile-friendly)
+  const iconBtn = {
+    width: 24,
+    height: 24,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+    padding: 0,
+    lineHeight: 1,
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    fontSize: 14,
+  };
 
-    const scale = Math.min(1, maxW / img.width);
-    const w = Math.round(img.width * scale);
-    const h = Math.round(img.height * scale);
-
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(img, 0, 0, w, h);
-
-    // JPEG is much smaller than PNG usually
-    return canvas.toDataURL("image/jpeg", quality);
-  }
+  // Note: printing background moved to Line-ups tab
 
   /* HELPERS FOR ROSTER DISPLAY / IMPORT/EXPORT */
 
@@ -136,13 +331,41 @@ export default function Rosters({ data, setData }) {
 
   function normalizePosition(raw) {
     const v = String(raw || "").trim();
-    if (POSITIONS.includes(v)) return v;
+    if (!v) return "Wing";
 
+    // Case-insensitive match for full names
+    const lower = v.toLowerCase();
+    const fullMatch = POSITIONS.find((p) => p.toLowerCase() === lower);
+    if (fullMatch) return fullMatch;
+
+    // Short codes / aliases
     const up = v.toUpperCase();
-    if (up === "C") return "Centre";
-    if (up === "W") return "Wing";
-    if (up === "D") return "Defender";
-    if (up === "G") return "Goalie";
+    if (
+      up === "C" ||
+      up === "CE" ||
+      up === "CTR" ||
+      lower === "centre" ||
+      lower === "center"
+    )
+      return "Centre";
+    if (up === "W" || up === "LW" || up === "RW" || lower === "wing")
+      return "Wing";
+    if (
+      up === "D" ||
+      up === "LD" ||
+      up === "RD" ||
+      lower === "defender" ||
+      lower === "defence" ||
+      lower === "defense"
+    )
+      return "Defender";
+    if (
+      up === "G" ||
+      up === "GK" ||
+      lower === "goalie" ||
+      lower === "goalkeeper"
+    )
+      return "Goalie";
 
     return "Wing"; // default if invalid
   }
@@ -192,6 +415,34 @@ export default function Rosters({ data, setData }) {
       next.updatedAt = Date.now();
       return next;
     });
+  }
+
+  // ✅ NEW: rename helpers (in team list)
+  function startRenameTeam(team) {
+    if (!team) return;
+    setRenamingTeamId(team.id);
+    setRenameValue(team.name || "");
+  }
+
+  function cancelRenameTeam() {
+    setRenamingTeamId(null);
+    setRenameValue("");
+  }
+
+  function saveRenameTeam() {
+    const id = renamingTeamId;
+    if (!id) return;
+
+    const nextName = renameValue.trim();
+    if (!nextName) return;
+
+    updateData((d) => {
+      const t = d.teams.find((x) => x.id === id);
+      if (t) t.name = nextName;
+      return d;
+    });
+
+    setRenamingTeamId(null);
   }
 
   function exportActiveTeam() {
@@ -261,7 +512,6 @@ export default function Rosters({ data, setData }) {
         // Detect header (case-insensitive)
         const header = rows[0].map((h) => String(h || "").trim().toLowerCase());
         const hasHeader = header.includes("number") || header.includes("name");
-
         const startIdx = hasHeader ? 1 : 0;
 
         // Team name from file name (strip extension, strip _roster_YYYYMMDD if present)
@@ -276,124 +526,129 @@ export default function Rosters({ data, setData }) {
           messages: [],
         };
 
-        updateData((d) => {
-          const team = createTeam(teamNameFromFile);
+        // Build the team FIRST (so report counts are correct before updateData)
+        const team = createTeam(teamNameFromFile);
 
-          const usedNumbers = new Set(); // for uniqueness in imported team
-          let captainUsed = false;
-          let aCount = 0;
+        const usedNumbers = new Set(); // for uniqueness in imported team
+        let captainUsed = false;
+        let aCount = 0;
 
-          for (let r = startIdx; r < rows.length; r++) {
-            const cols = rows[r] || [];
+        for (let r = startIdx; r < rows.length; r++) {
+          const cols = rows[r] || [];
 
-            // If we have a header, map columns by name; otherwise use fixed order
-            const get = (key, fallbackIndex) => {
-              if (hasHeader) {
-                const idx = header.indexOf(key);
-                return idx >= 0 ? cols[idx] : "";
-              }
-              return cols[fallbackIndex] ?? "";
-            };
-
-            const rawNumber = String(get("number", 0) ?? "").trim();
-            const rawName = String(get("name", 1) ?? "");
-            const rawPos = String(get("preferredposition", 2) ?? "");
-            const rawLead = String(get("leadership", 3) ?? "");
-            const rawStick = String(get("stick", 4) ?? "");
-            const rawCanPlay = String(get("canplay", 5) ?? "");
-            const rawNotes = String(get("notes", 6) ?? "");
-
-            // Skip fully empty rows
-            const allEmpty = [
-              rawNumber,
-              rawName,
-              rawPos,
-              rawLead,
-              rawStick,
-              rawCanPlay,
-              rawNotes,
-            ].every((v) => String(v || "").trim() === "");
-            if (allEmpty) continue;
-
-            // Number: required, positive int, 1-2 digits
-            if (!/^\d{1,2}$/.test(rawNumber)) {
-              report.skipped++;
-              report.messages.push(
-                `Row ${r + 1}: invalid number "${rawNumber}" (must be 1–2 digits).`
-              );
-              continue;
+          // If we have a header, map columns by name; otherwise use fixed order
+          const get = (key, fallbackIndex) => {
+            if (hasHeader) {
+              const idx = header.indexOf(key);
+              return idx >= 0 ? cols[idx] : "";
             }
-            const num = Number(rawNumber);
-            if (!Number.isInteger(num) || num <= 0) {
-              report.skipped++;
-              report.messages.push(
-                `Row ${r + 1}: invalid number "${rawNumber}" (must be positive).`
-              );
-              continue;
-            }
-            if (usedNumbers.has(num)) {
-              report.skipped++;
-              report.messages.push(
-                `Row ${r + 1}: number ${num} duplicated in import.`
-              );
-              continue;
-            }
+            return cols[fallbackIndex] ?? "";
+          };
 
-            // Name: required, trim, truncate to 16
-            const trimmedName = String(rawName || "").trim();
-            if (!trimmedName) {
-              report.skipped++;
-              report.messages.push(`Row ${r + 1}: missing name.`);
-              continue;
-            }
-            const name16 =
-              trimmedName.length > 16 ? trimmedName.slice(0, 16) : trimmedName;
+          const rawNumber = String(get("number", 0) ?? "").trim();
+          const rawName = String(get("name", 1) ?? "");
+          const rawPos = String(get("preferredposition", 2) ?? "");
+          const rawLead = String(get("leadership", 3) ?? "");
+          const rawStick = String(get("stick", 4) ?? "");
+          const rawCanPlay = String(get("canplay", 5) ?? "");
+          const rawNotes = String(get("notes", 6) ?? "");
 
-            // Position mapping / default
-            const preferredPosition = normalizePosition(rawPos);
+          // Skip fully empty rows
+          const allEmpty = [
+            rawNumber,
+            rawName,
+            rawPos,
+            rawLead,
+            rawStick,
+            rawCanPlay,
+            rawNotes,
+          ].every((v) => String(v || "").trim() === "");
+          if (allEmpty) continue;
 
-            // Leadership: normalize then enforce rules (first valid claims the slots)
-            let leadership = normalizeLeadership(rawLead);
-            if (leadership === "C") {
-              if (captainUsed) leadership = "";
-              else captainUsed = true;
-            } else if (leadership === "A") {
-              if (aCount >= 2) leadership = "";
-              else aCount++;
-            }
-
-            // Stick: normalize
-            const stick = normalizeStick(rawStick);
-
-            // CanPlay: parse and filter to allowed codes
-            const canPlay = parseCanPlayCell(rawCanPlay);
-
-            const playerDraft = {
-              number: String(num),
-              name: name16,
-              preferredPosition,
-              leadership,
-              stick,
-              canPlay,
-              notes: String(rawNotes || ""),
-            };
-
-            team.players.push(createPlayer(playerDraft));
-            usedNumbers.add(num);
-            report.imported++;
+          // Number: required, positive int, 1-2 digits
+          if (!/^\d{1,2}$/.test(rawNumber)) {
+            report.skipped++;
+            report.messages.push(
+              `Row ${r + 1}: invalid number "${rawNumber}" (must be 1–2 digits).`
+            );
+            continue;
           }
 
+          const num = Number(rawNumber);
+          if (!Number.isInteger(num) || num <= 0) {
+            report.skipped++;
+            report.messages.push(
+              `Row ${r + 1}: invalid number "${rawNumber}" (must be positive).`
+            );
+            continue;
+          }
+
+          if (usedNumbers.has(num)) {
+            report.skipped++;
+            report.messages.push(
+              `Row ${r + 1}: number ${num} duplicated in import.`
+            );
+            continue;
+          }
+
+          // Name: required, trim, truncate to 16
+          const trimmedName = String(rawName || "").trim();
+          if (!trimmedName) {
+            report.skipped++;
+            report.messages.push(`Row ${r + 1}: missing name.`);
+            continue;
+          }
+          const name16 =
+            trimmedName.length > 16 ? trimmedName.slice(0, 16) : trimmedName;
+
+          // ✅ Position mapping / default (now case-insensitive)
+          const preferredPosition = normalizePosition(rawPos);
+
+          // Leadership: normalize then enforce rules (first valid claims the slots)
+          let leadership = normalizeLeadership(rawLead);
+          if (leadership === "C") {
+            if (captainUsed) leadership = "";
+            else captainUsed = true;
+          } else if (leadership === "A") {
+            if (aCount >= 2) leadership = "";
+            else aCount++;
+          }
+
+          // Stick: normalize
+          const stick = normalizeStick(rawStick);
+
+          // CanPlay: parse and filter to allowed codes
+          const canPlay = parseCanPlayCell(rawCanPlay);
+
+          const playerDraft = {
+            number: String(num),
+            name: name16,
+            preferredPosition,
+            leadership,
+            stick,
+            canPlay,
+            notes: String(rawNotes || ""),
+          };
+
+          team.players.push(createPlayer(playerDraft));
+          usedNumbers.add(num);
+          report.imported++;
+        }
+
+        // Now update state ONCE with the fully built team
+        updateData((d) => {
           d.teams.push(team);
           d.activeTeamId = team.id;
           return d;
         });
 
-        // Summary alert
+        // Summary alert (counts now always correct)
         const topIssues = report.messages.slice(0, 8).join("\n");
         const more =
           report.messages.length > 8
             ? `\n...and ${report.messages.length - 8} more.`
             : "";
+
         alert(
           `Import complete.\n\nImported: ${report.imported}\nSkipped: ${report.skipped}` +
             (report.messages.length
@@ -410,44 +665,133 @@ export default function Rosters({ data, setData }) {
     reader.readAsText(file);
   }
 
-  // ✅ NEW: background image handlers (stored on ACTIVE TEAM)
-  function clickPickBackground() {
-    if (!activeTeam) return;
-    bgRef.current?.click();
+  // =====================
+  // Opposition management (stored on ACTIVE TEAM)
+  // CSV format:
+  //   Row 1 (header): League name (first cell)
+  //   Rows 2..: opponent team names (first cell)
+  // =====================
+
+  function ensureOppFields(team) {
+    if (!team) return;
+    team.opposition ??= [];
+    team.leagueName ??= "";
   }
 
-  async function onPickBackgroundFile(file) {
-    if (!activeTeam || !file) return;
-
-    if (!file.type?.startsWith("image/")) {
-      alert("Please select an image file (JPG/PNG/WebP).");
-      return;
-    }
-
-    try {
-      const dataUrl = await fileToResizedDataUrl(file, 1800, 0.85);
-
-      updateData((d) => {
-        const team = d.teams.find((t) => t.id === d.activeTeamId);
-        if (!team) return d;
-        team.printBackgroundImage = dataUrl; // ✅ Data URL (base64)
-        return d;
-      });
-    } catch (e) {
-      alert("Could not load that image. Please try a different file.");
-    } finally {
-      if (bgRef.current) bgRef.current.value = "";
-    }
-  }
-
-  function clearBackground() {
+  function addOppositionSingle() {
     if (!activeTeam) return;
+    const name = prompt("Add opposition team name:");
+    if (!name) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
+
     updateData((d) => {
       const team = d.teams.find((t) => t.id === d.activeTeamId);
       if (!team) return d;
-      team.printBackgroundImage = "";
+      ensureOppFields(team);
+      const exists = team.opposition.some(
+        (x) => String(x).trim().toLowerCase() === trimmed.toLowerCase()
+      );
+      if (!exists) team.opposition.push(trimmed);
       return d;
     });
+  }
+
+  function editOppositionAt(index) {
+    if (!activeTeam) return;
+    const current = String(activeTeam.opposition?.[index] ?? "").trim();
+    const nextName = prompt("Edit opposition team name:", current);
+    if (nextName == null) return;
+    const trimmed = String(nextName).trim();
+    if (!trimmed) return;
+
+    updateData((d) => {
+      const team = d.teams.find((t) => t.id === d.activeTeamId);
+      if (!team) return d;
+      ensureOppFields(team);
+      const lower = trimmed.toLowerCase();
+      const dup = team.opposition.some(
+        (x, i) => i !== index && String(x).trim().toLowerCase() === lower
+      );
+      if (dup) return d;
+      team.opposition[index] = trimmed;
+      return d;
+    });
+  }
+
+  function deleteOppositionAt(index) {
+    if (!activeTeam) return;
+    const current = String(activeTeam.opposition?.[index] ?? "").trim();
+    if (!current) return;
+    if (!confirm(`Delete opposition team "${current}"?`)) return;
+
+    updateData((d) => {
+      const team = d.teams.find((t) => t.id === d.activeTeamId);
+      if (!team) return d;
+      ensureOppFields(team);
+      team.opposition = team.opposition.filter((_, i) => i !== index);
+      return d;
+    });
+  }
+
+  function clickImportOpposition() {
+    if (!activeTeam) return;
+    oppImportRef.current?.click();
+  }
+
+  function importOppositionCsv(file) {
+    if (!activeTeam || !file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = String(reader.result ?? "");
+        const rows = parseCSV(text);
+
+        // Find first non-empty row as header
+        const nonEmptyRows = rows
+          .map((r) => (Array.isArray(r) ? r : []))
+          .map((r) => r.map((c) => String(c ?? "").trim()))
+          .filter((r) => r.some((c) => c !== ""));
+
+        if (nonEmptyRows.length === 0) {
+          alert("Import failed: CSV is empty.");
+          return;
+        }
+
+        const league = String(nonEmptyRows[0][0] ?? "").trim();
+        const opponentNames = nonEmptyRows
+          .slice(1)
+          .map((r) => String(r[0] ?? "").trim())
+          .filter(Boolean);
+
+        updateData((d) => {
+          const team = d.teams.find((t) => t.id === d.activeTeamId);
+          if (!team) return d;
+          ensureOppFields(team);
+
+          if (league) team.leagueName = league;
+
+          const seen = new Set(team.opposition.map((x) => String(x).trim().toLowerCase()));
+          for (const nm of opponentNames) {
+            const key = nm.toLowerCase();
+            if (seen.has(key)) continue;
+            team.opposition.push(nm);
+            seen.add(key);
+          }
+          return d;
+        });
+
+        alert(
+          `Opposition import complete.\n\nLeague: ${league || "(not provided)"}\nImported: ${opponentNames.length}`
+        );
+      } catch (e) {
+        alert("Import failed: invalid CSV file.");
+      } finally {
+        if (oppImportRef.current) oppImportRef.current.value = "";
+      }
+    };
+
+    reader.readAsText(file);
   }
 
   const sortedPlayers = useMemo(() => {
@@ -495,6 +839,9 @@ export default function Rosters({ data, setData }) {
   }
 
   function deleteTeam(id) {
+    // If deleting the team currently being renamed, close rename UI
+    if (renamingTeamId === id) cancelRenameTeam();
+
     updateData((d) => {
       d.teams = d.teams.filter((t) => t.id !== id);
       if (d.activeTeamId === id) d.activeTeamId = d.teams[0]?.id ?? null;
@@ -589,7 +936,12 @@ export default function Rosters({ data, setData }) {
   return (
     <div
       className="rostersLayout"
-      style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16, minWidth: 0 }}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "280px 1fr",
+        gap: 16,
+        minWidth: 0,
+      }}
     >
       {/* Teams */}
       <aside
@@ -615,7 +967,10 @@ export default function Rosters({ data, setData }) {
               border: "1px solid rgba(0,0,0,0.2)",
             }}
           />
-          <button onClick={createNewTeam} style={{ padding: "8px 10px", borderRadius: 10 }}>
+          <button
+            onClick={createNewTeam}
+            style={{ padding: "8px 10px", borderRadius: 10 }}
+          >
             Add
           </button>
         </div>
@@ -624,97 +979,154 @@ export default function Rosters({ data, setData }) {
           {data.teams.length === 0 && (
             <div style={{ opacity: 0.7 }}>No teams yet. Add one above.</div>
           )}
-          {data.teams.map((t) => (
-            <div
-              key={t.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: 10,
-                borderRadius: 12,
-                border: "1px solid rgba(0,0,0,0.12)",
-                background: t.id === data.activeTeamId ? "rgba(255, 169, 99, 0.1)" : "transparent",
-                minWidth: 0,
-              }}
-            >
-              <button
-                onClick={() => updateData((d) => ((d.activeTeamId = t.id), d))}
+
+          {data.teams.map((t) => {
+            const isEditingThis = renamingTeamId === t.id;
+
+            return (
+              <div
+                key={t.id}
                 style={{
-                  flex: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: 10,
+                  borderRadius: 12,
+                  border: "1px solid rgba(0,0,0,0.12)",
+                  background:
+                    t.id === data.activeTeamId
+                      ? "rgba(255, 169, 99, 0.1)"
+                      : "transparent",
                   minWidth: 0,
-                  textAlign: "left",
-                  background: "transparent",
-                  border: "none",
-                  padding: 0,
-                  color: "var(--text)",
-                  font: "inherit",
-                  cursor: "pointer",
                 }}
               >
-                <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {t.name}
-                </div>
-                <div style={{ fontSize: 12, opacity: 0.7 }}>{t.players.length} players</div>
-              </button>
-
-              <button onClick={() => deleteTeam(t.id)} title="Delete team">
-                🗑️
-              </button>
-            </div>
-          ))}
-        </div>
-
-        {/* ✅ NEW: Print background image for active team */}
-        {activeTeam ? (
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(0,0,0,0.12)" }}>
-            <div style={{ fontWeight: 900, marginBottom: 8 }}>Print background</div>
-
-            <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ fontSize: 12, opacity: 0.8, lineHeight: 1.3 }}>
-                Optional image used when exporting team lineups.
-              </div>
-
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button onClick={clickPickBackground}>Choose image</button>
-                <button onClick={clearBackground} disabled={!activeTeam.printBackgroundImage}>
-                  Clear
-                </button>
-
-                <input
-                  ref={bgRef}
-                  type="file"
-                  accept="image/*"
-                  style={{ display: "none" }}
-                  onChange={(e) => onPickBackgroundFile(e.target.files?.[0])}
-                />
-              </div>
-
-              {activeTeam.printBackgroundImage ? (
-                <div
+                <button
+                  onClick={() => {
+                    updateData((d) => ((d.activeTeamId = t.id), d));
+                    // If switching teams while renaming something else, cancel rename UI
+                    if (renamingTeamId && renamingTeamId !== t.id)
+                      cancelRenameTeam();
+                  }}
                   style={{
-                    borderRadius: 12,
-                    border: "1px solid rgba(0,0,0,0.12)",
-                    overflow: "hidden",
-                    background: "var(--surface)",
+                    flex: 1,
+                    minWidth: 0,
+                    textAlign: "left",
+                    background: "transparent",
+                    border: "none",
+                    padding: 0,
+                    color: "var(--text)",
+                    font: "inherit",
+                    cursor: "pointer",
                   }}
                 >
-                  <div style={{ fontSize: 12, fontWeight: 800, padding: 8, borderBottom: "1px solid rgba(0,0,0,0.12)" }}>
-                    Preview
-                  </div>
-                  <img
-                    src={activeTeam.printBackgroundImage}
-                    alt="Print background preview"
-                    style={{ display: "block", width: "100%", height: 120, objectFit: "cover" }}
-                  />
-                </div>
-              ) : (
-                <div style={{ fontSize: 12, opacity: 0.7 }}>
-                  No background set.
-                </div>
-              )}
-            </div>
-          </div>
+                  {!isEditingThis ? (
+                    <>
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {t.name}
+                      </div>
+                      <div style={{ fontSize: 12, opacity: 0.7 }}>
+                        {t.players.length} players
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        autoFocus
+                        placeholder="Team name"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") saveRenameTeam();
+                          if (e.key === "Escape") cancelRenameTeam();
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          width: "100%",
+                          maxWidth: "100%",
+                          padding: 8,
+                          borderRadius: 10,
+                          border: "1px solid rgba(0,0,0,0.2)",
+                        }}
+                      />
+
+                      <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            saveRenameTeam();
+                          }}
+                          title="Save"
+                          style={{ ...iconBtn, width: 36, height: 30 }}
+                          aria-label="Save rename"
+                        >
+                          ✅
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            cancelRenameTeam();
+                          }}
+                          title="Cancel"
+                          style={{ ...iconBtn, width: 36, height: 30 }}
+                          aria-label="Cancel rename"
+                        >
+                          ✖️
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </button>
+
+                {/* ✅ Edit first */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startRenameTeam(t);
+                  }}
+                  title="Rename team"
+                  aria-label="Rename team"
+                  style={iconBtn}
+                >
+                  ✏️
+                </button>
+
+                {/* ✅ Delete second */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteTeam(t.id);
+                  }}
+                  title="Delete team"
+                  aria-label="Delete team"
+                  style={iconBtn}
+                >
+                  🗑️
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ✅ Opposition management for active team */}
+        {activeTeam ? (
+          <OppositionPanel
+            activeTeam={activeTeam}
+            updateData={updateData}
+            iconBtn={iconBtn}
+            oppImportRef={oppImportRef}
+            parseCSV={parseCSV}
+          />
         ) : null}
       </aside>
 
@@ -732,7 +1144,15 @@ export default function Rosters({ data, setData }) {
         >
           <h2 style={{ margin: 0 }}>Rosters</h2>
 
-          <div className="rostersActionsRow" style={{ display: "flex", gap: 10, alignItems: "center", minWidth: 0 }}>
+          <div
+            className="rostersActionsRow"
+            style={{
+              display: "flex",
+              gap: 10,
+              alignItems: "center",
+              minWidth: 0,
+            }}
+          >
             {activeTeam ? (
               <>
                 <button onClick={exportActiveTeam}>Export team</button>
@@ -765,7 +1185,9 @@ export default function Rosters({ data, setData }) {
         </div>
 
         {!activeTeam ? (
-          <div style={{ marginTop: 14, opacity: 0.8 }}>Create a team on the left to start adding players.</div>
+          <div style={{ marginTop: 14, opacity: 0.8 }}>
+            Create a team on the left to start adding players.
+          </div>
         ) : (
           <>
             <div
@@ -775,30 +1197,56 @@ export default function Rosters({ data, setData }) {
                 padding: 12,
                 borderRadius: 14,
                 border: "1px solid rgba(0,0,0,0.12)",
-                scrollMarginTop: 90, // helps if you have sticky nav / top spacing
+                scrollMarginTop: 90,
               }}
             >
-              <h3 style={{ marginTop: 0 }}>{editingId ? "Edit player" : "Add player"}</h3>
+              <h3 style={{ marginTop: 0 }}>
+                {editingId ? "Edit player" : "Add player"}
+              </h3>
 
               {error && (
-                <div style={{ marginBottom: 10, padding: 10, borderRadius: 12, border: "1px solid rgba(0,0,0,0.2)" }}>
+                <div
+                  style={{
+                    marginBottom: 10,
+                    padding: 10,
+                    borderRadius: 12,
+                    border: "1px solid rgba(0,0,0,0.2)",
+                  }}
+                >
                   <b>Fix:</b> {error}
                 </div>
               )}
 
               <div style={{ display: "grid", gap: 12, minWidth: 0 }}>
                 {/* Row 1: Number + Name */}
-                <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 140px) minmax(0, 1fr)", gap: 10 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "minmax(0, 140px) minmax(0, 1fr)",
+                    gap: 10,
+                  }}
+                >
                   <input
                     value={draft.number}
-                    onChange={(e) => setDraft((p) => ({ ...p, number: e.target.value }))}
+                    onChange={(e) =>
+                      setDraft((p) => ({ ...p, number: e.target.value }))
+                    }
                     placeholder="Number"
-                    style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)", minWidth: 0, width: "100%" }}
+                    style={{
+                      padding: 8,
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,0,0,0.2)",
+                      minWidth: 0,
+                      width: "100%",
+                    }}
                   />
                   <input
                     value={draft.name}
                     maxLength={16}
-                    onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
+                    onChange={(e) =>
+                      setDraft((p) => ({ ...p, name: e.target.value }))
+                    }
                     placeholder="Name (max 16 chars)"
                   />
                 </div>
@@ -808,15 +1256,27 @@ export default function Rosters({ data, setData }) {
                   className="addPlayerRow2"
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "minmax(0, 160px) minmax(0, 160px) minmax(0, 160px)",
+                    gridTemplateColumns:
+                      "minmax(0, 160px) minmax(0, 160px) minmax(0, 160px)",
                     gap: 10,
                     minWidth: 0,
                   }}
                 >
                   <select
                     value={draft.preferredPosition}
-                    onChange={(e) => setDraft((p) => ({ ...p, preferredPosition: e.target.value }))}
-                    style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)", minWidth: 0, width: "100%" }}
+                    onChange={(e) =>
+                      setDraft((p) => ({
+                        ...p,
+                        preferredPosition: e.target.value,
+                      }))
+                    }
+                    style={{
+                      padding: 8,
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,0,0,0.2)",
+                      minWidth: 0,
+                      width: "100%",
+                    }}
                   >
                     {POSITIONS.map((p) => (
                       <option key={p} value={p}>
@@ -827,8 +1287,19 @@ export default function Rosters({ data, setData }) {
 
                   <select
                     value={draft.leadership}
-                    onChange={(e) => setDraft((p) => ({ ...p, leadership: e.target.value }))}
-                    style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)", minWidth: 0, width: "100%" }}
+                    onChange={(e) =>
+                      setDraft((p) => ({
+                        ...p,
+                        leadership: e.target.value,
+                      }))
+                    }
+                    style={{
+                      padding: 8,
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,0,0,0.2)",
+                      minWidth: 0,
+                      width: "100%",
+                    }}
                   >
                     {LEADERSHIP.map((l) => (
                       <option key={l} value={l}>
@@ -839,8 +1310,16 @@ export default function Rosters({ data, setData }) {
 
                   <select
                     value={draft.stick}
-                    onChange={(e) => setDraft((p) => ({ ...p, stick: e.target.value }))}
-                    style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)", minWidth: 0, width: "100%" }}
+                    onChange={(e) =>
+                      setDraft((p) => ({ ...p, stick: e.target.value }))
+                    }
+                    style={{
+                      padding: 8,
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,0,0,0.2)",
+                      minWidth: 0,
+                      width: "100%",
+                    }}
                   >
                     {STICKS.map((s) => (
                       <option key={s} value={s}>
@@ -852,11 +1331,31 @@ export default function Rosters({ data, setData }) {
 
                 {/* Row 3: Can play */}
                 <div style={{ display: "grid", gap: 8 }}>
-                  <div style={{ fontWeight: 700, opacity: 0.85 }}>Can play:</div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
+                  <div style={{ fontWeight: 700, opacity: 0.85 }}>
+                    Can play:
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 12,
+                      alignItems: "center",
+                    }}
+                  >
                     {CANPLAY.map((code) => (
-                      <label key={code} style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                        <input type="checkbox" checked={draft.canPlay.includes(code)} onChange={() => toggleCanPlay(code)} />
+                      <label
+                        key={code}
+                        style={{
+                          display: "flex",
+                          gap: 6,
+                          alignItems: "center",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={draft.canPlay.includes(code)}
+                          onChange={() => toggleCanPlay(code)}
+                        />
                         {code}
                       </label>
                     ))}
@@ -866,19 +1365,33 @@ export default function Rosters({ data, setData }) {
                 {/* Row 4: Notes */}
                 <textarea
                   value={draft.notes}
-                  onChange={(e) => setDraft((p) => ({ ...p, notes: e.target.value }))}
+                  onChange={(e) =>
+                    setDraft((p) => ({ ...p, notes: e.target.value }))
+                  }
                   placeholder="Notes (optional)"
                   rows={3}
-                  style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)", minWidth: 0, width: "100%" }}
+                  style={{
+                    padding: 8,
+                    borderRadius: 10,
+                    border: "1px solid rgba(0,0,0,0.2)",
+                    minWidth: 0,
+                    width: "100%",
+                  }}
                 />
 
                 {/* Actions */}
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button onClick={savePlayer} style={{ padding: "8px 12px", borderRadius: 10 }}>
+                  <button
+                    onClick={savePlayer}
+                    style={{ padding: "8px 12px", borderRadius: 10 }}
+                  >
                     {editingId ? "Save changes" : "Add player"}
                   </button>
                   {editingId && (
-                    <button onClick={resetDraft} style={{ padding: "8px 12px", borderRadius: 10 }}>
+                    <button
+                      onClick={resetDraft}
+                      style={{ padding: "8px 12px", borderRadius: 10 }}
+                    >
                       Cancel
                     </button>
                   )}
@@ -929,14 +1442,41 @@ export default function Rosters({ data, setData }) {
                       {(p.canPlay || []).length ? p.canPlay.join(", ") : ""}
                     </div>
 
-                    <div className="playerActions">
-                      <button onClick={() => startEditPlayer(p)}>Edit</button>
-                      <button onClick={() => deletePlayer(p.id)}>Del</button>
+                    {/* ✅ Icon actions for consistency + better mobile layout */}
+                    <div
+                      className="playerActions"
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        justifyContent: "flex-end",
+                      }}
+                    >
+                      <button
+                        onClick={() => startEditPlayer(p)}
+                        title="Edit player"
+                        aria-label="Edit player"
+                        style={iconBtn}
+                      >
+                        ✏️
+                      </button>
+
+                      <button
+                        onClick={() => deletePlayer(p.id)}
+                        title="Delete player"
+                        aria-label="Delete player"
+                        style={iconBtn}
+                      >
+                        🗑️
+                      </button>
                     </div>
                   </div>
                 ))}
 
-                {sortedPlayers.length === 0 && <div style={{ opacity: 0.7 }}>No players match your search.</div>}
+                {sortedPlayers.length === 0 && (
+                  <div style={{ opacity: 0.7 }}>
+                    No players match your search.
+                  </div>
+                )}
               </div>
             </div>
           </>

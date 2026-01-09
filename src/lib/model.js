@@ -93,6 +93,10 @@ export function normalizeAppData(data) {
   for (const t of data.teams) {
     t.printBackgroundImage ??= ""; // Data URL (base64). Empty = no background
     t.players ??= [];
+
+    // ✅ Opposition + league (for printing/opponent dropdowns)
+    t.opposition ??= [];
+    t.leagueName ??= "";
   }
 
   // Ensure at least 1 team
@@ -127,6 +131,10 @@ export function normalizeAppData(data) {
 
 export function createEmptyAppData() {
   const defaultTeam = createTeam("SNIPERS DIV 1");
+
+  // ✅ Seed default opposition for the initial (bootstrapped) team only.
+  // New teams created by users will start with an empty opposition list.
+  defaultTeam.opposition = ["Arctics", "Huskies", "Stingrays", "Titans", "Unicorns"];
 
   defaultTeam.players.push(
     createPlayer({
@@ -244,6 +252,10 @@ export function createTeam(name) {
     name,
     players: [],
     printBackgroundImage: "", // ✅ Data URL (base64). Empty = no background
+
+    // ✅ Opposition + league (used for printing + dropdowns)
+    opposition: [],
+    leagueName: "",
   };
 }
 
