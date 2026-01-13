@@ -1824,7 +1824,7 @@ export default function Lineups({ data, setData }) {
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "70px max-content max-content",
+                    gridTemplateColumns: "70px 88px max-content",
                     gap: 10,
                     alignItems: "center",
                     justifyItems: "start",
