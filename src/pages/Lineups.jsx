@@ -16,6 +16,13 @@ const MAX_FORWARD_LINES = 4;
 const MAX_DEF_PAIRS = 4;
 const DEFAULT_PRINT_BG = "/print-default-bg.png"; // public/print-default-bg.png
 
+// Built-in print backgrounds (files in /public)
+const PRINT_BG_PRESETS = [
+  { label: "Snipers", src: "/print-default-bg.png" },
+  { label: "Empty", src: "/print-empty_bg.png" },
+  { label: "BlackHawks", src: "/print-BlackHawks_bg.png" },
+];
+
 /* ===================== UI: Draggable Player ===================== */
 
 function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = false }) {
@@ -478,7 +485,7 @@ export default function Lineups({ data, setData }) {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(img, 0, 0, w, h);
 
-    return canvas.toDataURL("image/png");
+    return canvas.toDataURL("image/jpeg", quality);
   }
 
   function updateData(updater) {
@@ -492,6 +499,27 @@ export default function Lineups({ data, setData }) {
   // =========================
   // Team print background handlers
   // =========================
+  function resolveTeamPrintBackground(team) {
+    // Priority: uploaded image > selected preset > default
+    const uploaded = String(team?.printBackgroundImage || "").trim();
+    if (uploaded) return uploaded;
+
+    const preset = String(team?.printBackgroundPreset || "").trim();
+    if (preset) return preset;
+
+    return DEFAULT_PRINT_BG;
+  }
+
+  function setBackgroundPreset(src) {
+    if (!activeTeam) return;
+    updateData((d) => {
+      const team = d.teams.find((t) => t.id === d.activeTeamId);
+      if (!team) return d;
+      team.printBackgroundPreset = String(src || "");
+      return d;
+    });
+  }
+
   function clickPickBackground() {
     if (!activeTeam) return;
     bgRef.current?.click();
@@ -524,7 +552,18 @@ export default function Lineups({ data, setData }) {
     updateData((d) => {
       const team = d.teams.find((t) => t.id === d.activeTeamId);
       if (!team) return d;
+      // Only clears uploaded image; preset (if set) remains available.
       team.printBackgroundImage = "";
+      return d;
+    });
+  }
+
+  function clearBackgroundPreset() {
+    if (!activeTeam) return;
+    updateData((d) => {
+      const team = d.teams.find((t) => t.id === d.activeTeamId);
+      if (!team) return d;
+      team.printBackgroundPreset = "";
       return d;
     });
   }
@@ -1019,7 +1058,7 @@ export default function Lineups({ data, setData }) {
   async function renderExportCanvas({ scale = 2 } = {}) {
     if (!activeTeam || !activeLineup) return null;
 
-    const activeTheme = activeTeam ? (data.themes?.find((t) => t.id === activeTeam.themeId) || null) : null;
+    const activeTheme = data.themes?.find((t) => t.id === data.activeThemeId) || null;
 
     const teamC = activeTheme?.app?.printTeamColor ?? "#d32f2f";
     const labelsC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
@@ -1029,7 +1068,7 @@ export default function Lineups({ data, setData }) {
     const playerNameC = activeTheme?.app?.printCardText ?? activeTheme?.app?.surface ?? "#ffffff";
     const leadershipBackgroundC = activeTheme?.app?.printLeader ?? activeTheme?.app?.leader ?? "#ffd54a";
 
-    const bgImg = String(activeTeam.printBackgroundImage || DEFAULT_PRINT_BG || "").replaceAll("'", "%27");
+    const bgImg = String(resolveTeamPrintBackground(activeTeam) || "").replaceAll("'", "%27");
 
     const teamName = escapeHtml(activeTeam.name);
     const lineupName = escapeHtml(activeLineup.name);
@@ -1395,8 +1434,8 @@ export default function Lineups({ data, setData }) {
       return;
     }
 
-    const bgImg = String(activeTeam.printBackgroundImage || "").replaceAll("'", "%27");
-    const activeTheme = activeTeam ? (data.themes?.find((t) => t.id === activeTeam.themeId) || null) : null;
+    const bgImg = String(resolveTeamPrintBackground(activeTeam) || "").replaceAll("'", "%27");
+    const activeTheme = data.themes?.find((t) => t.id === data.activeThemeId) || null;
 
     const teamC = activeTheme?.app?.printTeamColor ?? activeTheme?.app?.primary ?? "#d32f2f";
     const labelsC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
@@ -1722,34 +1761,54 @@ export default function Lineups({ data, setData }) {
           {/* ===================== Printing: Background (team) ===================== */}
           <div style={{ padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
             <div style={{ fontWeight: 900, marginBottom: 8 }}>Print background</div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <button onClick={clickPickBackground}>Choose image</button>
-              <button onClick={clearBackground} disabled={!activeTeam.printBackgroundImage}>
-                Clear
-              </button>
-              <input
-                ref={bgRef}
-                type="file"
-                accept="image/*"
-                style={{ display: "none" }}
-                onChange={(e) => onPickBackgroundFile(e.target.files?.[0] || null)}
-              />
-            </div>
+            <div style={{ display: "grid", gap: 10 }}>
+              {/* Presets */}
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <div style={{ fontSize: 12, fontWeight: 900, opacity: 0.85 }}>Preset</div>
+                <select
+                  value={activeTeam.printBackgroundPreset || DEFAULT_PRINT_BG}
+                  onChange={(e) => setBackgroundPreset(e.target.value)}
+                  style={{ padding: "8px 10px", borderRadius: 12, border: "1px solid var(--border)" }}
+                >
+                  {PRINT_BG_PRESETS.map((p) => (
+                    <option key={p.src} value={p.src}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+                <button onClick={clearBackgroundPreset} disabled={!activeTeam.printBackgroundPreset}>
+                  Clear preset
+                </button>
+              </div>
 
-            {activeTeam.printBackgroundImage ? (
-              <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Preview</div>
-                <img
-                  src={activeTeam.printBackgroundImage}
-                  alt="Print background preview"
-                  style={{ width: "100%", maxHeight: 140, objectFit: "cover", borderRadius: 12, border: "1px solid var(--border)" }}
+              {/* Upload */}
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <div style={{ fontSize: 12, fontWeight: 900, opacity: 0.85 }}>Upload</div>
+                <button onClick={clickPickBackground}>Choose image</button>
+                <button onClick={clearBackground} disabled={!activeTeam.printBackgroundImage}>
+                  Clear upload
+                </button>
+                <input
+                  ref={bgRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={(e) => onPickBackgroundFile(e.target.files?.[0] || null)}
                 />
               </div>
-            ) : (
-              <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
-                No background selected (using default).
+
+              {/* Preview */}
+              <div>
+                <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>
+                  Preview {activeTeam.printBackgroundImage ? "(upload)" : activeTeam.printBackgroundPreset ? "(preset)" : "(default)"}
+                </div>
+                <img
+                  src={resolveTeamPrintBackground(activeTeam)}
+                  alt="Print background preview"
+                  style={{ width: "100%", maxHeight: 140, objectFit: "cover", borderRadius: 12, border: "1px solid var(--border)", background: "#fff" }}
+                />
               </div>
-            )}
+            </div>
           </div>
 
           {/* ===================== Printing: Match info (lineup) ===================== */}
@@ -1824,7 +1883,7 @@ export default function Lineups({ data, setData }) {
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "70px 90px max-content",
+                    gridTemplateColumns: "70px max-content max-content",
                     gap: 10,
                     alignItems: "center",
                     justifyItems: "start",

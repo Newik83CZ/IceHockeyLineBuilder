@@ -95,7 +95,11 @@ export function normalizeAppData(data) {
   // ✅ Ensure team fields exist (back-compat)
   for (const t of data.teams) {
     t.players ??= [];
-    t.printBackgroundImage ??= ""; // Data URL (base64). Empty = no background
+    // Printing background
+    // - printBackgroundPreset: built-in background path under /public (string)
+    // - printBackgroundImage: uploaded image data URL (overrides preset when set)
+    t.printBackgroundPreset ??= "";
+    t.printBackgroundImage ??= "";
 
     // Opposition + league (for printing/opponent dropdowns)
     t.opposition ??= [];
@@ -303,7 +307,8 @@ export function createTeam(name) {
     name,
     themeId: null, // ✅ bound theme for this team
     players: [],
-    printBackgroundImage: "", // ✅ Data URL (base64). Empty = no background
+    printBackgroundPreset: "", // ✅ built-in bg path (e.g. "/print-default-bg.png")
+    printBackgroundImage: "", // ✅ uploaded bg data URL (overrides preset)
 
     // ✅ Opposition + league (used for printing + dropdowns)
     opposition: [],
