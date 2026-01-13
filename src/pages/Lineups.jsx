@@ -478,7 +478,7 @@ export default function Lineups({ data, setData }) {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(img, 0, 0, w, h);
 
-    return canvas.toDataURL("image/jpeg", quality);
+    return canvas.toDataURL("image/png");
   }
 
   function updateData(updater) {
