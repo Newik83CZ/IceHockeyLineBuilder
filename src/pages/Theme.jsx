@@ -1,17 +1,73 @@
-import { useMemo, useState } from "react";
-import { createTheme } from "../lib/model";
+import { useEffect, useMemo, useState } from "react";
+import { createDefaultThemeTemplate, cloneThemeFromTemplate, getDefaultTheme } from "../lib/model";
 
 const POSITIONS = ["Centre", "Wing", "Defender", "Goalie"];
 
-export default function ThemePage({ data, setData }) {
+export default function ThemePage({ data, setData, setPreviewThemeId }) {
   const activeTeam = useMemo(() => {
     return data.teams?.find((t) => t.id === data.activeTeamId) || null;
   }, [data.teams, data.activeTeamId]);
 
-  const activeTheme = useMemo(() => {
-    if (!activeTeam) return null;
-    return data.themes?.find((t) => t.id === activeTeam.themeId) || null;
-  }, [data.themes, activeTeam]);
+  // -------------------------
+  // Theme manager state
+  // -------------------------
+  const [editingThemeId, setEditingThemeId] = useState(null);
+  const [followActiveTeam, setFollowActiveTeam] = useState(true);
+
+  // Build selector options:
+// - Teams (bound 1:1) shown by team name
+// - Any unassigned themes (no team points to them) shown by theme name
+  const themeOptions = useMemo(() => {
+    const teams = data.teams || [];
+    const themes = data.themes || [];
+
+    const teamByThemeId = new Map();
+    for (const tm of teams) {
+      if (tm?.themeId) teamByThemeId.set(tm.themeId, tm);
+    }
+
+    const teamOptions = teams.map((tm) => ({
+      kind: "team",
+      key: `team:${tm.id}`,
+      value: tm.themeId || "",
+      label: tm.name || "Unnamed team",
+      teamId: tm.id,
+      themeId: tm.themeId || "",
+    }));
+
+    const unassigned = themes
+      .filter((th) => th?.id && !teamByThemeId.has(th.id))
+      .map((th) => ({
+        kind: "unassigned",
+        key: `theme:${th.id}`,
+        value: th.id,
+        label: th.isDefault === true ? "⭐ Default Theme" : (th.name ? `${th.name} (unassigned)` : "Unnamed theme (unassigned)"),
+        teamId: "",
+        themeId: th.id,
+      }));
+
+    return { teamOptions, unassigned };
+  }, [data.teams, data.themes]);
+// On first mount (and whenever active team changes), default to active team's theme
+  useEffect(() => {
+    if (!activeTeam) return;
+    if (!followActiveTeam) return;
+    setEditingThemeId(activeTeam.themeId || null);
+  }, [activeTeam, followActiveTeam]);
+
+  // While Theme tab is mounted, apply preview globally
+  useEffect(() => {
+    if (typeof setPreviewThemeId === "function") {
+      setPreviewThemeId(editingThemeId || null);
+    }
+  }, [editingThemeId, setPreviewThemeId]);
+
+  // On unmount, revert preview back to team theme
+  useEffect(() => {
+    return () => {
+      if (typeof setPreviewThemeId === "function") setPreviewThemeId(null);
+    };
+  }, [setPreviewThemeId]);
 
   function updateData(updater) {
     setData((prev) => {
@@ -21,14 +77,23 @@ export default function ThemePage({ data, setData }) {
     });
   }
 
-  function ensureBoundTheme() {
-    // Create (or repair) the theme bound to the ACTIVE team
-    if (!activeTeam) return;
+  const editingTeam = useMemo(() => {
+    if (!editingThemeId) return null;
+    return data.teams?.find((tm) => tm.themeId === editingThemeId) || null;
+  }, [data.teams, editingThemeId]);
+
+  const editingTheme = useMemo(() => {
+    if (!editingThemeId) return null;
+    return data.themes?.find((t) => t.id === editingThemeId) || null;
+  }, [data.themes, editingThemeId]);
+
+  function ensureBoundThemeFor(teamId) {
+    if (!teamId) return;
 
     updateData((d) => {
       d.themes ??= [];
 
-      const team = d.teams.find((t) => t.id === d.activeTeamId);
+      const team = d.teams.find((t) => t.id === teamId);
       if (!team) return d;
 
       const existing = d.themes.find((th) => th.id === team.themeId);
@@ -38,19 +103,30 @@ export default function ThemePage({ data, setData }) {
         return d;
       }
 
-      const th = createTheme(team.name || "Theme");
+      // Create/bind a theme cloned from the Default Theme (template)
+      d.themes ??= [];
+      let template = getDefaultTheme(d.themes);
+      if (!template) {
+        template = createDefaultThemeTemplate();
+        d.themes.push(template);
+      }
+      const th = cloneThemeFromTemplate(template, team.name || "Theme");
       th.name = team.name || th.name;
       d.themes.push(th);
       team.themeId = th.id;
 
-      d.activeThemeId = th.id;
+      // If we were trying to edit this team's theme, jump to the repaired theme
+      if (teamId === d.activeTeamId && followActiveTeam) {
+        d.activeThemeId = th.id;
+      }
       return d;
     });
   }
 
   function setAppColor(key, value) {
+    if (!editingThemeId) return;
     updateData((d) => {
-      const t = d.themes.find((x) => x.id === (d.teams.find((tm) => tm.id === d.activeTeamId)?.themeId));
+      const t = d.themes.find((x) => x.id === editingThemeId);
       if (!t) return d;
       t.app ??= {};
       t.app[key] = value;
@@ -60,14 +136,26 @@ export default function ThemePage({ data, setData }) {
   }
 
   function setPosColor(pos, value) {
+    if (!editingThemeId) return;
     updateData((d) => {
-      const t = d.themes.find((x) => x.id === (d.teams.find((tm) => tm.id === d.activeTeamId)?.themeId));
+      const t = d.themes.find((x) => x.id === editingThemeId);
       if (!t) return d;
       t.positions ??= {};
       t.positions[pos] = value;
       t.updatedAt = Date.now();
       return d;
     });
+  }
+
+  function selectTheme(themeId) {
+    setFollowActiveTeam(false);
+    setEditingThemeId(themeId || null);
+  }
+
+  function backToActiveTeamTheme() {
+    if (!activeTeam) return;
+    setFollowActiveTeam(true);
+    setEditingThemeId(activeTeam.themeId || null);
   }
 
   if (!activeTeam) {
@@ -79,14 +167,61 @@ export default function ThemePage({ data, setData }) {
     );
   }
 
-  if (!activeTheme) {
+
+  const headerTeamName = editingTeam?.name || editingTheme?.name || activeTeam?.name || "Theme";
+
+  if (!editingTheme) {
+    const missingTeam = editingTeam || activeTeam;
+    const missingTeamId = missingTeam?.id;
+
     return (
-      <div>
-        <h2>Theme — {activeTeam.name}</h2>
+      <div style={{ display: "grid", gap: 12 }}>
+        <h2 style={{ margin: 0 }}>Theme Manager</h2>
+
+        <Card title="Editing theme">
+          <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 10, alignItems: "center" }}>
+              <div style={{ fontWeight: 800, fontSize: 12 }}>Select theme</div>
+              <select
+                value={editingThemeId || ""}
+                onChange={(e) => selectTheme(e.target.value)}
+                style={{ padding: "8px 10px", borderRadius: 12, border: "1px solid var(--border)" }}
+              >
+                {themeOptions.teamOptions.map((opt) => (
+                  <option key={opt.key} value={opt.value || ""}>
+                    {opt.label}
+                  </option>
+                ))}
+
+                {themeOptions.unassigned.length ? (
+                  <optgroup label="Unassigned themes:">
+                    {themeOptions.unassigned.map((opt) => (
+                      <option key={opt.key} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+</select>
+            </div>
+
+            <div style={{ fontSize: 13, opacity: 0.8, lineHeight: 1.35 }}>
+              Live preview is active on this tab. Leaving the Theme tab will revert the app back to the active team’s
+              theme automatically.
+            </div>
+
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button onClick={backToActiveTeamTheme} style={{ width: 220 }}>
+                Back to active team theme
+              </button>
+            </div>
+          </div>
+        </Card>
+
         <div style={{ marginTop: 8, opacity: 0.8 }}>
-          This team does not have a theme yet (or it was missing). Click below to create/repair it.
+          The selected team does not have a theme yet (or it was missing). Click below to create/repair it.
         </div>
-        <button onClick={ensureBoundTheme} style={{ marginTop: 10 }}>
+        <button onClick={() => ensureBoundThemeFor(missingTeamId)} style={{ marginTop: 0 }}>
           Create / repair theme for this team
         </button>
       </div>
@@ -94,16 +229,15 @@ export default function ThemePage({ data, setData }) {
   }
 
   // Backward compatible fallbacks (old themes used primary/accent)
-  const app = activeTheme.app || {};
+  const app = editingTheme.app || {};
 
   const uiBackground = app.background ?? "#f8fafc";
   const uiButtons = app.buttons ?? app.primary ?? "#2563eb";
   const uiSurface = app.surface ?? "#ffffff";
   const uiText = app.text ?? "#111111";
-
   const leaderColor = app.leader ?? app.accent ?? "#ffd54a";
 
-  // ✅ NEW: errorBubble (default red if missing)
+  // error bubble (default red if missing)
   const uiErrorBubble = app.errorBubble ?? "#dc2626";
 
   const printTeamColor = app.printTeamColor ?? app.primary ?? "#d32f2f";
@@ -113,12 +247,58 @@ export default function ThemePage({ data, setData }) {
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <h2 style={{ margin: 0 }}>Theme — {activeTeam.name}</h2>
-      </div>
+      <div style={{ display: "grid", gap: 10 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "grid", gap: 6 }}>
+            <h2 style={{ margin: 0 }}>Theme Manager</h2>
+            <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.35 }}>
+              <b>Previewing:</b> {headerTeamName} theme
+              <br />
+              <b>Active team:</b> {activeTeam?.name || "—"} (unchanged)
+            </div>
+          </div>
 
-      <div style={{ fontSize: 13, opacity: 0.8, lineHeight: 1.35 }}>
-        This theme is <b>bound</b> to the active team. To rename it, rename the team in the Rosters tab.
+          <div style={{ display: "grid", gap: 6, justifyItems: "end" }}>
+            <button onClick={backToActiveTeamTheme} style={{ width: 220 }}>
+              Back to active team theme
+            </button>
+            <div style={{ fontSize: 12, opacity: 0.75, maxWidth: 340, textAlign: "right" }}>
+              Leaving this tab will revert the app styling back to the active team automatically.
+            </div>
+          </div>
+        </div>
+
+        <Card title="Editing theme">
+          <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 10, alignItems: "center" }}>
+            <div style={{ fontWeight: 800, fontSize: 12 }}>Select theme</div>
+            <select
+              value={editingThemeId || ""}
+              onChange={(e) => selectTheme(e.target.value)}
+              style={{ padding: "8px 10px", borderRadius: 12, border: "1px solid var(--border)" }}
+            >
+              {themeOptions.teamOptions.map((opt) => (
+                  <option key={opt.key} value={opt.value || ""}>
+                    {opt.label}
+                  </option>
+                ))}
+
+                {themeOptions.unassigned.length ? (
+                  <optgroup label="Unassigned themes:">
+                    {themeOptions.unassigned.map((opt) => (
+                      <option key={opt.key} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+</select>
+          </div>
+
+          <div style={{ fontSize: 13, opacity: 0.8, lineHeight: 1.35 }}>
+            Themes are <b>bound 1:1</b> to teams. Editing here changes that team’s theme. Active team selection does not
+            change.
+          </div>
+        </Card>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "minmax(300px, 1fr)", gap: 10 }}>
@@ -135,7 +315,7 @@ export default function ThemePage({ data, setData }) {
             <ColorRow
               key={pos}
               label={pos}
-              value={activeTheme.positions?.[pos] || "#999999"}
+              value={editingTheme.positions?.[pos] || "#999999"}
               onChange={(v) => setPosColor(pos, v)}
             />
           ))}
@@ -145,7 +325,11 @@ export default function ThemePage({ data, setData }) {
         <Card title="Colors for printing Lineups">
           <ColorRow label="Team Color" value={printTeamColor} onChange={(v) => setAppColor("printTeamColor", v)} />
           <ColorRow label="Number Background" value={printText} onChange={(v) => setAppColor("printText", v)} />
-          <ColorRow label="Players Cards Text" value={printCardText} onChange={(v) => setAppColor("printCardText", v)} />
+          <ColorRow
+            label="Players Cards Text"
+            value={printCardText}
+            onChange={(v) => setAppColor("printCardText", v)}
+          />
           <ColorRow label="Leadership" value={printLeader} onChange={(v) => setAppColor("printLeader", v)} />
         </Card>
 
@@ -233,7 +417,7 @@ export default function ThemePage({ data, setData }) {
           </div>
         </Card>
 
-        {/* ✅ NEW: Factory reset card (bottom) */}
+        {/* Factory reset card (bottom) */}
         <ResetFactoryCard />
       </div>
     </div>

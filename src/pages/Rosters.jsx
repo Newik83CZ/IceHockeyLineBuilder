@@ -2,7 +2,9 @@ import { useMemo, useRef, useState } from "react";
 import {
   createPlayer,
   createTeam,
-  createTheme,
+  createDefaultThemeTemplate,
+  cloneThemeFromTemplate,
+  getDefaultTheme,
   positionSortKey,
   validatePlayer,
 } from "../lib/model";
@@ -454,6 +456,47 @@ export default function Rosters({ data, setData }) {
     setRenamingTeamId(null);
   }
 
+  function resetTeamThemeToDefault(teamId) {
+    if (!teamId) return;
+    if (!confirm("Reset this team theme to the current Default Theme template?")) return;
+
+    updateData((d) => {
+      d.themes ??= [];
+
+      // Ensure default template exists
+      let template = getDefaultTheme(d.themes);
+      if (!template) {
+        template = createDefaultThemeTemplate();
+        d.themes.push(template);
+      }
+
+      const team = d.teams.find((x) => x.id === teamId);
+      if (!team) return d;
+
+      const oldThemeId = team.themeId;
+
+      // Create a fresh clone and bind it
+      const fresh = cloneThemeFromTemplate(template, team.name || "Theme");
+      team.themeId = fresh.id;
+      d.themes.push(fresh);
+
+      // Remove the old theme (but never remove the default template)
+      if (oldThemeId && oldThemeId !== template.id) {
+        const old = d.themes.find((t) => t.id === oldThemeId);
+        if (old && old.isDefault !== true) {
+          d.themes = d.themes.filter((t) => t.id !== oldThemeId);
+        }
+      }
+
+      // Keep activeThemeId consistent with active team
+      if (d.activeTeamId === teamId) {
+        d.activeThemeId = team.themeId;
+      }
+
+      return d;
+    });
+  }
+
   function exportActiveTeam() {
     if (!activeTeam) return;
 
@@ -537,7 +580,16 @@ export default function Rosters({ data, setData }) {
 
         // Build the team FIRST (so report counts are correct before updateData)
         const team = createTeam(teamNameFromFile);
-        const theme = createTheme(teamNameFromFile);
+
+        // ✅ Create/bind a team theme cloned from the Default Theme (template)
+        d.themes ??= [];
+        let template = getDefaultTheme(d.themes);
+        if (!template) {
+          template = createDefaultThemeTemplate();
+          d.themes.push(template);
+        }
+
+        const theme = cloneThemeFromTemplate(template, teamNameFromFile);
         team.themeId = theme.id;
 
         const usedNumbers = new Set(); // for uniqueness in imported team
@@ -846,11 +898,18 @@ export default function Rosters({ data, setData }) {
 
     updateData((d) => {
       const t = createTeam(name);
-      const th = createTheme(name);
+
+      d.themes ??= [];
+      let template = getDefaultTheme(d.themes);
+      if (!template) {
+        template = createDefaultThemeTemplate();
+        d.themes.push(template);
+      }
+
+      const th = cloneThemeFromTemplate(template, name);
       t.themeId = th.id;
 
       d.teams.push(t);
-      d.themes ??= [];
       d.themes.push(th);
 
       d.activeTeamId = t.id;
@@ -1144,7 +1203,20 @@ export default function Rosters({ data, setData }) {
                   ✏️
                 </button>
 
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resetTeamThemeToDefault(t.id);
+                  }}
+                  title="Reset theme to default"
+                  aria-label="Reset theme to default"
+                  style={iconBtn}
+                >
+                  ♻️
+                </button>
+
                 {/* ✅ Delete second */}
+
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

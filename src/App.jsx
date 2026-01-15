@@ -29,9 +29,10 @@ function TabLink({ to, children }) {
 export default function App() {
   const navigate = useNavigate();
 
-  const [data, setData] = useState(() =>
-    normalizeAppData(loadAppData() ?? createEmptyAppData())
-  );
+  const [data, setData] = useState(() => normalizeAppData(loadAppData() ?? createEmptyAppData()));
+
+  // ✅ Theme preview override (used only while Theme tab is mounted)
+  const [previewThemeId, setPreviewThemeId] = useState(null);
 
   // ✅ After factory reset, force landing on Rosters tab ("/")
   // The reset flow sets: sessionStorage.setItem("ihlbuilder_postreset_tab", "rosters")
@@ -65,8 +66,15 @@ export default function App() {
     saveAppData(data);
   }, [data]);
 
-  const activeTheme =
-    data.themes?.find((t) => t.id === data.activeThemeId) || data.themes?.[0] || null;
+  const activeTeam = data.teams?.find((t) => t.id === data.activeTeamId) || null;
+
+  // ✅ Resolve theme for CSS variables:
+  // - while Theme tab is open -> previewThemeId
+  // - otherwise -> activeTeam.themeId
+  // - fallback -> activeThemeId (legacy) -> first theme
+  const themeIdToUse = previewThemeId || activeTeam?.themeId || data.activeThemeId || null;
+
+  const activeTheme = (themeIdToUse ? data.themes?.find((t) => t.id === themeIdToUse) : null) || data.themes?.[0] || null;
 
   const themeStyle = activeTheme
     ? {
@@ -109,9 +117,7 @@ export default function App() {
   return (
     <div style={themeStyle}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <h1 style={{ margin: 0, paddingTop: 20, paddingLeft: 10, paddingBottom: 10 }}>
-          Ice Hockey Line Builder
-        </h1>
+        <h1 style={{ margin: 0, paddingTop: 20, paddingLeft: 10, paddingBottom: 10 }}>Ice Hockey Line Builder</h1>
 
         <nav className="tabNav">
           <TabLink to="/">Rosters</TabLink>
@@ -123,7 +129,10 @@ export default function App() {
           <Routes>
             <Route path="/" element={<RostersPage data={data} setData={setData} />} />
             <Route path="/lineups" element={<LineupsPage data={data} setData={setData} />} />
-            <Route path="/theme" element={<ThemePage data={data} setData={setData} />} />
+            <Route
+              path="/theme"
+              element={<ThemePage data={data} setData={setData} setPreviewThemeId={setPreviewThemeId} />}
+            />
           </Routes>
         </div>
       </div>

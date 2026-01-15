@@ -1995,10 +1995,10 @@ export default function Lineups({ data, setData }) {
               Forward lines: <b>{activeLineup.forwardLines}</b>
             </div>
             <div style={{ display: "flex", gap: 8, marginLeft: 8 }}>
-              <button style={{ padding: "4px 8px", borderRadius: 8 }} onClick={removeForwardLine} disabled={activeLineup.forwardLines <= 1}>
+              <button style={{ padding: "4px 9px", borderRadius: 30 }} onClick={removeForwardLine} disabled={activeLineup.forwardLines <= 1}>
                 -
               </button>
-              <button style={{ padding: "4px 7px", borderRadius: 8 }} onClick={addForwardLine} disabled={activeLineup.forwardLines >= MAX_FORWARD_LINES}>
+              <button style={{ padding: "4px 8px", borderRadius: 30 }} onClick={addForwardLine} disabled={activeLineup.forwardLines >= MAX_FORWARD_LINES}>
                 +
               </button>
             </div>
@@ -2009,10 +2009,10 @@ export default function Lineups({ data, setData }) {
               Defence pairs: <b>{activeLineup.defencePairs}</b>
             </div>
             <div style={{ display: "flex", gap: 8, marginLeft: 8 }}>
-              <button style={{ padding: "4px 8px", borderRadius: 8 }} onClick={removeDefPair} disabled={activeLineup.defencePairs <= 1}>
+              <button style={{ padding: "4px 9px", borderRadius: 30 }} onClick={removeDefPair} disabled={activeLineup.defencePairs <= 1}>
                 -
               </button>
-              <button style={{ padding: "4px 7px", borderRadius: 8 }} onClick={addDefPair} disabled={activeLineup.defencePairs >= MAX_DEF_PAIRS}>
+              <button style={{ padding: "4px 8px", borderRadius: 30 }} onClick={addDefPair} disabled={activeLineup.defencePairs >= MAX_DEF_PAIRS}>
                 +
               </button>
             </div>
@@ -2025,7 +2025,7 @@ export default function Lineups({ data, setData }) {
 
           <div className="lineupActions" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8 }}>
             <button onClick={autoFillLines}>Auto-fill lines</button>
-            <button onClick={clearAllAssignments}>Clear all assignments</button>
+            <button onClick={clearAllAssignments}>Unassign all</button>
             <button onClick={previewExportImage} disabled={exportBusy}>Preview export</button>
             <button onClick={exportLineupToImage} disabled={exportBusy}>Export lines (PNG)</button>
             {/*

@@ -92,6 +92,13 @@ export function normalizeAppData(data) {
   // Normalize all themes (back-compat)
   data.themes = data.themes.map((t) => normalizeTheme(t));
 
+  // ✅ Ensure the special Default Theme (template) exists
+  const existingDefault = getDefaultTheme(data.themes);
+  if (!existingDefault) {
+    const def = createDefaultThemeTemplate();
+    data.themes.push(def);
+  }
+
   // ✅ Ensure team fields exist (back-compat)
   for (const t of data.teams) {
     t.players ??= [];
@@ -130,7 +137,8 @@ export function normalizeAppData(data) {
     if (
       team.themeId &&
       themeById.has(team.themeId) &&
-      !usedThemeIds.has(team.themeId)
+      !usedThemeIds.has(team.themeId) &&
+      themeById.get(team.themeId)?.isDefault !== true
     ) {
       usedThemeIds.add(team.themeId);
       // Keep theme name aligned with team name for sanity
@@ -143,7 +151,8 @@ export function normalizeAppData(data) {
     if (
       preferThemeId &&
       themeById.has(preferThemeId) &&
-      !usedThemeIds.has(preferThemeId)
+      !usedThemeIds.has(preferThemeId) &&
+      themeById.get(preferThemeId)?.isDefault !== true
     ) {
       team.themeId = preferThemeId;
       usedThemeIds.add(preferThemeId);
@@ -152,8 +161,12 @@ export function normalizeAppData(data) {
       return;
     }
 
-    // Otherwise create a fresh theme for this team
-    const th = createTheme(team.name || "Theme");
+    // Otherwise create a fresh theme for this team (clone from Default Theme template)
+    const template = getDefaultTheme(data.themes) || createDefaultThemeTemplate();
+    // If template was newly created, make sure it's stored
+    if (!data.themes.some((x) => x.id === template.id)) data.themes.push(template);
+
+    const th = cloneThemeFromTemplate(template, team.name || "Theme");
     th.name = team.name || th.name;
     data.themes.push(th);
     themeById.set(th.id, th);
@@ -284,17 +297,19 @@ export function createEmptyAppData() {
     })
   );
 
-  const defaultTheme = createTheme("Default");
+  // ✅ Create the persistent Default Theme (template) + a team-bound clone
+  const defaultTemplate = createDefaultThemeTemplate();
+  const teamTheme = cloneThemeFromTemplate(defaultTemplate, defaultTeam.name);
 
-  // ✅ Bind default theme to default team
-  defaultTeam.themeId = defaultTheme.id;
+  // ✅ Bind team theme to default team (template stays unbound)
+  defaultTeam.themeId = teamTheme.id;
 
   return normalizeAppData({
     teams: [defaultTeam],
     activeTeamId: defaultTeam.id,
 
-    themes: [defaultTheme],
-    activeThemeId: defaultTheme.id,
+    themes: [defaultTemplate, teamTheme],
+    activeThemeId: teamTheme.id,
 
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -325,6 +340,41 @@ export function createTheme(name = "Default") {
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
+  return normalizeTheme(t);
+}
+
+// =========================
+// Default Theme (template)
+// =========================
+
+/**
+ * Returns the special "Default Theme (template)" from a themes array, or null.
+ * This theme is NOT bound to any team; it is only used as a template for new teams.
+ */
+export function getDefaultTheme(themes) {
+  return (themes || []).find((t) => t && t.isDefault === true) || null;
+}
+
+/** Create a brand-new Default Theme (template). */
+export function createDefaultThemeTemplate() {
+  const t = createTheme("Default Theme");
+  t.name = "Default Theme";
+  t.isDefault = true;
+  return t;
+}
+
+/**
+ * Clone a theme template for a team (new id, new timestamps, NOT default).
+ * Ensures normalization + back-compat defaults.
+ */
+export function cloneThemeFromTemplate(template, nameOverride) {
+  const base = template && typeof template === "object" ? template : createTheme("Default");
+  const t = structuredClone(base);
+  t.id = newId();
+  t.isDefault = false;
+  if (nameOverride) t.name = nameOverride;
+  t.createdAt = Date.now();
+  t.updatedAt = Date.now();
   return normalizeTheme(t);
 }
 
