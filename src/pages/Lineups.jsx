@@ -64,8 +64,8 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
     typeof window !== "undefined" && window.matchMedia("(max-width: 800px)").matches;
 
   // Base font sizes (slightly smaller on mobile)
-  const baseLast = isMobile ? 16 : 18;
-  const baseFirst = isMobile ? 15 : 17;
+  const baseLast = isMobile ? 14 : 18;
+  const baseFirst = isMobile ? 14 : 18;
 
   const [firstSize, setFirstSize] = useState(baseFirst);
   const [lastSize, setLastSize] = useState(baseLast);
