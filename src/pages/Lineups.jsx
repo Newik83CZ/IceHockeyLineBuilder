@@ -62,9 +62,14 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
 
   const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 800px)").matches;
 
-  const NameFixed =
-    //labelObj.lastName && labelObj.lastName.length <= 7 ? (isMobile ? 14 : 18) : null;
-    labelObj.firstName && labelObj.firstName.length <= 4 ? (isMobile ? 18 : 18) : null;
+  const lastRaw = labelObj.lastName || "";
+  const lastCompact = String(lastRaw).replace(/\s+/g, "");
+  const lastIsLong = lastCompact.length > 10;
+
+  // ✅ Name display rules:
+  // - <= 10 chars: show full last name and allow shrinking to fit
+  // -  > 10 chars: keep normal font size and show first 4 chars + "..."
+  const lastDisplay = lastIsLong ? `${lastCompact.slice(0, 4)}...` : lastRaw;
 
   useLayoutEffect(() => {
     const rowEl = rowRef.current;
@@ -74,6 +79,11 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
     const compute = () => {
       let size = 18;
       nameEl.style.fontSize = `${size}px`;
+      if (lastIsLong) {
+        setNameSize(18);
+        return;
+      }
+
 
       const available = Math.max(0, rowEl.clientWidth);
       const MIN = 10;
@@ -199,15 +209,15 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
               style={{
                 minWidth: 0,
                 overflow: "hidden",
-                textOverflow: "ellipsis",
+                textOverflow: "clip",
                 whiteSpace: "nowrap",
-                fontSize: NameFixed ?? `${nameSize}px`,
+                fontSize: lastIsLong ? "18px" : `${nameSize}px`,
                 fontWeight: 900,
                 opacity: 0.95,
                 lineHeight: 1.05,
               }}
             >
-              {labelObj.lastName}
+              {lastDisplay}
             </div>
           ) : null}
         </div>
