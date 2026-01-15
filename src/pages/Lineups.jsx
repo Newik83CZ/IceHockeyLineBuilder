@@ -57,45 +57,63 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
   const badgeRef = useRef(null);
 
   const metaRef = useRef(null);
-  const nameRef = useRef(null);
-  const [nameSize, setNameSize] = useState(18);
+  const firstNameRef = useRef(null);
+  const lastNameRef = useRef(null);
 
-  const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 800px)").matches;
+  const isMobile =
+    typeof window !== "undefined" && window.matchMedia("(max-width: 800px)").matches;
 
+  // Base font sizes (slightly smaller on mobile)
+  const baseLast = isMobile ? 16 : 18;
+  const baseFirst = isMobile ? 15 : 17;
+
+  const [firstSize, setFirstSize] = useState(baseFirst);
+  const [lastSize, setLastSize] = useState(baseLast);
+
+  const firstRaw = labelObj.firstName || "";
   const lastRaw = labelObj.lastName || "";
-  const lastCompact = String(lastRaw).replace(/\s+/g, "");
-  const lastIsLong = lastCompact.length > 10;
 
-  // ✅ Name display rules:
-  // - <= 10 chars: show full last name and allow shrinking to fit
-  // -  > 10 chars: keep normal font size and show first 4 chars + "..."
-  const lastDisplay = lastIsLong ? `${lastCompact.slice(0, 4)}...` : lastRaw;
+  // Up to 10 chars: show full name and shrink-to-fit if needed
+  const firstNeedsFit = firstRaw.length > 0 && firstRaw.length <= 10;
+  const lastNeedsFit = lastRaw.length > 0 && lastRaw.length <= 10;
+
+  // More than 10 chars: keep base size and shorten to 4 + "..."
+  const displayFirst = firstRaw.length > 10 ? `${firstRaw.slice(0, 4)}...` : firstRaw;
+  const displayLast = lastRaw.length > 10 ? `${lastRaw.slice(0, 4)}...` : lastRaw;
 
   useLayoutEffect(() => {
     const rowEl = rowRef.current;
-    const nameEl = nameRef.current;
-    if (!rowEl || !nameEl) return;
+    const firstEl = firstNameRef.current;
+    const lastEl = lastNameRef.current;
+    if (!rowEl) return;
 
-    const compute = () => {
-      let size = 18;
-      nameEl.style.fontSize = `${size}px`;
-      if (lastIsLong) {
-        setNameSize(18);
+    const computeOne = (el, base, setSize, allowShrink) => {
+      if (!el) return;
+      if (!allowShrink) {
+        el.style.fontSize = `${base}px`;
+        setSize(base);
         return;
       }
 
+      let size = base;
+      el.style.fontSize = `${size}px`;
 
       const available = Math.max(0, rowEl.clientWidth);
       const MIN = 10;
       let guard = 0;
 
-      while (size > MIN && nameEl.scrollWidth > available && guard < 60) {
+      while (size > MIN && el.scrollWidth > available && guard < 60) {
         size -= 1;
-        nameEl.style.fontSize = `${size}px`;
+        el.style.fontSize = `${size}px`;
         guard += 1;
       }
 
-      setNameSize(size);
+      setSize(size);
+    };
+
+    const compute = () => {
+      computeOne(firstEl, baseFirst, setFirstSize, firstNeedsFit);
+      computeOne(lastEl, baseLast, setLastSize, lastNeedsFit);
     };
 
     compute();
@@ -103,7 +121,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
     ro.observe(rowEl);
 
     return () => ro.disconnect();
-  }, [labelObj.firstName, labelObj.lastName, labelObj.number, labelObj.leadership]);
+  }, [displayFirst, displayLast, baseFirst, baseLast, firstNeedsFit, lastNeedsFit]);
 
   const style = {
     width: "100%",
@@ -178,46 +196,46 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
         </div>
 
         <div
-          ref={nameRef}
           style={{
             minWidth: 0,
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
-            fontSize: nameSize,
             lineHeight: 1.15,
           }}
         >
           {labelObj.firstName ? (
             <div
+              ref={firstNameRef}
               style={{
                 minWidth: 0,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                fontSize: (isMobile ? `${nameSize * 0.8}px` : `${nameSize * 0.95}px`),
+                fontSize: `${firstSize}px`,
                 fontWeight: 700,
                 opacity: 1,
               }}
             >
-              {labelObj.firstName}
+              {displayFirst}
             </div>
           ) : null}
 
           {labelObj.lastName ? (
             <div
+              ref={lastNameRef}
               style={{
                 minWidth: 0,
                 overflow: "hidden",
-                textOverflow: "clip",
+                textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                fontSize: lastIsLong ? "18px" : `${nameSize}px`,
+                fontSize: `${lastSize}px`,
                 fontWeight: 900,
                 opacity: 0.95,
                 lineHeight: 1.05,
               }}
             >
-              {lastDisplay}
+              {displayLast}
             </div>
           ) : null}
         </div>
