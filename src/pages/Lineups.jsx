@@ -1217,7 +1217,7 @@ export default function Lineups({ data, setData }) {
             pointer-events: none;
           }
           :root{
-            --pillW: 272px;
+            --pillW: 335px;
             --pillGap: 10px;
             --pillH: 50px;
             --circle: 50px;
@@ -1230,7 +1230,7 @@ export default function Lineups({ data, setData }) {
           .teamTitle {
             text-align: center;
             font-weight: 900;
-            font-size: 56px;
+            font-size: 66px;
             letter-spacing: 0.5px;
             color: ${teamC};
             margin: 0;
@@ -1238,11 +1238,11 @@ export default function Lineups({ data, setData }) {
           .lineupTitle {
             text-align: center;
             font-weight: 900;
-            font-size: 28px;
+            font-size: 32px;
             margin: 16px 0 30px;
             color: ${lineupTitleC};
           }
-          .section { display: grid; gap: 14px; margin-top: 14px; }
+          .section { display: grid; gap: 14px; margin-top: 5px; }
           .pillRow {
             display: grid;
             gap: var(--pillGap);
@@ -1276,12 +1276,12 @@ export default function Lineups({ data, setData }) {
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: 20px;
+            font-size: 22px;
           }
           .pillName {
             color: ${playerNameC};
             font-weight: 900;
-            font-size: 17px;
+            font-size: 22px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -1300,7 +1300,7 @@ export default function Lineups({ data, setData }) {
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: 20px;
+            font-size: 22px;
           }
           .goaliesStack { display: grid; gap: var(--pillGap); }
           .spacer { height: 123px; }
@@ -1323,14 +1323,14 @@ export default function Lineups({ data, setData }) {
             min-width: 0;
           }
           .leagueLogo{
-            height: 44px;
+            height: 60px;
             width: auto;
             object-fit: contain;
             border-radius: 8px;
           }
           .leagueName{
             font-weight: 900;
-            font-size: 16px;
+            font-size: 22px;
             color: ${labelsC};
             white-space: nowrap;
             overflow: hidden;
@@ -1339,7 +1339,7 @@ export default function Lineups({ data, setData }) {
           }
           .versionText{
             font-weight: 900;
-            font-size: 14px;
+            font-size: 16px;
             color: ${labelsC};
             opacity: 0.9;
             white-space: nowrap;

@@ -504,6 +504,14 @@ textarea:focus {
     grid-column: 1 / -1; /* Position on its own row */
   }
 
+  .addPlayerRow2 select:nth-child(2) {
+    grid-column: 1 / -1; /* Position on its own row */
+  }
+
+  .addPlayerRow2 select:last-child {
+    grid-column: 1 / -1; /* Position on its own row */
+  }
+
   @media (max-width: 800px) and (orientation: portrait) {
     .colorRow {
       grid-template-columns: 150px 50px 70px !important;

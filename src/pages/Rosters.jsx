@@ -508,7 +508,7 @@ export default function Rosters({ data, setData }) {
       "name",
       "preferredPosition",
       "leadership",
-      "shootes/catches",
+      "shoots/catches",
       "canPlay",
       "notes",
     ];
@@ -661,8 +661,8 @@ export default function Rosters({ data, setData }) {
             report.messages.push(`Row ${r + 1}: missing name.`);
             continue;
           }
-          const name16 =
-            trimmedName.length > 16 ? trimmedName.slice(0, 16) : trimmedName;
+          const name13 =
+            trimmedName.length > 13 ? trimmedName.slice(0, 13) : trimmedName;
 
           // ✅ Position mapping / default (now case-insensitive)
           const preferredPosition = normalizePosition(rawPos);
@@ -685,7 +685,7 @@ export default function Rosters({ data, setData }) {
 
           const playerDraft = {
             number: String(num),
-            name: name16,
+            name: name13,
             preferredPosition,
             leadership,
             stick,
@@ -1358,11 +1358,11 @@ export default function Rosters({ data, setData }) {
                   />
                   <input
                     value={draft.name}
-                    maxLength={16}
+                    maxLength={13}
                     onChange={(e) =>
                       setDraft((p) => ({ ...p, name: e.target.value }))
                     }
-                    placeholder="Name (max 16 chars)"
+                    placeholder="Name (max 13 characters)"
                   />
                 </div>
 
@@ -1372,7 +1372,7 @@ export default function Rosters({ data, setData }) {
                   style={{
                     display: "grid",
                     gridTemplateColumns:
-                      "minmax(0, 160px) minmax(0, 160px) minmax(0, 160px)",
+                      "minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)",
                     gap: 10,
                     minWidth: 0,
                   }}
@@ -1438,7 +1438,7 @@ export default function Rosters({ data, setData }) {
                   >
                     {STICKS.map((s) => (
                       <option key={s} value={s}>
-                        {s === "" ? "Shootes/Catches: (not set)" : s}
+                        {s === "" ? "Shoots/Catches: (not set)" : s}
                       </option>
                     ))}
                   </select>
