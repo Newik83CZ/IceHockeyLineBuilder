@@ -420,8 +420,8 @@ function canPlayMismatch(player, posCode) {
 
 function stickLabel(player) {
   if (!player) return "";
-  if (player.stick === "Left") return "LH";
-  if (player.stick === "Right") return "RH";
+  if (player.stick === "Left") return "L";
+  if (player.stick === "Right") return "R";
   return "";
 }
 
@@ -513,7 +513,7 @@ export default function Lineups({ data, setData }) {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(img, 0, 0, w, h);
 
-    return canvas.toDataURL("image/jpeg", quality);
+    return canvas.toDataURL("image/png");
   }
 
   function updateData(updater) {

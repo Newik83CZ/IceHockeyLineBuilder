@@ -508,7 +508,7 @@ export default function Rosters({ data, setData }) {
       "name",
       "preferredPosition",
       "leadership",
-      "stick",
+      "shootes/catches",
       "canPlay",
       "notes",
     ];
@@ -1438,7 +1438,7 @@ export default function Rosters({ data, setData }) {
                   >
                     {STICKS.map((s) => (
                       <option key={s} value={s}>
-                        {s === "" ? "Stick: (not set)" : s}
+                        {s === "" ? "Shootes/Catches: (not set)" : s}
                       </option>
                     ))}
                   </select>
@@ -1550,7 +1550,7 @@ export default function Rosters({ data, setData }) {
                     </div>
 
                     <div className="playerStick">
-                      {p.stick === "Left" ? "LH" : p.stick === "Right" ? "RH" : ""}
+                      {p.stick === "Left" ? "L" : p.stick === "Right" ? "R" : ""}
                     </div>
 
                     <div className="playerCanPlay">
