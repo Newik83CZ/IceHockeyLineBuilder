@@ -20,7 +20,7 @@ const DEFAULT_PRINT_BG = "/print-default-bg.png"; // public/print-default-bg.png
 const PRINT_BG_PRESETS = [
   { label: "Snipers", src: "/print-default-bg.png" },
   { label: "Empty", src: "/print-empty_bg.png" },
-  { label: "BlackHawks", src: "/print-BlackHawks_bg.png" },
+  { label: "Blackhawks", src: "/print-BlackHawks_bg.png" },
 ];
 
 /* ===================== UI: Draggable Player ===================== */
@@ -1230,7 +1230,7 @@ export default function Lineups({ data, setData }) {
           .teamTitle {
             text-align: center;
             font-weight: 900;
-            font-size: 66px;
+            font-size: 80px;
             letter-spacing: 0.5px;
             color: ${teamC};
             margin: 0;
