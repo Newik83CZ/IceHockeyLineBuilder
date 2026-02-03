@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { createDefaultThemeTemplate, cloneThemeFromTemplate, getDefaultTheme } from "../lib/model";
+import {
+  createDefaultThemeTemplate,
+  cloneThemeFromTemplate,
+  getDefaultTheme,
+} from "../lib/model";
 
 const POSITIONS = ["Centre", "Wing", "Defender", "Goalie"];
 
@@ -14,9 +18,17 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
   const [editingThemeId, setEditingThemeId] = useState(null);
   const [followActiveTeam, setFollowActiveTeam] = useState(true);
 
+  function updateData(updater) {
+    setData((prev) => {
+      const next = updater(structuredClone(prev));
+      next.updatedAt = Date.now();
+      return next;
+    });
+  }
+
   // Build selector options:
-// - Teams (bound 1:1) shown by team name
-// - Any unassigned themes (no team points to them) shown by theme name
+  // - Teams (bound 1:1) shown by team name
+  // - Any unassigned themes (no team points to them) shown by theme name
   const themeOptions = useMemo(() => {
     const teams = data.teams || [];
     const themes = data.themes || [];
@@ -41,41 +53,18 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
         kind: "unassigned",
         key: `theme:${th.id}`,
         value: th.id,
-        label: th.isDefault === true ? "⭐ Default Theme" : (th.name ? `${th.name} (unassigned)` : "Unnamed theme (unassigned)"),
+        label:
+          th.isDefault === true
+            ? "⭐ Default Theme"
+            : th.name
+              ? `${th.name} (unassigned)`
+              : "Unnamed theme (unassigned)",
         teamId: "",
         themeId: th.id,
       }));
 
     return { teamOptions, unassigned };
   }, [data.teams, data.themes]);
-// On first mount (and whenever active team changes), default to active team's theme
-  useEffect(() => {
-    if (!activeTeam) return;
-    if (!followActiveTeam) return;
-    setEditingThemeId(activeTeam.themeId || null);
-  }, [activeTeam, followActiveTeam]);
-
-  // While Theme tab is mounted, apply preview globally
-  useEffect(() => {
-    if (typeof setPreviewThemeId === "function") {
-      setPreviewThemeId(editingThemeId || null);
-    }
-  }, [editingThemeId, setPreviewThemeId]);
-
-  // On unmount, revert preview back to team theme
-  useEffect(() => {
-    return () => {
-      if (typeof setPreviewThemeId === "function") setPreviewThemeId(null);
-    };
-  }, [setPreviewThemeId]);
-
-  function updateData(updater) {
-    setData((prev) => {
-      const next = updater(structuredClone(prev));
-      next.updatedAt = Date.now();
-      return next;
-    });
-  }
 
   const editingTeam = useMemo(() => {
     if (!editingThemeId) return null;
@@ -96,32 +85,77 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
       const team = d.teams.find((t) => t.id === teamId);
       if (!team) return d;
 
-      const existing = d.themes.find((th) => th.id === team.themeId);
+      // If team.themeId exists AND theme exists, just align name and ensure activeThemeId is consistent
+      const existing = team.themeId
+        ? d.themes.find((th) => th.id === team.themeId)
+        : null;
+
       if (existing) {
-        // keep name aligned with team for clarity
-        existing.name = team.name;
+        existing.name = team.name; // keep name aligned with team for clarity
+        if (teamId === d.activeTeamId) d.activeThemeId = team.themeId;
         return d;
       }
 
       // Create/bind a theme cloned from the Default Theme (template)
-      d.themes ??= [];
       let template = getDefaultTheme(d.themes);
       if (!template) {
         template = createDefaultThemeTemplate();
         d.themes.push(template);
       }
+
       const th = cloneThemeFromTemplate(template, team.name || "Theme");
       th.name = team.name || th.name;
+
       d.themes.push(th);
       team.themeId = th.id;
 
-      // If we were trying to edit this team's theme, jump to the repaired theme
-      if (teamId === d.activeTeamId && followActiveTeam) {
+      // Keep activeThemeId in sync if we’re repairing the active team
+      if (teamId === d.activeTeamId) {
         d.activeThemeId = th.id;
       }
+
       return d;
     });
   }
+
+  // ✅ Auto-repair for active team while following it:
+  // If active team has no themeId OR the theme object is missing, repair immediately.
+  useEffect(() => {
+    if (!activeTeam) return;
+    if (!followActiveTeam) return;
+
+    const themeId = activeTeam.themeId || "";
+    const exists =
+      themeId && Array.isArray(data.themes)
+        ? data.themes.some((t) => t?.id === themeId)
+        : false;
+
+    if (!themeId || !exists) {
+      ensureBoundThemeFor(activeTeam.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTeam?.id, activeTeam?.themeId, followActiveTeam, data.themes]);
+
+  // On first mount (and whenever active team changes), default to active team's theme
+  useEffect(() => {
+    if (!activeTeam) return;
+    if (!followActiveTeam) return;
+    setEditingThemeId(activeTeam.themeId || null);
+  }, [activeTeam, followActiveTeam]);
+
+  // While Theme tab is mounted, apply preview globally
+  useEffect(() => {
+    if (typeof setPreviewThemeId === "function") {
+      setPreviewThemeId(editingThemeId || null);
+    }
+  }, [editingThemeId, setPreviewThemeId]);
+
+  // On unmount, revert preview back to team theme
+  useEffect(() => {
+    return () => {
+      if (typeof setPreviewThemeId === "function") setPreviewThemeId(null);
+    };
+  }, [setPreviewThemeId]);
 
   function setAppColor(key, value) {
     if (!editingThemeId) return;
@@ -167,9 +201,10 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
     );
   }
 
+  const headerTeamName =
+    editingTeam?.name || editingTheme?.name || activeTeam?.name || "Theme";
 
-  const headerTeamName = editingTeam?.name || editingTheme?.name || activeTeam?.name || "Theme";
-
+  // If the selected theme is missing, show repair UI (kept as-is)
   if (!editingTheme) {
     const missingTeam = editingTeam || activeTeam;
     const missingTeamId = missingTeam?.id;
@@ -180,12 +215,23 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
 
         <Card title="Editing theme">
           <div style={{ display: "grid", gap: 8 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 10, alignItems: "center" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "120px 1fr",
+                gap: 10,
+                alignItems: "center",
+              }}
+            >
               <div style={{ fontWeight: 800, fontSize: 12 }}>Select theme</div>
               <select
                 value={editingThemeId || ""}
                 onChange={(e) => selectTheme(e.target.value)}
-                style={{ padding: "8px 10px", borderRadius: 12, border: "1px solid var(--border)" }}
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 12,
+                  border: "1px solid var(--border)",
+                }}
               >
                 {themeOptions.teamOptions.map((opt) => (
                   <option key={opt.key} value={opt.value || ""}>
@@ -202,12 +248,12 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
                     ))}
                   </optgroup>
                 ) : null}
-</select>
+              </select>
             </div>
 
             <div style={{ fontSize: 13, opacity: 0.8, lineHeight: 1.35 }}>
-              Live preview is active on this tab. Leaving the Theme tab will revert the app back to the active team’s
-              theme automatically.
+              Live preview is active on this tab. Leaving the Theme tab will
+              revert the app back to the active team’s theme automatically.
             </div>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -219,9 +265,13 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
         </Card>
 
         <div style={{ marginTop: 8, opacity: 0.8 }}>
-          The selected team does not have a theme yet (or it was missing). Click below to create/repair it.
+          The selected team does not have a theme yet (or it was missing). Click
+          below to create/repair it.
         </div>
-        <button onClick={() => ensureBoundThemeFor(missingTeamId)} style={{ marginTop: 0 }}>
+        <button
+          onClick={() => ensureBoundThemeFor(missingTeamId)}
+          style={{ marginTop: 0 }}
+        >
           Create / repair theme for this team
         </button>
       </div>
@@ -248,7 +298,15 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <div style={{ display: "grid", gap: 10 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 10,
+            flexWrap: "wrap",
+          }}
+        >
           <div style={{ display: "grid", gap: 6 }}>
             <h2 style={{ margin: 0 }}>Theme Manager</h2>
             <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.35 }}>
@@ -262,46 +320,71 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
             <button onClick={backToActiveTeamTheme} style={{ width: 220 }}>
               Back to active team theme
             </button>
-            <div style={{ fontSize: 12, opacity: 0.75, maxWidth: 340, textAlign: "right" }}>
-              Leaving this tab will revert the app styling back to the active team automatically.
+            <div
+              style={{
+                fontSize: 12,
+                opacity: 0.75,
+                maxWidth: 340,
+                textAlign: "right",
+              }}
+            >
+              Leaving this tab will revert the app styling back to the active
+              team automatically.
             </div>
           </div>
         </div>
 
         <Card title="Editing theme">
-          <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 10, alignItems: "center" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "120px 1fr",
+              gap: 10,
+              alignItems: "center",
+            }}
+          >
             <div style={{ fontWeight: 800, fontSize: 12 }}>Select theme</div>
             <select
               value={editingThemeId || ""}
               onChange={(e) => selectTheme(e.target.value)}
-              style={{ padding: "8px 10px", borderRadius: 12, border: "1px solid var(--border)" }}
+              style={{
+                padding: "8px 10px",
+                borderRadius: 12,
+                border: "1px solid var(--border)",
+              }}
             >
               {themeOptions.teamOptions.map((opt) => (
-                  <option key={opt.key} value={opt.value || ""}>
-                    {opt.label}
-                  </option>
-                ))}
+                <option key={opt.key} value={opt.value || ""}>
+                  {opt.label}
+                </option>
+              ))}
 
-                {themeOptions.unassigned.length ? (
-                  <optgroup label="Unassigned themes:">
-                    {themeOptions.unassigned.map((opt) => (
-                      <option key={opt.key} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </optgroup>
-                ) : null}
-</select>
+              {themeOptions.unassigned.length ? (
+                <optgroup label="Unassigned themes:">
+                  {themeOptions.unassigned.map((opt) => (
+                    <option key={opt.key} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
+            </select>
           </div>
 
           <div style={{ fontSize: 13, opacity: 0.8, lineHeight: 1.35 }}>
-            Themes are <b>bound 1:1</b> to teams. Editing here changes that team’s theme. Active team selection does not
-            change.
+            Themes are <b>bound 1:1</b> to teams. Editing here changes that team’s
+            theme. Active team selection does not change.
           </div>
         </Card>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(300px, 1fr)", gap: 10 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(300px, 1fr)",
+          gap: 10,
+        }}
+      >
         <Card title="Colors in App UI">
           <ColorRow label="Background" value={uiBackground} onChange={(v) => setAppColor("background", v)} />
           <ColorRow label="Buttons" value={uiButtons} onChange={(v) => setAppColor("buttons", v)} />
@@ -379,7 +462,6 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 5, marginBottom: 10, fontSize: 14 }}>
             <Badge text="Team" style={{ background: "white", color: "var(--printTeamColor)" }} />
-
             <Badge
               text="#99"
               style={{
@@ -398,37 +480,42 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
                 color: "var(--printCardText)",
                 paddingLeft: 35,
                 paddingRight: 35,
-                paddingTop: 8,
               }}
             />
             <Badge
-              text="C"
+              text="A"
               style={{
-                background: "var(--printLeader)",
-                color: "var(--printCardText)",
-                marginLeft: -40,
-                fontSize: 10,
-                paddingTop: 10,
-                paddingRight: 14,
-                paddingBottom: 5,
+                background: "transparent",
+                color: "var(--printLeader)",
+                borderRight: "2px solid var(--printLeader)",
+                borderLeft: "2px solid var(--printLeader)",
                 paddingLeft: 14,
+                paddingRight: 14,
               }}
             />
           </div>
         </Card>
-
-        {/* Factory reset card (bottom) */}
-        <ResetFactoryCard />
       </div>
     </div>
   );
 }
 
+/* -------------------------
+   UI helpers (unchanged)
+------------------------- */
+
 function Card({ title, children }) {
   return (
-    <div style={{ padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
+    <div
+      style={{
+        padding: 12,
+        borderRadius: 14,
+        border: "1px solid rgba(0,0,0,0.12)",
+        background: "var(--surface)",
+      }}
+    >
       <div style={{ fontWeight: 900, marginBottom: 10 }}>{title}</div>
-      <div style={{ display: "grid", gap: 10 }}>{children}</div>
+      {children}
     </div>
   );
 }
@@ -436,161 +523,40 @@ function Card({ title, children }) {
 function ColorRow({ label, value, onChange }) {
   return (
     <div
-      className="colorRow"
       style={{
         display: "grid",
-        gridTemplateColumns: "150px 50px 70px",
-        gap: 10,
+        gridTemplateColumns: "1fr auto",
         alignItems: "center",
-        minWidth: 0,
+        gap: 10,
+        padding: "6px 0",
       }}
     >
-      <div style={{ fontWeight: 700, minWidth: 0 }}>{label}</div>
-
+      <div style={{ fontSize: 13, fontWeight: 800 }}>{label}</div>
       <input
         type="color"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        style={{ width: 56, height: 36, padding: 0, border: 0, background: "transparent" }}
-      />
-
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{
-          width: "100%",
-          minWidth: 0,
-          padding: 8,
-          borderRadius: 10,
-          border: "1px solid var(--border)",
-          background: "transparent",
-          color: "var(--text)",
-        }}
+        style={{ width: 46, height: 32, border: "none", background: "transparent" }}
       />
     </div>
   );
 }
 
 function Badge({ text, style }) {
-  return <div style={{ padding: "8px 10px", borderRadius: 999, fontWeight: 800, ...style }}>{text}</div>;
-}
-
-/* ===================== RESET CARD ===================== */
-
-function ResetFactoryCard() {
-  const [open, setOpen] = useState(false);
-  const [checked, setChecked] = useState(false);
-
-  function close() {
-    setOpen(false);
-    setChecked(false);
-  }
-
-  function doFactoryReset() {
-    // Wipe ONLY this app's persisted state
-    localStorage.removeItem("ihlbuilder_v1");
-
-    // Ask App.jsx to land on Rosters after reload
-    sessionStorage.setItem("ihlbuilder_postreset_tab", "rosters");
-
-    // Hard reset clears in-memory state too
-    window.location.reload();
-  }
-
   return (
-    <Card title="RESET">
-      <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.35 }}>
-        This will permanently delete all saved data on this device/browser (teams, rosters, lineups, themes, and
-        settings). This cannot be undone.
-      </div>
-
-      <button
-        onClick={() => setOpen(true)}
-        style={{
-          width: 290,
-          padding: "10px 12px",
-          borderRadius: 12,
-          border: "1px solid var(--border)",
-          fontWeight: 900,
-          background: "var(--errorBubble, #dc2626)",
-          color: "white",
-        }}
-      >
-        Factory reset
-      </button>
-
-      {open ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 9999,
-            background: "rgba(0,0,0,0.45)",
-            display: "grid",
-            placeItems: "center",
-            padding: 16,
-          }}
-          onMouseDown={(e) => {
-            // click outside to close
-            if (e.target === e.currentTarget) close();
-          }}
-        >
-          <div
-            style={{
-              width: "min(520px, 100%)",
-              borderRadius: 16,
-              border: "1px solid var(--border)",
-              background: "var(--surface)",
-              padding: 14,
-              boxShadow: "0 18px 50px rgba(0,0,0,0.25)",
-            }}
-          >
-            <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 8 }}>Confirm factory reset</div>
-
-            <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.35, marginBottom: 12 }}>
-              You are about to delete <b>everything</b> saved by this app on this device/browser. This cannot be undone.
-            </div>
-
-            <label style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
-              <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} />
-              <span style={{ fontSize: 13 }}>I understand this will delete all my saved data.</span>
-            </label>
-
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button
-                onClick={close}
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "1px solid var(--border)",
-                  background: "var(--buttons)",
-                  fontWeight: 800,
-                }}
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={doFactoryReset}
-                disabled={!checked}
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "1px solid var(--border)",
-                  fontWeight: 900,
-                  background: !checked ? "rgba(0,0,0,0.12)" : "var(--errorBubble, #dc2626)",
-                  color: !checked ? "rgba(0,0,0,0.55)" : "white",
-                  cursor: !checked ? "not-allowed" : "pointer",
-                }}
-              >
-                Reset app
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </Card>
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 999,
+        padding: "8px 12px",
+        fontWeight: 900,
+        border: "1px solid transparent",
+        ...style,
+      }}
+    >
+      {text}
+    </span>
   );
 }

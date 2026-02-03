@@ -168,7 +168,15 @@ function OppositionPanel({ activeTeam, updateData, iconBtn, oppImportRef, parseC
                   background: "var(--surface)",
                 }}
               >
-                <div style={{ fontSize: 13, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 800,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   {name}
                 </div>
                 <button
@@ -210,6 +218,20 @@ function OppositionPanel({ activeTeam, updateData, iconBtn, oppImportRef, parseC
   );
 }
 
+/** Normalize header keys:
+ * - case-insensitive
+ * - ignores spaces, slashes, punctuation
+ * Examples:
+ *  "Preferred Position" -> "preferredposition"
+ *  "shoots/catches"     -> "shootscatches"
+ */
+function normalizeHeaderKey(s) {
+  return String(s || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
 export default function Rosters({ data, setData }) {
   const [teamName, setTeamName] = useState("");
   const [search, setSearch] = useState("");
@@ -241,8 +263,6 @@ export default function Rosters({ data, setData }) {
     cursor: "pointer",
     fontSize: 14,
   };
-
-  // Note: printing background moved to Line-ups tab
 
   /* HELPERS FOR ROSTER DISPLAY / IMPORT/EXPORT */
 
@@ -508,7 +528,7 @@ export default function Rosters({ data, setData }) {
       "name",
       "preferredPosition",
       "leadership",
-      "shoots/catches",
+      "shoots/catches", // export stays friendly; import now supports both this and "stick"
       "canPlay",
       "notes",
     ];
@@ -561,10 +581,35 @@ export default function Rosters({ data, setData }) {
           return;
         }
 
-        // Detect header (case-insensitive)
-        const header = rows[0].map((h) => String(h || "").trim().toLowerCase());
-        const hasHeader = header.includes("number") || header.includes("name");
+        // Header detection (case-insensitive, normalized)
+        const rawHeaderRow = rows[0].map((h) => String(h || "").trim());
+        const headerNorm = rawHeaderRow.map(normalizeHeaderKey);
+
+        const hasHeader = headerNorm.includes("number") || headerNorm.includes("name");
         const startIdx = hasHeader ? 1 : 0;
+
+        // Build header index map (normalized)
+        const headerIndex = {};
+        if (hasHeader) {
+          for (let i = 0; i < headerNorm.length; i++) {
+            const k = headerNorm[i];
+            if (!k) continue;
+            // keep first occurrence
+            if (headerIndex[k] == null) headerIndex[k] = i;
+          }
+        }
+
+        // Helper to read column by multiple possible header keys
+        const getCell = (cols, keys, fallbackIndex) => {
+          if (hasHeader) {
+            for (const k of keys) {
+              const idx = headerIndex[normalizeHeaderKey(k)];
+              if (idx != null && idx >= 0) return cols[idx] ?? "";
+            }
+            return "";
+          }
+          return cols[fallbackIndex] ?? "";
+        };
 
         // Team name from file name (strip extension, strip _roster_YYYYMMDD if present)
         let base = file.name.replace(/\.[^/.]+$/, "");
@@ -578,19 +623,8 @@ export default function Rosters({ data, setData }) {
           messages: [],
         };
 
-        // Build the team FIRST (so report counts are correct before updateData)
+        // Build the team FIRST (so report counts are correct)
         const team = createTeam(teamNameFromFile);
-
-        // ✅ Create/bind a team theme cloned from the Default Theme (template)
-        d.themes ??= [];
-        let template = getDefaultTheme(d.themes);
-        if (!template) {
-          template = createDefaultThemeTemplate();
-          d.themes.push(template);
-        }
-
-        const theme = cloneThemeFromTemplate(template, teamNameFromFile);
-        team.themeId = theme.id;
 
         const usedNumbers = new Set(); // for uniqueness in imported team
         let captainUsed = false;
@@ -599,22 +633,18 @@ export default function Rosters({ data, setData }) {
         for (let r = startIdx; r < rows.length; r++) {
           const cols = rows[r] || [];
 
-          // If we have a header, map columns by name; otherwise use fixed order
-          const get = (key, fallbackIndex) => {
-            if (hasHeader) {
-              const idx = header.indexOf(key);
-              return idx >= 0 ? cols[idx] : "";
-            }
-            return cols[fallbackIndex] ?? "";
-          };
-
-          const rawNumber = String(get("number", 0) ?? "").trim();
-          const rawName = String(get("name", 1) ?? "");
-          const rawPos = String(get("preferredposition", 2) ?? "");
-          const rawLead = String(get("leadership", 3) ?? "");
-          const rawStick = String(get("stick", 4) ?? "");
-          const rawCanPlay = String(get("canplay", 5) ?? "");
-          const rawNotes = String(get("notes", 6) ?? "");
+          const rawNumber = String(getCell(cols, ["number"], 0) ?? "").trim();
+          const rawName = String(getCell(cols, ["name"], 1) ?? "");
+          const rawPos = String(
+            getCell(cols, ["preferredposition", "preferred position", "position"], 2) ?? ""
+          );
+          const rawLead = String(getCell(cols, ["leadership"], 3) ?? "");
+          // ✅ Accept both stick and shoots/catches
+          const rawStick = String(
+            getCell(cols, ["stick", "shoots/catches", "shootscatches", "shoots catches"], 4) ?? ""
+          );
+          const rawCanPlay = String(getCell(cols, ["canplay", "can play"], 5) ?? "");
+          const rawNotes = String(getCell(cols, ["notes", "note"], 6) ?? "");
 
           // Skip fully empty rows
           const allEmpty = [
@@ -648,26 +678,23 @@ export default function Rosters({ data, setData }) {
 
           if (usedNumbers.has(num)) {
             report.skipped++;
-            report.messages.push(
-              `Row ${r + 1}: number ${num} duplicated in import.`
-            );
+            report.messages.push(`Row ${r + 1}: number ${num} duplicated in import.`);
             continue;
           }
 
-          // Name: required, trim, truncate to 16
+          // Name: required, trim, truncate to 13
           const trimmedName = String(rawName || "").trim();
           if (!trimmedName) {
             report.skipped++;
             report.messages.push(`Row ${r + 1}: missing name.`);
             continue;
           }
-          const name13 =
-            trimmedName.length > 13 ? trimmedName.slice(0, 13) : trimmedName;
+          const name13 = trimmedName.length > 13 ? trimmedName.slice(0, 13) : trimmedName;
 
-          // ✅ Position mapping / default (now case-insensitive)
+          // Position mapping / default
           const preferredPosition = normalizePosition(rawPos);
 
-          // Leadership: normalize then enforce rules (first valid claims the slots)
+          // Leadership: normalize then enforce rules
           let leadership = normalizeLeadership(rawLead);
           if (leadership === "C") {
             if (captainUsed) leadership = "";
@@ -698,13 +725,24 @@ export default function Rosters({ data, setData }) {
           report.imported++;
         }
 
-        // Now update state ONCE with the fully built team
+        // ✅ FIXED: do all theme/template work INSIDE updateData (no undefined "d")
         updateData((d) => {
-          d.teams.push(team);
           d.themes ??= [];
+
+          let template = getDefaultTheme(d.themes);
+          if (!template) {
+            template = createDefaultThemeTemplate();
+            d.themes.push(template);
+          }
+
+          const theme = cloneThemeFromTemplate(template, teamNameFromFile);
+          team.themeId = theme.id;
+
+          d.teams.push(team);
           d.themes.push(theme);
           d.activeTeamId = team.id;
           d.activeThemeId = theme.id;
+
           return d;
         });
 
@@ -717,9 +755,7 @@ export default function Rosters({ data, setData }) {
 
         alert(
           `Import complete.\n\nImported: ${report.imported}\nSkipped: ${report.skipped}` +
-            (report.messages.length
-              ? `\n\nIssues:\n${topIssues}${more}`
-              : "")
+            (report.messages.length ? `\n\nIssues:\n${topIssues}${more}` : "")
         );
       } catch (e) {
         alert("Import failed: invalid CSV file.");
@@ -732,132 +768,13 @@ export default function Rosters({ data, setData }) {
   }
 
   // =====================
-  // Opposition management (stored on ACTIVE TEAM)
-  // CSV format:
-  //   Row 1 (header): League name (first cell)
-  //   Rows 2..: opponent team names (first cell)
+  // Opposition management helpers (legacy helpers kept)
   // =====================
 
   function ensureOppFields(team) {
     if (!team) return;
     team.opposition ??= [];
     team.leagueName ??= "";
-  }
-
-  function addOppositionSingle() {
-    if (!activeTeam) return;
-    const name = prompt("Add opposition team name:");
-    if (!name) return;
-    const trimmed = name.trim();
-    if (!trimmed) return;
-
-    updateData((d) => {
-      const team = d.teams.find((t) => t.id === d.activeTeamId);
-      if (!team) return d;
-      ensureOppFields(team);
-      const exists = team.opposition.some(
-        (x) => String(x).trim().toLowerCase() === trimmed.toLowerCase()
-      );
-      if (!exists) team.opposition.push(trimmed);
-      return d;
-    });
-  }
-
-  function editOppositionAt(index) {
-    if (!activeTeam) return;
-    const current = String(activeTeam.opposition?.[index] ?? "").trim();
-    const nextName = prompt("Edit opposition team name:", current);
-    if (nextName == null) return;
-    const trimmed = String(nextName).trim();
-    if (!trimmed) return;
-
-    updateData((d) => {
-      const team = d.teams.find((t) => t.id === d.activeTeamId);
-      if (!team) return d;
-      ensureOppFields(team);
-      const lower = trimmed.toLowerCase();
-      const dup = team.opposition.some(
-        (x, i) => i !== index && String(x).trim().toLowerCase() === lower
-      );
-      if (dup) return d;
-      team.opposition[index] = trimmed;
-      return d;
-    });
-  }
-
-  function deleteOppositionAt(index) {
-    if (!activeTeam) return;
-    const current = String(activeTeam.opposition?.[index] ?? "").trim();
-    if (!current) return;
-    if (!confirm(`Delete opposition team "${current}"?`)) return;
-
-    updateData((d) => {
-      const team = d.teams.find((t) => t.id === d.activeTeamId);
-      if (!team) return d;
-      ensureOppFields(team);
-      team.opposition = team.opposition.filter((_, i) => i !== index);
-      return d;
-    });
-  }
-
-  function clickImportOpposition() {
-    if (!activeTeam) return;
-    oppImportRef.current?.click();
-  }
-
-  function importOppositionCsv(file) {
-    if (!activeTeam || !file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const text = String(reader.result ?? "");
-        const rows = parseCSV(text);
-
-        // Find first non-empty row as header
-        const nonEmptyRows = rows
-          .map((r) => (Array.isArray(r) ? r : []))
-          .map((r) => r.map((c) => String(c ?? "").trim()))
-          .filter((r) => r.some((c) => c !== ""));
-
-        if (nonEmptyRows.length === 0) {
-          alert("Import failed: CSV is empty.");
-          return;
-        }
-
-        const league = String(nonEmptyRows[0][0] ?? "").trim();
-        const opponentNames = nonEmptyRows
-          .slice(1)
-          .map((r) => String(r[0] ?? "").trim())
-          .filter(Boolean);
-
-        updateData((d) => {
-          const team = d.teams.find((t) => t.id === d.activeTeamId);
-          if (!team) return d;
-          ensureOppFields(team);
-
-          if (league) team.leagueName = league;
-
-          const seen = new Set(team.opposition.map((x) => String(x).trim().toLowerCase()));
-          for (const nm of opponentNames) {
-            const key = nm.toLowerCase();
-            if (seen.has(key)) continue;
-            team.opposition.push(nm);
-            seen.add(key);
-          }
-          return d;
-        });
-
-        alert(
-          `Opposition import complete.\n\nLeague: ${league || "(not provided)"}\nImported: ${opponentNames.length}`
-        );
-      } catch (e) {
-        alert("Import failed: invalid CSV file.");
-      } finally {
-        if (oppImportRef.current) oppImportRef.current.value = "";
-      }
-    };
-
-    reader.readAsText(file);
   }
 
   const sortedPlayers = useMemo(() => {
@@ -921,31 +838,47 @@ export default function Rosters({ data, setData }) {
   }
 
   function deleteTeam(id) {
-    // If deleting the team currently being renamed, close rename UI
-    if (renamingTeamId === id) cancelRenameTeam();
+      // If deleting the team currently being renamed, close rename UI
+      if (renamingTeamId === id) cancelRenameTeam();
 
-    updateData((d) => {
-      const teamToDelete = d.teams.find((t) => t.id === id);
-      const themeIdToDelete = teamToDelete?.themeId || null;
+      updateData((d) => {
+        // 1) Remove the team
+        d.teams = (d.teams || []).filter((t) => t.id !== id);
 
-      d.teams = d.teams.filter((t) => t.id !== id);
+        // 2) Clean up themes:
+        // Keep only themes that are:
+        // - referenced by a remaining team (team.themeId), OR
+        // - the Default Theme template (isDefault === true)
+        if (Array.isArray(d.themes)) {
+          const usedThemeIds = new Set(
+            (d.teams || []).map((t) => t.themeId).filter(Boolean)
+          );
 
-      // Also delete the bound theme (keeps data clean)
-      if (themeIdToDelete && Array.isArray(d.themes)) {
-        d.themes = d.themes.filter((th) => th.id !== themeIdToDelete);
-      }
+          d.themes = d.themes.filter((th) => {
+            if (!th || !th.id) return false;
+            if (th.isDefault === true) return true; // keep default template
+            return usedThemeIds.has(th.id);
+          });
+        }
 
-      // Fix active team/theme
-      if (d.activeTeamId === id) {
-        d.activeTeamId = d.teams[0]?.id ?? null;
-      }
+        // 3) Fix active team/theme
+        if (d.activeTeamId === id) {
+          d.activeTeamId = d.teams[0]?.id ?? null;
+        }
 
-      const activeTeam = d.teams.find((t) => t.id === d.activeTeamId) || d.teams[0] || null;
-      d.activeThemeId = activeTeam?.themeId ?? d.themes?.[0]?.id ?? null;
+        const nextActiveTeam =
+          d.teams.find((t) => t.id === d.activeTeamId) || d.teams[0] || null;
 
-      return d;
-    });
-  }
+        d.activeThemeId =
+          nextActiveTeam?.themeId ??
+          (d.themes || []).find((th) => th?.isDefault === true)?.id ??
+          d.themes?.[0]?.id ??
+          null;
+
+        return d;
+      });
+    }
+
 
   function startEditPlayer(p) {
     setEditingId(p.id);
@@ -1024,9 +957,7 @@ export default function Rosters({ data, setData }) {
       const has = prev.canPlay.includes(code);
       return {
         ...prev,
-        canPlay: has
-          ? prev.canPlay.filter((c) => c !== code)
-          : [...prev.canPlay, code],
+        canPlay: has ? prev.canPlay.filter((c) => c !== code) : [...prev.canPlay, code],
       };
     });
   }
@@ -1065,10 +996,7 @@ export default function Rosters({ data, setData }) {
               border: "1px solid rgba(0,0,0,0.2)",
             }}
           />
-          <button
-            onClick={createNewTeam}
-            style={{ padding: "8px 10px", borderRadius: 10 }}
-          >
+          <button onClick={createNewTeam} style={{ padding: "8px 10px", borderRadius: 10 }}>
             Add
           </button>
         </div>
@@ -1092,9 +1020,7 @@ export default function Rosters({ data, setData }) {
                   borderRadius: 12,
                   border: "1px solid rgba(0,0,0,0.12)",
                   background:
-                    t.id === data.activeTeamId
-                      ? "rgba(255, 169, 99, 0.1)"
-                      : "transparent",
+                    t.id === data.activeTeamId ? "rgba(255, 169, 99, 0.1)" : "transparent",
                   minWidth: 0,
                 }}
               >
@@ -1105,9 +1031,7 @@ export default function Rosters({ data, setData }) {
                       d.activeThemeId = t.themeId ?? d.activeThemeId;
                       return d;
                     });
-                    // If switching teams while renaming something else, cancel rename UI
-                    if (renamingTeamId && renamingTeamId !== t.id)
-                      cancelRenameTeam();
+                    if (renamingTeamId && renamingTeamId !== t.id) cancelRenameTeam();
                   }}
                   style={{
                     flex: 1,
@@ -1133,9 +1057,7 @@ export default function Rosters({ data, setData }) {
                       >
                         {t.name}
                       </div>
-                      <div style={{ fontSize: 12, opacity: 0.7 }}>
-                        {t.players.length} players
-                      </div>
+                      <div style={{ fontSize: 12, opacity: 0.7 }}>{t.players.length} players</div>
                     </>
                   ) : (
                     <>
@@ -1190,7 +1112,6 @@ export default function Rosters({ data, setData }) {
                   )}
                 </button>
 
-                {/* ✅ Edit first */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1215,8 +1136,6 @@ export default function Rosters({ data, setData }) {
                   ♻️
                 </button>
 
-                {/* ✅ Delete second */}
-
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1233,7 +1152,7 @@ export default function Rosters({ data, setData }) {
           })}
         </div>
 
-        {/* ✅ Opposition management for active team */}
+        {/* Opposition management for active team */}
         {activeTeam ? (
           <OppositionPanel
             activeTeam={activeTeam}
@@ -1300,9 +1219,7 @@ export default function Rosters({ data, setData }) {
         </div>
 
         {!activeTeam ? (
-          <div style={{ marginTop: 14, opacity: 0.8 }}>
-            Create a team on the left to start adding players.
-          </div>
+          <div style={{ marginTop: 14, opacity: 0.8 }}>Create a team on the left to start adding players.</div>
         ) : (
           <>
             <div
@@ -1315,9 +1232,7 @@ export default function Rosters({ data, setData }) {
                 scrollMarginTop: 90,
               }}
             >
-              <h3 style={{ marginTop: 0 }}>
-                {editingId ? "Edit player" : "Add player"}
-              </h3>
+              <h3 style={{ marginTop: 0 }}>{editingId ? "Edit player" : "Add player"}</h3>
 
               {error && (
                 <div
@@ -1333,20 +1248,16 @@ export default function Rosters({ data, setData }) {
               )}
 
               <div style={{ display: "grid", gap: 12, minWidth: 0 }}>
-                {/* Row 1: Number + Name */}
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns:
-                      "minmax(0, 140px) minmax(0, 1fr)",
+                    gridTemplateColumns: "minmax(0, 140px) minmax(0, 1fr)",
                     gap: 10,
                   }}
                 >
                   <input
                     value={draft.number}
-                    onChange={(e) =>
-                      setDraft((p) => ({ ...p, number: e.target.value }))
-                    }
+                    onChange={(e) => setDraft((p) => ({ ...p, number: e.target.value }))}
                     placeholder="Number"
                     style={{
                       padding: 8,
@@ -1359,20 +1270,16 @@ export default function Rosters({ data, setData }) {
                   <input
                     value={draft.name}
                     maxLength={13}
-                    onChange={(e) =>
-                      setDraft((p) => ({ ...p, name: e.target.value }))
-                    }
+                    onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
                     placeholder="Name (max 13 characters)"
                   />
                 </div>
 
-                {/* Row 2: Position + Leadership + Stick */}
                 <div
                   className="addPlayerRow2"
                   style={{
                     display: "grid",
-                    gridTemplateColumns:
-                      "minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)",
+                    gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)",
                     gap: 10,
                     minWidth: 0,
                   }}
@@ -1402,12 +1309,7 @@ export default function Rosters({ data, setData }) {
 
                   <select
                     value={draft.leadership}
-                    onChange={(e) =>
-                      setDraft((p) => ({
-                        ...p,
-                        leadership: e.target.value,
-                      }))
-                    }
+                    onChange={(e) => setDraft((p) => ({ ...p, leadership: e.target.value }))}
                     style={{
                       padding: 8,
                       borderRadius: 10,
@@ -1425,9 +1327,7 @@ export default function Rosters({ data, setData }) {
 
                   <select
                     value={draft.stick}
-                    onChange={(e) =>
-                      setDraft((p) => ({ ...p, stick: e.target.value }))
-                    }
+                    onChange={(e) => setDraft((p) => ({ ...p, stick: e.target.value }))}
                     style={{
                       padding: 8,
                       borderRadius: 10,
@@ -1444,28 +1344,11 @@ export default function Rosters({ data, setData }) {
                   </select>
                 </div>
 
-                {/* Row 3: Can play */}
                 <div style={{ display: "grid", gap: 8 }}>
-                  <div style={{ fontWeight: 700, opacity: 0.85 }}>
-                    Can play:
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 12,
-                      alignItems: "center",
-                    }}
-                  >
+                  <div style={{ fontWeight: 700, opacity: 0.85 }}>Can play:</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
                     {CANPLAY.map((code) => (
-                      <label
-                        key={code}
-                        style={{
-                          display: "flex",
-                          gap: 6,
-                          alignItems: "center",
-                        }}
-                      >
+                      <label key={code} style={{ display: "flex", gap: 6, alignItems: "center" }}>
                         <input
                           type="checkbox"
                           checked={draft.canPlay.includes(code)}
@@ -1477,12 +1360,9 @@ export default function Rosters({ data, setData }) {
                   </div>
                 </div>
 
-                {/* Row 4: Notes */}
                 <textarea
                   value={draft.notes}
-                  onChange={(e) =>
-                    setDraft((p) => ({ ...p, notes: e.target.value }))
-                  }
+                  onChange={(e) => setDraft((p) => ({ ...p, notes: e.target.value }))}
                   placeholder="Notes (optional)"
                   rows={3}
                   style={{
@@ -1494,19 +1374,12 @@ export default function Rosters({ data, setData }) {
                   }}
                 />
 
-                {/* Actions */}
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button
-                    onClick={savePlayer}
-                    style={{ padding: "8px 12px", borderRadius: 10 }}
-                  >
+                  <button onClick={savePlayer} style={{ padding: "8px 12px", borderRadius: 10 }}>
                     {editingId ? "Save changes" : "Add player"}
                   </button>
                   {editingId && (
-                    <button
-                      onClick={resetDraft}
-                      style={{ padding: "8px 12px", borderRadius: 10 }}
-                    >
+                    <button onClick={resetDraft} style={{ padding: "8px 12px", borderRadius: 10 }}>
                       Cancel
                     </button>
                   )}
@@ -1557,7 +1430,6 @@ export default function Rosters({ data, setData }) {
                       {(p.canPlay || []).length ? p.canPlay.join(", ") : ""}
                     </div>
 
-                    {/* ✅ Icon actions for consistency + better mobile layout */}
                     <div
                       className="playerActions"
                       style={{
@@ -1588,9 +1460,7 @@ export default function Rosters({ data, setData }) {
                 ))}
 
                 {sortedPlayers.length === 0 && (
-                  <div style={{ opacity: 0.7 }}>
-                    No players match your search.
-                  </div>
+                  <div style={{ opacity: 0.7 }}>No players match your search.</div>
                 )}
               </div>
             </div>
