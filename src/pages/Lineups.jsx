@@ -14,13 +14,14 @@ import html2canvas from "html2canvas";
 
 const MAX_FORWARD_LINES = 4;
 const MAX_DEF_PAIRS = 4;
-const DEFAULT_PRINT_BG = "/print-default-bg.png"; // public/print-default-bg.png
+const DEFAULT_PRINT_BG = "/print-empty-bg.png"; // public/print-default-bg.png
 
 // Built-in print backgrounds (files in /public)
 const PRINT_BG_PRESETS = [
   { label: "Snipers", src: "/print-default-bg.png" },
   { label: "Empty", src: "/print-empty_bg.png" },
   { label: "Blackhawks", src: "/print-BlackHawks_bg.png" },
+  { label: "Falcons", src: "/print-Falcons_bg.png" },
 ];
 
 /* ===================== UI: Draggable Player ===================== */
