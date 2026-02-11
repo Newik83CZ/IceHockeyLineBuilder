@@ -14,7 +14,7 @@ import html2canvas from "html2canvas";
 
 const MAX_FORWARD_LINES = 4;
 const MAX_DEF_PAIRS = 4;
-const DEFAULT_PRINT_BG = "/print-empty-bg.png"; // public/print-default-bg.png
+const DEFAULT_PRINT_BG = "/print-empty_bg.png"; // public/print-default-bg.png
 
 // Built-in print backgrounds (files in /public)
 const PRINT_BG_PRESETS = [
