@@ -26,7 +26,7 @@ const PRINT_BG_PRESETS = [
 
 /* ===================== UI: Draggable Player ===================== */
 
-function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = false }) {
+function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = false, ...rest }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
 
   const labelObj = (() => {
@@ -149,7 +149,7 @@ function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = fal
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+    <div ref={setNodeRef} style={style} data-player-card="true" {...rest} {...listeners} {...attributes}>
       <div
         ref={rowRef}
         style={{
@@ -289,15 +289,27 @@ function DroppableSlot({ id, title, player, children }) {
   );
 }
 
-function AvailableDropZone({ children }) {
+function AvailableDropZone({ children, minHeight, containerRef }) {
   const { isOver, setNodeRef } = useDroppable({ id: "AVAILABLE" });
+
+  function setRefs(node) {
+    setNodeRef(node);
+    if (!containerRef) return;
+    if (typeof containerRef === "function") {
+      containerRef(node);
+    } else {
+      containerRef.current = node;
+    }
+  }
+
   return (
     <div
-      ref={setNodeRef}
+      ref={setRefs}
       style={{
         borderRadius: 14,
         padding: 10,
         background: isOver ? "rgba(0,0,0,0.06)" : "transparent",
+        minHeight,
       }}
     >
       {children}
@@ -703,6 +715,80 @@ export default function Lineups({ data, setData }) {
   const available = useMemo(() => {
     return players.filter((p) => !assignedIds.has(p.id)).sort((a, b) => a.number - b.number);
   }, [players, assignedIds]);
+
+  const availableDropZoneRef = useRef(null);
+  const availableHeaderRef = useRef(null);
+  const availableListRef = useRef(null);
+  const [availableDropZoneMinHeight, setAvailableDropZoneMinHeight] = useState(null);
+
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const zoneEl = availableDropZoneRef.current;
+    const headerEl = availableHeaderRef.current;
+    const listEl = availableListRef.current;
+
+    if (!zoneEl || !listEl) return;
+
+    const measure = () => {
+      const zoneStyles = window.getComputedStyle(zoneEl);
+      const headerStyles = headerEl ? window.getComputedStyle(headerEl) : null;
+      const listStyles = window.getComputedStyle(listEl);
+
+      const zonePaddingTop = parseFloat(zoneStyles.paddingTop) || 0;
+      const zonePaddingBottom = parseFloat(zoneStyles.paddingBottom) || 0;
+      const headerHeight = headerEl ? headerEl.getBoundingClientRect().height : 0;
+      const headerMarginBottom = headerStyles ? parseFloat(headerStyles.marginBottom) || 0 : 0;
+      const rowGap = parseFloat(listStyles.rowGap || listStyles.gap || "0") || 0;
+
+      const cards = Array.from(listEl.querySelectorAll('[data-player-card="true"]'));
+      const fallbackCard = cards[0] || zoneEl.ownerDocument.querySelector('[data-player-card="true"]');
+      const cardHeight = fallbackCard ? fallbackCard.getBoundingClientRect().height : 0;
+
+      const rowCounts = new Map();
+      for (const cardEl of cards) {
+        const rowTop = Math.round(cardEl.offsetTop);
+        rowCounts.set(rowTop, (rowCounts.get(rowTop) || 0) + 1);
+      }
+
+      const columnCount = rowCounts.size > 0 ? Math.max(...rowCounts.values()) : 1;
+      const reservedItemCount = cards.length + 1;
+      const reservedRowCount =
+        columnCount <= 1 ? reservedItemCount : Math.ceil(reservedItemCount / columnCount);
+
+      const reservedListHeight =
+        cardHeight > 0
+          ? reservedRowCount * cardHeight + Math.max(0, reservedRowCount - 1) * rowGap
+          : 0;
+
+      const nextMinHeight = Math.ceil(
+        zonePaddingTop +
+          headerHeight +
+          headerMarginBottom +
+          Math.max(listEl.scrollHeight, reservedListHeight) +
+          zonePaddingBottom
+      );
+
+      setAvailableDropZoneMinHeight((prev) => (prev === nextMinHeight ? prev : nextMinHeight));
+    };
+
+    measure();
+
+    if (typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(() => measure());
+    observer.observe(zoneEl);
+    observer.observe(listEl);
+    if (headerEl) observer.observe(headerEl);
+
+    const cardEls = Array.from(listEl.querySelectorAll('[data-player-card="true"]'));
+    for (const cardEl of cardEls) observer.observe(cardEl);
+
+    const fallbackCard = zoneEl.ownerDocument.querySelector('[data-player-card="true"]');
+    if (fallbackCard && !cardEls.includes(fallbackCard)) observer.observe(fallbackCard);
+
+    return () => observer.disconnect();
+  }, [available]);
 
   function saveActiveLineup(mutator) {
     updateData((d) => {
@@ -2079,9 +2165,11 @@ export default function Lineups({ data, setData }) {
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <div className="lineupsLeft" style={{ display: "grid", gap: 8 }}>
             <div style={{ padding: 12, borderRadius: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
-              <AvailableDropZone>
-                <div style={{ fontWeight: 800, marginBottom: 10 }}>Available Players</div>
-                <div style={{ display: "grid", gap: 10 }}>
+              <AvailableDropZone minHeight={availableDropZoneMinHeight} containerRef={availableDropZoneRef}>
+                <div ref={availableHeaderRef} style={{ fontWeight: 800, marginBottom: 10 }}>
+                  Available Players
+                </div>
+                <div ref={availableListRef} style={{ display: "grid", gap: 10 }}>
                   {available.map((p) => {
                     const parts = String(p.name || "").trim().split(/\s+/).filter(Boolean);
                     const firstName = parts[0] || "";
