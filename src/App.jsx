@@ -58,6 +58,7 @@ export default function App() {
   // ✅ One-time migration/backfill (runs once on mount)
   // This ensures any older saved data is upgraded safely.
   useEffect(() => {
+    console.log("Codex connected successfully");
     setData((prev) => normalizeAppData(prev));
   }, []);
 
