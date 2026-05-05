@@ -69,13 +69,20 @@ export default function App() {
 
   const activeTeam = data.teams?.find((t) => t.id === data.activeTeamId) || null;
 
+  const themes = data.themes || [];
+  const defaultTheme = themes.find((t) => t?.isDefault === true) || null;
+
   // ✅ Resolve theme for CSS variables:
   // - while Theme tab is open -> previewThemeId
-  // - otherwise -> activeTeam.themeId
-  // - fallback -> activeThemeId (legacy) -> first theme
-  const themeIdToUse = previewThemeId || activeTeam?.themeId || data.activeThemeId || null;
-
-  const activeTheme = (themeIdToUse ? data.themes?.find((t) => t.id === themeIdToUse) : null) || data.themes?.[0] || null;
+  // - otherwise -> activeTeam.themeId, but only if it still exists
+  // - fallback -> activeThemeId (legacy) -> default theme -> first theme
+  const activeTheme =
+    (previewThemeId ? themes.find((t) => t.id === previewThemeId) : null) ||
+    (activeTeam?.themeId ? themes.find((t) => t.id === activeTeam.themeId) : null) ||
+    (data.activeThemeId ? themes.find((t) => t.id === data.activeThemeId) : null) ||
+    defaultTheme ||
+    themes[0] ||
+    null;
 
   const themeStyle = activeTheme
     ? {

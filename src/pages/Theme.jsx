@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createDefaultThemeTemplate,
   cloneThemeFromTemplate,
   getDefaultTheme,
+  newId,
+  normalizeTheme,
 } from "../lib/model";
 
 const POSITIONS = ["Centre", "Wing", "Defender", "Goalie"];
@@ -17,6 +19,9 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
   // -------------------------
   const [editingThemeId, setEditingThemeId] = useState(null);
   const [followActiveTeam, setFollowActiveTeam] = useState(true);
+  const [applyMessage, setApplyMessage] = useState("");
+  const [importMessage, setImportMessage] = useState("");
+  const importThemeRef = useRef(null);
 
   function updateData(updater) {
     setData((prev) => {
@@ -24,6 +29,135 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
       next.updatedAt = Date.now();
       return next;
     });
+  }
+
+  function yyyymmdd(d = new Date()) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}${m}${day}`;
+  }
+
+  function safeFileBase(name) {
+    return String(name || "theme").replace(/[^a-z0-9-_]+/gi, "_");
+  }
+
+  function exportSelectedTheme() {
+    if (!editingTheme) return;
+
+    const payload = {
+      app: "ice-hockey-line-builder",
+      type: "theme",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      theme: {
+        name: editingTheme.name || "Theme",
+        app: structuredClone(editingTheme.app || {}),
+        positions: structuredClone(editingTheme.positions || {}),
+      },
+    };
+
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const date = yyyymmdd(new Date());
+    const safeName = safeFileBase(editingTheme.name || "theme");
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${safeName || "theme"}_theme_${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+  }
+
+  function isObject(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+  }
+
+  function uniqueThemeName(name, themes) {
+    const base = String(name || "").trim();
+    const fallback = base || "Imported theme";
+    const existing = new Set((themes || []).map((t) => String(t?.name || "").toLowerCase()));
+
+    if (!existing.has(fallback.toLowerCase())) return fallback;
+
+    const first = `${fallback} (imported)`;
+    if (!existing.has(first.toLowerCase())) return first;
+
+    let n = 2;
+    while (existing.has(`${fallback} (imported ${n})`.toLowerCase())) {
+      n += 1;
+    }
+    return `${fallback} (imported ${n})`;
+  }
+
+  function createImportedTheme(payload, existingThemes) {
+    if (!isObject(payload)) throw new Error("Theme file must contain a JSON object.");
+    if (payload.app !== "ice-hockey-line-builder") throw new Error("This is not an Ice Hockey Line Builder theme file.");
+    if (payload.type !== "theme") throw new Error("Theme file type is not supported.");
+    if (payload.version !== 1) throw new Error("Theme file version is not supported.");
+    if (!isObject(payload.theme)) throw new Error("Theme data is missing.");
+
+    const rawName = String(payload.theme.name || "").trim();
+    if (!rawName) throw new Error("Theme name is required.");
+    if (!isObject(payload.theme.app)) throw new Error("Theme app colors must be an object.");
+    if (!isObject(payload.theme.positions)) throw new Error("Theme position colors must be an object.");
+
+    const now = Date.now();
+    const theme = normalizeTheme({
+      id: newId(),
+      name: uniqueThemeName(rawName, existingThemes),
+      app: structuredClone(payload.theme.app),
+      positions: structuredClone(payload.theme.positions),
+      createdAt: now,
+      updatedAt: now,
+      isDefault: false,
+    });
+
+    theme.isDefault = false;
+    return theme;
+  }
+
+  function clickImportTheme() {
+    importThemeRef.current?.click();
+  }
+
+  async function importThemeFromFile(file) {
+    if (!file) return;
+
+    setApplyMessage("");
+    setImportMessage("");
+
+    try {
+      const text = await file.text();
+      let payload;
+
+      try {
+        payload = JSON.parse(text);
+      } catch {
+        throw new Error("Theme file is not valid JSON.");
+      }
+
+      const importedTheme = createImportedTheme(payload, data.themes || []);
+
+      updateData((d) => {
+        d.themes ??= [];
+        d.themes.push(importedTheme);
+        return d;
+      });
+
+      setFollowActiveTeam(false);
+      setEditingThemeId(importedTheme.id);
+      setApplyMessage("");
+      setImportMessage(`Imported "${importedTheme.name}". Use Apply if you want to assign it to the current team.`);
+    } catch (e) {
+      setImportMessage(`Import failed: ${e?.message || "Invalid theme file."}`);
+    } finally {
+      if (importThemeRef.current) importThemeRef.current.value = "";
+    }
   }
 
   // Build selector options:
@@ -184,12 +318,34 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
   function selectTheme(themeId) {
     setFollowActiveTeam(false);
     setEditingThemeId(themeId || null);
+    setApplyMessage("");
+    setImportMessage("");
   }
 
   function backToActiveTeamTheme() {
     if (!activeTeam) return;
     setFollowActiveTeam(true);
     setEditingThemeId(activeTeam.themeId || null);
+    setApplyMessage("");
+    setImportMessage("");
+  }
+
+  function applyThemeToCurrentTeam() {
+    if (!activeTeam || !editingThemeId || !editingTheme) return;
+
+    updateData((d) => {
+      const team = d.teams?.find((t) => t.id === d.activeTeamId);
+      const themeExists = d.themes?.some((t) => t.id === editingThemeId);
+      if (!team || !themeExists) return d;
+
+      team.themeId = editingThemeId;
+      d.activeThemeId = editingThemeId;
+      return d;
+    });
+
+    setFollowActiveTeam(true);
+    setApplyMessage(`Applied "${editingTheme.name || "Selected theme"}" to ${activeTeam.name || "current team"}.`);
+    setImportMessage("");
   }
 
   if (!activeTeam) {
@@ -260,7 +416,55 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
               <button onClick={backToActiveTeamTheme} style={{ width: 220 }}>
                 Back to active team theme
               </button>
+              <div style={{ display: "grid", gap: 6, justifyItems: "start" }}>
+                <div style={{ fontSize: 13, fontWeight: 800 }}>Apply theme to current team</div>
+                <button
+                  onClick={applyThemeToCurrentTeam}
+                  disabled={!editingThemeId || !editingTheme}
+                  style={{ padding: "6px 10px", borderRadius: 10 }}
+                >
+                  Apply
+                </button>
+              </div>
+              <div style={{ display: "grid", gap: 6, justifyItems: "start" }}>
+                <div style={{ fontSize: 13, fontWeight: 800 }}>Export selected theme</div>
+                <button
+                  onClick={exportSelectedTheme}
+                  disabled={!editingTheme}
+                  style={{ padding: "6px 10px", borderRadius: 10 }}
+                >
+                  Export
+                </button>
+              </div>
+              <div style={{ display: "grid", gap: 6, justifyItems: "start" }}>
+                <div style={{ fontSize: 13, fontWeight: 800 }}>Import theme</div>
+                <button
+                  onClick={clickImportTheme}
+                  style={{ padding: "6px 10px", borderRadius: 10 }}
+                >
+                  Import
+                </button>
+              </div>
+              <input
+                ref={importThemeRef}
+                type="file"
+                accept=".json,application/json"
+                style={{ display: "none" }}
+                onChange={(e) => importThemeFromFile(e.target.files?.[0] || null)}
+              />
             </div>
+
+            {applyMessage ? (
+              <div style={{ fontSize: 12, opacity: 0.8, lineHeight: 1.35 }}>
+                {applyMessage}
+              </div>
+            ) : null}
+
+            {importMessage ? (
+              <div style={{ fontSize: 12, opacity: 0.8, lineHeight: 1.35 }}>
+                {importMessage}
+              </div>
+            ) : null}
           </div>
         </Card>
 
@@ -372,8 +576,62 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
           </div>
 
           <div style={{ fontSize: 13, opacity: 0.8, lineHeight: 1.35 }}>
-            Themes are <b>bound 1:1</b> to teams. Editing here changes that team’s
-            theme. Active team selection does not change.
+            Teams reference themes by ID. Editing here changes the selected theme;
+            applying it assigns that theme to the active team.
+          </div>
+
+          <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ display: "grid", gap: 6, justifyItems: "start" }}>
+              <div style={{ fontSize: 13, fontWeight: 800 }}>Apply theme to current team</div>
+              <button
+                onClick={applyThemeToCurrentTeam}
+                disabled={!editingThemeId || !editingTheme}
+                style={{ padding: "6px 10px", borderRadius: 10 }}
+              >
+                Apply
+              </button>
+            </div>
+
+            {applyMessage ? (
+              <div style={{ fontSize: 12, opacity: 0.8, lineHeight: 1.35 }}>
+                {applyMessage}
+              </div>
+            ) : null}
+
+            <div style={{ display: "grid", gap: 6, justifyItems: "start" }}>
+              <div style={{ fontSize: 13, fontWeight: 800 }}>Export selected theme</div>
+              <button
+                onClick={exportSelectedTheme}
+                disabled={!editingTheme}
+                style={{ padding: "6px 10px", borderRadius: 10 }}
+              >
+                Export
+              </button>
+            </div>
+
+            <div style={{ display: "grid", gap: 6, justifyItems: "start" }}>
+              <div style={{ fontSize: 13, fontWeight: 800 }}>Import theme</div>
+              <button
+                onClick={clickImportTheme}
+                style={{ padding: "6px 10px", borderRadius: 10 }}
+              >
+                Import
+              </button>
+            </div>
+
+            <input
+              ref={importThemeRef}
+              type="file"
+              accept=".json,application/json"
+              style={{ display: "none" }}
+              onChange={(e) => importThemeFromFile(e.target.files?.[0] || null)}
+            />
+
+            {importMessage ? (
+              <div style={{ fontSize: 12, opacity: 0.8, lineHeight: 1.35 }}>
+                {importMessage}
+              </div>
+            ) : null}
           </div>
         </Card>
       </div>
