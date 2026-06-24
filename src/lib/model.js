@@ -23,10 +23,20 @@ export const DEFAULT_THEME_APP = {
   errorBubble: "#dc2626",
 
   // Printing (Lineups print)
+  // Legacy print keys are kept for compatibility with saved/imported themes.
   printTeamColor: "#961f1f",
   printText: "#000000",
   printCardText: "#f8fafc",
   printLeader: "#a88718",
+
+  // Split print keys
+  printTeamName: "#961f1f",
+  printGameDetails: "#000000",
+  printCardBackground: "#961f1f",
+  printNumberBackground: "#000000",
+  printLeadershipBackground: "#a88718",
+  printFontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+  printFontStyle: "normal",
 };
 
 export const DEFAULT_POSITION_COLORS = {
@@ -66,11 +76,25 @@ export function normalizeTheme(theme) {
   // ✅ errorBubble: default if missing
   theme.app.errorBubble ??= DEFAULT_THEME_APP.errorBubble;
 
-  // Printing: prefer new keys, else fall back to old primary/accent/text/surface
+  // Printing legacy keys: preserve them so old theme exports remain readable.
   theme.app.printTeamColor ??= oldPrimary ?? DEFAULT_THEME_APP.printTeamColor;
   theme.app.printText ??= theme.app.text ?? DEFAULT_THEME_APP.printText;
   theme.app.printCardText ??= theme.app.surface ?? DEFAULT_THEME_APP.printCardText;
   theme.app.printLeader ??= oldAccent ?? theme.app.leader ?? DEFAULT_THEME_APP.printLeader;
+
+  // Split printing keys: migrate safely from the old shared controls.
+  theme.app.printTeamName ??=
+    theme.app.printTeamColor ?? oldPrimary ?? DEFAULT_THEME_APP.printTeamName;
+  theme.app.printCardBackground ??=
+    theme.app.printTeamColor ?? oldPrimary ?? DEFAULT_THEME_APP.printCardBackground;
+  theme.app.printGameDetails ??=
+    theme.app.printText ?? theme.app.text ?? DEFAULT_THEME_APP.printGameDetails;
+  theme.app.printNumberBackground ??=
+    theme.app.printText ?? theme.app.text ?? DEFAULT_THEME_APP.printNumberBackground;
+  theme.app.printLeadershipBackground ??=
+    theme.app.printLeader ?? oldAccent ?? theme.app.leader ?? DEFAULT_THEME_APP.printLeadershipBackground;
+  theme.app.printFontFamily ??= DEFAULT_THEME_APP.printFontFamily;
+  theme.app.printFontStyle ??= DEFAULT_THEME_APP.printFontStyle;
 
   // Positions: ensure all positions exist
   for (const [pos, color] of Object.entries(DEFAULT_POSITION_COLORS)) {
@@ -439,4 +463,3 @@ export function positionSortKey(pos) {
   const order = { Goalie: 0, Defender: 1, Centre: 2, Wing: 3 };
   return order[pos] ?? 99;
 }
-

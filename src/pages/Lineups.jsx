@@ -24,6 +24,32 @@ const PRINT_BG_PRESETS = [
   { label: "Falcons", src: "/print-Falcons_bg.png" },
 ];
 
+const DEFAULT_PRINT_FONT_FAMILY =
+  "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+
+const PRINT_FONT_FAMILIES = new Set([
+  DEFAULT_PRINT_FONT_FAMILY,
+  "Arial, sans-serif",
+  "Verdana, sans-serif",
+  "Georgia, serif",
+  "'Times New Roman', Times, serif",
+  "'Trebuchet MS', sans-serif",
+  "'Courier New', monospace",
+]);
+
+function resolvePrintFontFamily(value) {
+  const font = String(value || "").trim();
+  return PRINT_FONT_FAMILIES.has(font) ? font : DEFAULT_PRINT_FONT_FAMILY;
+}
+
+function resolvePrintFontStyle(value) {
+  const style = String(value || "normal").toLowerCase();
+  return {
+    fontStyle: style.includes("italic") ? "italic" : "normal",
+    fontWeightRule: style.includes("bold") ? "font-weight: 900;" : "",
+  };
+}
+
 /* ===================== UI: Draggable Player ===================== */
 
 function DraggablePlayer({ id, label, sublabel, preferredPosition, isError = false, ...rest }) {
@@ -1173,15 +1199,21 @@ export default function Lineups({ data, setData }) {
   async function renderExportCanvas({ scale = 2 } = {}) {
     if (!activeTeam || !activeLineup) return null;
 
-    const activeTheme = data.themes?.find((t) => t.id === data.activeThemeId) || null;
+    const activeTheme =
+      data.themes?.find((t) => t.id === activeTeam.themeId) ||
+      data.themes?.find((t) => t.id === data.activeThemeId) ||
+      null;
+    const app = activeTheme?.app || {};
 
-    const teamC = activeTheme?.app?.printTeamColor ?? "#d32f2f";
-    const labelsC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
-    const lineupTitleC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
-    const numberBackgroundC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
-    const numberC = activeTheme?.app?.printCardText ?? activeTheme?.app?.surface ?? "#ffffff";
-    const playerNameC = activeTheme?.app?.printCardText ?? activeTheme?.app?.surface ?? "#ffffff";
-    const leadershipBackgroundC = activeTheme?.app?.printLeader ?? activeTheme?.app?.leader ?? "#ffd54a";
+    const teamNameC = app.printTeamName ?? app.printTeamColor ?? "#d32f2f";
+    const gameDetailsC = app.printGameDetails ?? app.printText ?? app.text ?? "#111111";
+    const cardBackgroundC = app.printCardBackground ?? app.printTeamColor ?? "#d32f2f";
+    const numberBackgroundC = app.printNumberBackground ?? app.printText ?? app.text ?? "#111111";
+    const cardTextC = app.printCardText ?? app.surface ?? "#ffffff";
+    const leadershipBackgroundC =
+      app.printLeadershipBackground ?? app.printLeader ?? app.leader ?? "#ffd54a";
+    const printFontFamily = resolvePrintFontFamily(app.printFontFamily);
+    const { fontStyle: printFontStyle, fontWeightRule } = resolvePrintFontStyle(app.printFontStyle);
 
     const bgImg = String(resolveTeamPrintBackground(activeTeam) || "").replaceAll("'", "%27");
 
@@ -1289,8 +1321,10 @@ export default function Lineups({ data, setData }) {
             height: ${EXPORT_H}px;   /* ✅ fixed height */
             overflow: hidden;        /* ✅ crops anything outside 4:5 frame */
             background: white;
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-            color: ${labelsC};
+            font-family: ${printFontFamily};
+            font-style: ${printFontStyle};
+            ${fontWeightRule}
+            color: ${gameDetailsC};
           }
 
           .bg {
@@ -1319,7 +1353,7 @@ export default function Lineups({ data, setData }) {
             font-weight: 900;
             font-size: 80px;
             letter-spacing: 0.5px;
-            color: ${teamC};
+            color: ${teamNameC};
             margin: 0;
           }
           .lineupTitle {
@@ -1327,7 +1361,7 @@ export default function Lineups({ data, setData }) {
             font-weight: 900;
             font-size: 32px;
             margin: 16px 0 30px;
-            color: ${lineupTitleC};
+            color: ${gameDetailsC};
           }
           .section { display: grid; gap: 14px; margin-top: 5px; }
           .pillRow {
@@ -1343,7 +1377,7 @@ export default function Lineups({ data, setData }) {
             height: var(--pillH);
             width: var(--pillW);
             border-radius: 999px;
-            background: ${teamC};
+            background: ${cardBackgroundC};
             display: flex;
             align-items: center;
             padding-left: var(--circle);
@@ -1358,7 +1392,7 @@ export default function Lineups({ data, setData }) {
             height: var(--circle);
             border-radius: 999px;
             background: ${numberBackgroundC};
-            color: ${numberC};
+            color: ${cardTextC};
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1366,7 +1400,7 @@ export default function Lineups({ data, setData }) {
             font-size: 22px;
           }
           .pillName {
-            color: ${playerNameC};
+            color: ${cardTextC};
             font-weight: 900;
             font-size: 22px;
             white-space: nowrap;
@@ -1382,7 +1416,7 @@ export default function Lineups({ data, setData }) {
             height: var(--circle);
             border-radius: 999px;
             background: ${leadershipBackgroundC};
-            color: ${playerNameC};
+            color: ${cardTextC};
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1418,7 +1452,7 @@ export default function Lineups({ data, setData }) {
           .leagueName{
             font-weight: 900;
             font-size: 22px;
-            color: ${labelsC};
+            color: ${gameDetailsC};
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -1427,7 +1461,7 @@ export default function Lineups({ data, setData }) {
           .versionText{
             font-weight: 900;
             font-size: 16px;
-            color: ${labelsC};
+            color: ${gameDetailsC};
             opacity: 0.9;
             white-space: nowrap;
           }
@@ -1550,18 +1584,21 @@ export default function Lineups({ data, setData }) {
     }
 
     const bgImg = String(resolveTeamPrintBackground(activeTeam) || "").replaceAll("'", "%27");
-    const activeTheme = data.themes?.find((t) => t.id === data.activeThemeId) || null;
+    const activeTheme =
+      data.themes?.find((t) => t.id === activeTeam.themeId) ||
+      data.themes?.find((t) => t.id === data.activeThemeId) ||
+      null;
+    const app = activeTheme?.app || {};
 
-    const teamC = activeTheme?.app?.printTeamColor ?? activeTheme?.app?.primary ?? "#d32f2f";
-    const labelsC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
-    const lineupTitleC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
-    const numberBackgroundC = activeTheme?.app?.printText ?? activeTheme?.app?.text ?? "#111111";
-
-    const text = labelsC;
-
-    const numberC = activeTheme?.app?.printCardText ?? activeTheme?.app?.surface ?? "#ffffff";
-    const playerNameC = activeTheme?.app?.printCardText ?? activeTheme?.app?.surface ?? "#ffffff";
-    const leadershipBackgroundC = activeTheme?.app?.printLeader ?? activeTheme?.app?.accent ?? "#ffd54a";
+    const teamNameC = app.printTeamName ?? app.printTeamColor ?? app.primary ?? "#d32f2f";
+    const gameDetailsC = app.printGameDetails ?? app.printText ?? app.text ?? "#111111";
+    const cardBackgroundC = app.printCardBackground ?? app.printTeamColor ?? app.primary ?? "#d32f2f";
+    const numberBackgroundC = app.printNumberBackground ?? app.printText ?? app.text ?? "#111111";
+    const cardTextC = app.printCardText ?? app.surface ?? "#ffffff";
+    const leadershipBackgroundC =
+      app.printLeadershipBackground ?? app.printLeader ?? app.accent ?? app.leader ?? "#ffd54a";
+    const printFontFamily = resolvePrintFontFamily(app.printFontFamily);
+    const { fontStyle: printFontStyle, fontWeightRule } = resolvePrintFontStyle(app.printFontStyle);
 
     const teamName = escapeHtml(activeTeam.name);
     const lineupName = escapeHtml(activeLineup.name);
@@ -1638,8 +1675,10 @@ export default function Lineups({ data, setData }) {
             body {
               margin: 0;
               background: white;
-              font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-              color: ${text};
+              font-family: ${printFontFamily};
+              font-style: ${printFontStyle};
+              ${fontWeightRule}
+              color: ${gameDetailsC};
             }
 
             .bg {
@@ -1672,7 +1711,7 @@ export default function Lineups({ data, setData }) {
               font-weight: 900;
               font-size: 56px;
               letter-spacing: 0.5px;
-              color: ${teamC};
+              color: ${teamNameC};
               margin: 0;
             }
 
@@ -1681,7 +1720,7 @@ export default function Lineups({ data, setData }) {
               font-weight: 900;
               font-size: 28px;
               margin: 16px 0 30px;
-              color: ${lineupTitleC};
+              color: ${gameDetailsC};
             }
 
             .section {
@@ -1705,7 +1744,7 @@ export default function Lineups({ data, setData }) {
               height: var(--pillH);
               width: var(--pillW);
               border-radius: 999px;
-              background: ${teamC};
+              background: ${cardBackgroundC};
               display: flex;
               align-items: center;
               padding-left: var(--circle);
@@ -1722,7 +1761,7 @@ export default function Lineups({ data, setData }) {
               height: var(--circle);
               border-radius: 999px;
               background: ${numberBackgroundC};
-              color: ${numberC};
+              color: ${cardTextC};
               display: flex;
               align-items: center;
               justify-content: center;
@@ -1731,7 +1770,7 @@ export default function Lineups({ data, setData }) {
             }
 
             .pillName {
-              color: ${playerNameC};
+              color: ${cardTextC};
               font-weight: 900;
               font-size: 16px;
               white-space: nowrap;
@@ -1749,7 +1788,7 @@ export default function Lineups({ data, setData }) {
               height: var(--circle);
               border-radius: 999px;
               background: ${leadershipBackgroundC};
-              color: ${playerNameC};
+              color: ${cardTextC};
               display: flex;
               align-items: center;
               justify-content: center;

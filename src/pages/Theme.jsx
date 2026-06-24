@@ -9,6 +9,50 @@ import {
 
 const POSITIONS = ["Centre", "Wing", "Defender", "Goalie"];
 
+const DEFAULT_PRINT_FONT_FAMILY =
+  "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+
+const PRINT_FONT_FAMILIES = [
+  { label: "System UI", value: DEFAULT_PRINT_FONT_FAMILY },
+  { label: "Arial", value: "Arial, sans-serif" },
+  { label: "Verdana", value: "Verdana, sans-serif" },
+  { label: "Georgia", value: "Georgia, serif" },
+  { label: "Times New Roman", value: "'Times New Roman', Times, serif" },
+  { label: "Trebuchet MS", value: "'Trebuchet MS', sans-serif" },
+  { label: "Courier New", value: "'Courier New', monospace" },
+];
+
+const PRINT_FONT_STYLES = [
+  { label: "Normal", value: "normal" },
+  { label: "Bold", value: "bold" },
+  { label: "Italic", value: "italic" },
+  { label: "Bold Italic", value: "bold italic" },
+];
+
+function printFontStyleCss(value) {
+  const v = String(value || "normal").toLowerCase();
+  return {
+    fontWeight: v.includes("bold") ? 900 : undefined,
+    fontStyle: v.includes("italic") ? "italic" : "normal",
+  };
+}
+
+function printFontOptionStyle(fontFamily) {
+  return {
+    fontFamily,
+    fontStyle: "normal",
+    fontWeight: 400,
+  };
+}
+
+function printFontStyleOptionStyle(fontFamily, value) {
+  return {
+    fontFamily,
+    ...printFontStyleCss(value),
+    fontWeight: String(value || "").toLowerCase().includes("bold") ? 900 : 400,
+  };
+}
+
 export default function ThemePage({ data, setData, setPreviewThemeId }) {
   const activeTeam = useMemo(() => {
     return data.teams?.find((t) => t.id === data.activeTeamId) || null;
@@ -494,10 +538,15 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
   // error bubble (default red if missing)
   const uiErrorBubble = app.errorBubble ?? "#dc2626";
 
-  const printTeamColor = app.printTeamColor ?? app.primary ?? "#d32f2f";
-  const printText = app.printText ?? app.text ?? "#111111";
+  const printTeamName = app.printTeamName ?? app.printTeamColor ?? app.primary ?? "#d32f2f";
+  const printGameDetails = app.printGameDetails ?? app.printText ?? app.text ?? "#111111";
   const printCardText = app.printCardText ?? app.surface ?? "#ffffff";
-  const printLeader = app.printLeader ?? app.accent ?? "#ffd54a";
+  const printCardBackground = app.printCardBackground ?? app.printTeamColor ?? app.primary ?? "#d32f2f";
+  const printNumberBackground = app.printNumberBackground ?? app.printText ?? app.text ?? "#111111";
+  const printLeadershipBackground = app.printLeadershipBackground ?? app.printLeader ?? app.accent ?? "#ffd54a";
+  const printFontFamily = app.printFontFamily ?? DEFAULT_PRINT_FONT_FAMILY;
+  const printFontStyle = app.printFontStyle ?? "normal";
+  const printPreviewFontStyle = printFontStyleCss(printFontStyle);
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
@@ -664,14 +713,44 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
         </Card>
 
         <Card title="Colors for printing Lineups">
-          <ColorRow label="Team Color" value={printTeamColor} onChange={(v) => setAppColor("printTeamColor", v)} />
-          <ColorRow label="Number Background" value={printText} onChange={(v) => setAppColor("printText", v)} />
+          <ColorRow label="Team name" value={printTeamName} onChange={(v) => setAppColor("printTeamName", v)} />
+          <ColorRow label="Game details" value={printGameDetails} onChange={(v) => setAppColor("printGameDetails", v)} />
           <ColorRow
-            label="Players Cards Text"
+            label="Player Cards Text"
             value={printCardText}
             onChange={(v) => setAppColor("printCardText", v)}
           />
-          <ColorRow label="Leadership" value={printLeader} onChange={(v) => setAppColor("printLeader", v)} />
+          <ColorRow
+            label="Player Cards Background"
+            value={printCardBackground}
+            onChange={(v) => setAppColor("printCardBackground", v)}
+          />
+          <ColorRow
+            label="Number Background"
+            value={printNumberBackground}
+            onChange={(v) => setAppColor("printNumberBackground", v)}
+          />
+          <ColorRow
+            label="Leadership Background"
+            value={printLeadershipBackground}
+            onChange={(v) => setAppColor("printLeadershipBackground", v)}
+          />
+          <SelectRow
+            label="Print font"
+            value={printFontFamily}
+            options={PRINT_FONT_FAMILIES}
+            selectStyle={printFontOptionStyle(printFontFamily)}
+            getOptionStyle={(opt) => printFontOptionStyle(opt.value)}
+            onChange={(v) => setAppColor("printFontFamily", v)}
+          />
+          <SelectRow
+            label="Print font style"
+            value={printFontStyle}
+            options={PRINT_FONT_STYLES}
+            selectStyle={printFontStyleOptionStyle(printFontFamily, printFontStyle)}
+            getOptionStyle={(opt) => printFontStyleOptionStyle(printFontFamily, opt.value)}
+            onChange={(v) => setAppColor("printFontStyle", v)}
+          />
         </Card>
 
         <Card title="Preview">
@@ -718,12 +797,24 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
 
           <hr />
 
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 5, marginBottom: 10, fontSize: 14 }}>
-            <Badge text="Team" style={{ background: "white", color: "var(--printTeamColor)" }} />
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              flexWrap: "wrap",
+              marginTop: 5,
+              marginBottom: 10,
+              fontSize: 14,
+              fontFamily: printFontFamily,
+              ...printPreviewFontStyle,
+            }}
+          >
+            <Badge text="Team" style={{ background: "white", color: "var(--printTeamName)" }} />
+            <Badge text="Game" style={{ background: "white", color: "var(--printGameDetails)" }} />
             <Badge
               text="#99"
               style={{
-                background: "var(--printText)",
+                background: "var(--printNumberBackground)",
                 color: "var(--printCardText)",
                 marginRight: -40,
                 zIndex: 2,
@@ -734,7 +825,7 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
             <Badge
               text="Player Name"
               style={{
-                background: "var(--printTeamColor)",
+                background: "var(--printCardBackground)",
                 color: "var(--printCardText)",
                 paddingLeft: 35,
                 paddingRight: 35,
@@ -743,10 +834,8 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
             <Badge
               text="A"
               style={{
-                background: "transparent",
-                color: "var(--printLeader)",
-                borderRight: "2px solid var(--printLeader)",
-                borderLeft: "2px solid var(--printLeader)",
+                background: "var(--printLeadershipBackground)",
+                color: "var(--printCardText)",
                 paddingLeft: 14,
                 paddingRight: 14,
               }}
@@ -796,6 +885,40 @@ function ColorRow({ label, value, onChange }) {
         onChange={(e) => onChange(e.target.value)}
         style={{ width: 46, height: 32, border: "none", background: "transparent" }}
       />
+    </div>
+  );
+}
+
+function SelectRow({ label, value, options, onChange, selectStyle, getOptionStyle }) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr minmax(190px, 260px)",
+        alignItems: "center",
+        gap: 10,
+        padding: "6px 0",
+      }}
+    >
+      <div style={{ fontSize: 13, fontWeight: 800 }}>{label}</div>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          padding: "8px 10px",
+          borderRadius: 10,
+          border: "1px solid var(--border)",
+          background: "var(--surface)",
+          color: "var(--text)",
+          ...selectStyle,
+        }}
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value} style={getOptionStyle?.(opt)}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

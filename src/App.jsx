@@ -84,25 +84,37 @@ export default function App() {
     themes[0] ||
     null;
 
+  const appTheme = activeTheme?.app || {};
+
   const themeStyle = activeTheme
     ? {
         // legacy aliases (avoid undefined)
-        "--primary": activeTheme?.app?.buttons,
-        "--accent": activeTheme?.app?.leader,
+        "--primary": appTheme.buttons,
+        "--accent": appTheme.leader,
 
         // NEW vars
-        "--buttons": activeTheme?.app?.buttons,
-        "--leader": activeTheme?.app?.leader,
+        "--buttons": appTheme.buttons,
+        "--leader": appTheme.leader,
 
-        "--printTeamColor": activeTheme?.app?.printTeamColor,
-        "--printText": activeTheme?.app?.printText,
-        "--printCardText": activeTheme?.app?.printCardText,
-        "--printLeader": activeTheme?.app?.printLeader,
+        "--printTeamName": appTheme.printTeamName ?? appTheme.printTeamColor,
+        "--printGameDetails": appTheme.printGameDetails ?? appTheme.printText,
+        "--printCardText": appTheme.printCardText,
+        "--printCardBackground": appTheme.printCardBackground ?? appTheme.printTeamColor,
+        "--printNumberBackground": appTheme.printNumberBackground ?? appTheme.printText,
+        "--printLeadershipBackground": appTheme.printLeadershipBackground ?? appTheme.printLeader,
+        "--printFontFamily":
+          appTheme.printFontFamily ?? "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+        "--printFontStyle": appTheme.printFontStyle ?? "normal",
 
-        "--background": activeTheme?.app?.background,
-        "--surface": activeTheme?.app?.surface,
-        "--text": activeTheme?.app?.text,
-        "--border": activeTheme?.app?.border ?? "rgba(0,0,0,0.12)",
+        // legacy print vars kept while older preview styles still reference them
+        "--printTeamColor": appTheme.printTeamColor ?? appTheme.printCardBackground ?? appTheme.printTeamName,
+        "--printText": appTheme.printText ?? appTheme.printNumberBackground ?? appTheme.printGameDetails,
+        "--printLeader": appTheme.printLeader ?? appTheme.printLeadershipBackground,
+
+        "--background": appTheme.background,
+        "--surface": appTheme.surface,
+        "--text": appTheme.text,
+        "--border": appTheme.border ?? "rgba(0,0,0,0.12)",
 
         "--pos-centre": activeTheme?.positions?.Centre,
         "--pos-wing": activeTheme?.positions?.Wing,
