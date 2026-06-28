@@ -415,7 +415,8 @@ textarea:focus {
 
   /* Critical: allow grid/flex children to shrink */
   .rostersLayout *,
-  .lineupsLayout * {
+  .lineupsLayout *,
+  .themeLayout * {
     min-width: 0 !important;
     max-width: 100% !important;
   }

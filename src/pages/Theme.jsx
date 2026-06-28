@@ -549,7 +549,7 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
   const printPreviewFontStyle = printFontStyleCss(printFontStyle);
 
   return (
-    <div style={{ display: "grid", gap: 14 }}>
+    <div className="themeLayout" style={{ display: "grid", gap: 14 }}>
       <div style={{ display: "grid", gap: 10 }}>
         <div
           style={{
