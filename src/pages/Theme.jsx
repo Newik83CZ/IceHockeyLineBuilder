@@ -688,7 +688,7 @@ export default function ThemePage({ data, setData, setPreviewThemeId }) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(300px, 1fr)",
+          gridTemplateColumns: "1fr",
           gap: 10,
         }}
       >
@@ -894,17 +894,19 @@ function SelectRow({ label, value, options, onChange, selectStyle, getOptionStyl
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "1fr minmax(190px, 260px)",
+        gridTemplateColumns: "minmax(0, 1fr) minmax(130px, 200px)",
         alignItems: "center",
         gap: 10,
         padding: "6px 0",
+        minWidth: 0,
       }}
     >
-      <div style={{ fontSize: 13, fontWeight: 800 }}>{label}</div>
+      <div style={{ fontSize: 13, fontWeight: 800, minWidth: 0 }}>{label}</div>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         style={{
+          width: "100%",
           padding: "8px 10px",
           borderRadius: 10,
           border: "1px solid var(--border)",
